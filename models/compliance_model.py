@@ -85,7 +85,8 @@ class ComplianceModel:
             'Termly': ['termly.io', 'app.termly.io'],
             'Osano': ['osano.com', 'cmp.osano.com'],
             'Usercentrics': ['usercentrics.eu', 'app.usercentrics.eu'],
-            'Didomi': ['didomi.io', 'sdk.privacy-center.org']
+            'Didomi': ['didomi.io', 'sdk.privacy-center.org'],
+            'Sentry': ['sentry.io', 'browser.sentry-cdn.com']
         }
         
         scripts = self.soup.find_all('script')

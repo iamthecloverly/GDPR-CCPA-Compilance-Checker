@@ -383,16 +383,18 @@ with tab_history:
                 
                 with col1:
                     st.markdown("#### Compliance Score Trend")
-                    if trend_data['dates']:
+                    if trend_data['dates'] and len(trend_data['dates']) > 0:
                         chart_df = pd.DataFrame({
                             'Date': pd.to_datetime(trend_data['dates']),
                             'Overall Score': trend_data['scores']
                         })
                         st.line_chart(chart_df.set_index('Date'))
+                    else:
+                        st.info("No trend data available yet. Scan this website multiple times to see trends.")
                 
                 with col2:
                     st.markdown("#### Category Scores Trend")
-                    if trend_data['dates']:
+                    if trend_data['dates'] and len(trend_data['dates']) > 0:
                         category_chart_df = pd.DataFrame({
                             'Date': pd.to_datetime(trend_data['dates']),
                             'Cookie': trend_data['cookie_scores'],
@@ -400,6 +402,8 @@ with tab_history:
                             'Trackers': trend_data['tracker_scores']
                         })
                         st.line_chart(category_chart_df.set_index('Date'))
+                    else:
+                        st.info("No trend data available yet. Scan this website multiple times to see trends.")
                 
                 st.markdown("---")
                 st.markdown("#### Scan History Table")
