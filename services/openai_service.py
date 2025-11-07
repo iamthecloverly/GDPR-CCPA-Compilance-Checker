@@ -4,10 +4,28 @@ from openai import OpenAI
 import trafilatura
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = None
+
+
+def _get_openai_client():
+    global openai_client
+    if openai_client is None:
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY environment variable is not set")
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    return openai_client
 
 
 def analyze_privacy_policy(privacy_url: str) -> dict:
+    try:
+        client = _get_openai_client()
+    except ValueError as e:
+        return {
+            'error': 'AI analysis unavailable: OpenAI API key not configured',
+            'gdpr_compliant': False,
+            'ccpa_compliant': False
+        }
+    
     try:
         downloaded = trafilatura.fetch_url(privacy_url)
         if not downloaded:
@@ -48,7 +66,7 @@ Provide a JSON response with the following structure:
     "summary": "brief summary of compliance status"
 }}"""
 
-        response = openai_client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-5",
             messages=[
                 {
@@ -76,6 +94,13 @@ Provide a JSON response with the following structure:
 
 def get_compliance_recommendations(scan_results: dict) -> dict:
     try:
+        client = _get_openai_client()
+    except ValueError as e:
+        return {
+            'error': 'AI recommendations unavailable: OpenAI API key not configured'
+        }
+    
+    try:
         prompt = f"""Based on this website compliance scan, provide actionable recommendations for improving GDPR/CCPA compliance.
 
 Scan Results:
@@ -93,7 +118,7 @@ Provide a JSON response with:
     "overall_assessment": "brief overall assessment"
 }}"""
 
-        response = openai_client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-5",
             messages=[
                 {
