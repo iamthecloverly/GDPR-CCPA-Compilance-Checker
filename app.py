@@ -85,6 +85,17 @@ st.set_page_config(
     layout="wide"
 )
 
+# Hide Streamlit branding
+hide_streamlit_style = """
+    <style>
+    #MainMenu {display: none;}
+    footer {display: none;}
+    header {display: none;}
+    .stDeployButton {display: none;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 st.title("🔒 GDPR/CCPA Compliance Checker")
 st.markdown("Scan websites for privacy compliance gaps including cookie consent, trackers, and privacy policy completeness.")
 
@@ -531,8 +542,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666; padding: 20px;'>
-        <p><strong>GDPR/CCPA Compliance Checker</strong></p>
         <p style='font-size: 0.9em;'>This tool provides a preliminary compliance assessment. For legal compliance verification, consult with a privacy attorney.</p>
+        <p style='font-size: 1.1em; margin-top: 15px;'>Made with love ❤️ by Sribalaji</p>
     </div>
     """,
     unsafe_allow_html=True
