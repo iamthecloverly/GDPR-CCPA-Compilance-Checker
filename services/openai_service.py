@@ -67,7 +67,7 @@ Provide a JSON response with the following structure:
 }}"""
 
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4-turbo",
             messages=[
                 {
                     "role": "system",
@@ -82,7 +82,15 @@ Provide a JSON response with the following structure:
             max_completion_tokens=2048
         )
         
-        result = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        if not content or content.strip() == "":
+            return {
+                'error': 'AI returned empty response',
+                'gdpr_compliant': False,
+                'ccpa_compliant': False
+            }
+        
+        result = json.loads(content)
         return result
         
     except Exception as e:
@@ -119,7 +127,7 @@ Provide a JSON response with:
 }}"""
 
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4-turbo",
             messages=[
                 {
                     "role": "system",
@@ -134,7 +142,13 @@ Provide a JSON response with:
             max_completion_tokens=1500
         )
         
-        result = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        if not content or content.strip() == "":
+            return {
+                'error': 'AI returned empty response'
+            }
+        
+        result = json.loads(content)
         return result
         
     except Exception as e:

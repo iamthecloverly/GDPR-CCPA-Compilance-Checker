@@ -104,7 +104,7 @@ with tab_scan:
 
     with col2:
         st.markdown("<br>", unsafe_allow_html=True)
-        include_ai = st.checkbox("Include AI Analysis", value=True, help="Use OpenAI to analyze privacy policy content")
+        include_ai = st.checkbox("Include AI Analysis", value=False, help="Use OpenAI to analyze privacy policy content")
 
     scan_button = st.button("🔍 Scan Website", type="primary", use_container_width=True)
 
