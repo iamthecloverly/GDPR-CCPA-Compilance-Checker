@@ -1,6 +1,5 @@
 import streamlit as st
 from controllers.compliance_controller import ComplianceController
-import numpy as np
 from datetime import datetime
 import json
 from io import StringIO
