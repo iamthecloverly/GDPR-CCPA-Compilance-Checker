@@ -14,54 +14,40 @@ class ComplianceModel:
     def fetch_website(self) -> bool:
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
-            
-            # Try with verify=True first, then False if SSLError occurs
-            try:
-                response = requests.get(self.url, headers=headers, timeout=15, verify=True)
-            except requests.exceptions.SSLError:
-                response = requests.get(self.url, headers=headers, timeout=15, verify=False)
-                
+            response = requests.get(self.url, headers=headers, timeout=10)
             response.raise_for_status()
-            
-            # Handle encoding explicitly if needed, but requests usually does a good job
-            if response.encoding is None:
-                response.encoding = 'utf-8'
-                
             self.html = response.text
             self.soup = BeautifulSoup(self.html, 'lxml')
             return True
-            
         except requests.exceptions.ConnectionError as e:
             error_msg = str(e)
-            # Try adding www. if it's missing and connection failed
-            parsed = urlparse(self.url)
-            domain = parsed.netloc or parsed.path.split('/')[0]
-            
-            if not domain.startswith('www.') and 'Failed to resolve' in error_msg:
-                try:
-                    www_url = self.url.replace(f'://{domain}', f'://www.{domain}', 1)
-                    response = requests.get(www_url, headers=headers, timeout=15)
-                    response.raise_for_status()
-                    self.html = response.text
-                    self.soup = BeautifulSoup(self.html, 'lxml')
-                    self.url = www_url
-                    return True
-                except Exception:
-                    pass
-            
-            self.results['error'] = f"Unable to reach website: {error_msg}"
+            if 'Failed to resolve' in error_msg or 'Name or service not known' in error_msg:
+                parsed = urlparse(self.url)
+                domain = parsed.netloc or parsed.path.split('/')[0]
+                
+                if not domain.startswith('www.'):
+                    try:
+                        www_url = self.url.replace(f'://{domain}', f'://www.{domain}', 1)
+                        response = requests.get(www_url, headers=headers, timeout=10)
+                        response.raise_for_status()
+                        self.html = response.text
+                        self.soup = BeautifulSoup(self.html, 'lxml')
+                        self.url = www_url
+                        return True
+                    except Exception:
+                        pass
+                
+                self.results['error'] = f"Unable to reach {domain}. The domain may not exist or is not accessible. Try adding 'www.' to the domain."
+            else:
+                self.results['error'] = f"Connection failed: {error_msg}"
             return False
         except requests.exceptions.Timeout:
             self.results['error'] = "Request timed out. The website took too long to respond."
             return False
         except requests.exceptions.HTTPError as e:
-            self.results['error'] = f"HTTP Error {e.response.status_code}: {e.response.reason}"
+            self.results['error'] = f"HTTP Error {e.response.status_code}: The website returned an error."
             return False
         except Exception as e:
             self.results['error'] = f"Failed to fetch website: {str(e)}"

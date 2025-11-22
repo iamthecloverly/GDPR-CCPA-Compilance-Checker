@@ -1,0 +1,19 @@
+{
+  "builds": [
+    {
+      "src": "start.sh",
+      "use": "@vercel/static-build",
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.9",
+        "pip": "requirements.txt"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "start.sh"
+    }
+  ]
+}

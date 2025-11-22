@@ -1,34 +1,25 @@
 import json
 import os
-import re
 from openai import OpenAI
 import trafilatura
 
-def _get_openai_client():
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is not set")
-    return OpenAI(api_key=api_key)
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+openai_client = None
 
-def _clean_json_response(content: str) -> str:
-    """
-    Clean the response content to ensure it's valid JSON.
-    Removes markdown code blocks if present.
-    """
-    if not content:
-        return ""
-    
-    # Remove markdown code blocks
-    content = re.sub(r'^```json\s*', '', content, flags=re.MULTILINE)
-    content = re.sub(r'^```\s*', '', content, flags=re.MULTILINE)
-    content = re.sub(r'\s*```$', '', content, flags=re.MULTILINE)
-    
-    return content.strip()
+
+def _get_openai_client():
+    global openai_client
+    if openai_client is None:
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY environment variable is not set")
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    return openai_client
+
 
 def analyze_privacy_policy(privacy_url: str) -> dict:
     try:
         client = _get_openai_client()
-    except ValueError:
+    except ValueError as e:
         return {
             'error': 'AI analysis unavailable: OpenAI API key not configured',
             'gdpr_compliant': False,
@@ -51,7 +42,7 @@ def analyze_privacy_policy(privacy_url: str) -> dict:
                 'compliant': False
             }
         
-        truncated_text = text[:15000]  # Increased limit for gpt-4o
+        truncated_text = text[:8000]
         
         prompt = f"""Analyze this privacy policy for GDPR and CCPA compliance. 
 
@@ -76,7 +67,7 @@ Provide a JSON response with the following structure:
 }}"""
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4-turbo",
             messages=[
                 {
                     "role": "system",
@@ -92,16 +83,14 @@ Provide a JSON response with the following structure:
         )
         
         content = response.choices[0].message.content
-        cleaned_content = _clean_json_response(content)
-        
-        if not cleaned_content:
+        if not content or content.strip() == "":
             return {
                 'error': 'AI returned empty response',
                 'gdpr_compliant': False,
                 'ccpa_compliant': False
             }
         
-        result = json.loads(cleaned_content)
+        result = json.loads(content)
         return result
         
     except Exception as e:
@@ -114,26 +103,20 @@ Provide a JSON response with the following structure:
 def get_compliance_recommendations(scan_results: dict) -> dict:
     try:
         client = _get_openai_client()
-    except ValueError:
+    except ValueError as e:
         return {
             'error': 'AI recommendations unavailable: OpenAI API key not configured'
         }
     
     try:
-        # Safely extract values with defaults
-        cookie_banner = scan_results.get('cookie_banner', {})
-        tracking = scan_results.get('tracking_scripts', {})
-        privacy = scan_results.get('privacy_policy', {})
-        contact = scan_results.get('contact_info', {})
-        
         prompt = f"""Based on this website compliance scan, provide actionable recommendations for improving GDPR/CCPA compliance.
 
 Scan Results:
-- Cookie Banner Detected: {cookie_banner.get('detected', False)}
-- Tracking Scripts Found: {tracking.get('total_trackers', 0)}
-- Trackers: {', '.join(tracking.get('tracker_names', []))}
-- Privacy Policy Found: {privacy.get('found', False)}
-- Contact Information: {contact.get('detected', False)}
+- Cookie Banner Detected: {scan_results.get('cookie_banner', {}).get('detected', False)}
+- Tracking Scripts Found: {scan_results.get('tracking_scripts', {}).get('total_trackers', 0)}
+- Trackers: {', '.join(scan_results.get('tracking_scripts', {}).get('tracker_names', []))}
+- Privacy Policy Found: {scan_results.get('privacy_policy', {}).get('found', False)}
+- Contact Information: {scan_results.get('contact_info', {}).get('detected', False)}
 
 Provide a JSON response with:
 {{
@@ -144,7 +127,7 @@ Provide a JSON response with:
 }}"""
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4-turbo",
             messages=[
                 {
                     "role": "system",
@@ -160,14 +143,12 @@ Provide a JSON response with:
         )
         
         content = response.choices[0].message.content
-        cleaned_content = _clean_json_response(content)
-        
-        if not cleaned_content:
+        if not content or content.strip() == "":
             return {
                 'error': 'AI returned empty response'
             }
         
-        result = json.loads(cleaned_content)
+        result = json.loads(content)
         return result
         
     except Exception as e:
