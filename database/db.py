@@ -1,19 +1,31 @@
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
-
+if DATABASE_URL:
+    # Remove channel_binding for SQLAlchemy compatibility
+    db_url = DATABASE_URL.replace("&channel_binding=require", "").replace("?channel_binding=require", "")
+    
+    engine = create_engine(
+        db_url,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        connect_args={"sslmode": "require"}
+    )
+    SessionLocal = sessionmaker(bind=engine)
+else:
+    engine = None
+    SessionLocal = None
 
 @contextmanager
 def get_db():
+    if SessionLocal is None:
+        yield None
+        return
+    
     db = SessionLocal()
     try:
         yield db
@@ -24,6 +36,7 @@ def get_db():
     finally:
         db.close()
 
-
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    if engine:
+        from database.models import Base
+        Base.metadata.create_all(bind=engine)
