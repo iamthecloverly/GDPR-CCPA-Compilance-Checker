@@ -1,12 +1,14 @@
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from contextlib import contextmanager
+
+# Create Base here, don't import from models
+Base = declarative_base()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # Remove channel_binding for SQLAlchemy compatibility
     db_url = DATABASE_URL.replace("&channel_binding=require", "").replace("?channel_binding=require", "")
     
     engine = create_engine(
@@ -38,5 +40,6 @@ def get_db():
 
 def init_db():
     if engine:
-        from database.models import Base
+        # Import models here to avoid circular import
+        from database.models import ComplianceScan
         Base.metadata.create_all(bind=engine)
