@@ -18,9 +18,12 @@ try:
     if os.getenv("DATABASE_URL"):
         init_db()
         DB_AVAILABLE = True
+        st.sidebar.success("✅ Database connected")
 except Exception as e:
-    st.sidebar.warning(f"Running without database: {str(e)}")
-
+    DB_AVAILABLE = False
+    st.sidebar.warning(f"⚠️ Running without database")
+    st.sidebar.caption(f"Error: {str(e)}")
+    
 # Import operations after database initialization
 try:
     from database.operations import (
