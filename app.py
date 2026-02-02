@@ -195,12 +195,12 @@ with tab2:
                         history_data = []
                         for scan in history:
                             history_data.append({
-                                "Date": scan.scan_date.strftime("%Y-%m-%d %H:%M"),
-                                "Score": scan.score,
-                                "Grade": scan.grade,
-                                "Status": scan.status,
-                                "Cookie Consent": scan.cookie_consent,
-                                "Privacy Policy": scan.privacy_policy
+                                "Date": scan['scan_date'].strftime("%Y-%m-%d %H:%M"),
+                                "Score": scan['score'],
+                                "Grade": scan['grade'],
+                                "Status": scan['status'],
+                                "Cookie Consent": scan['cookie_consent'],
+                                "Privacy Policy": scan['privacy_policy']
                             })
                         
                         df = pd.DataFrame(history_data)
@@ -219,7 +219,7 @@ with tab2:
             st.error(f"Error loading history: {str(e)}")
             with st.expander("Error Details"):
                 st.code(traceback.format_exc())
-
+                
 # Tab 3: Batch Scan
 with tab3:
     st.header("Batch Scan")
