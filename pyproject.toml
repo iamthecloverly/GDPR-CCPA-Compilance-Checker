@@ -1,8 +1,8 @@
 [project]
-name = "repl-nix-workspace"
+name = "gdpr-ccpa-compliance-checker"
 version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.9"
+description = "GDPR/CCPA Compliance Checker"
+requires-python = ">=3.10"
 dependencies = [
     "beautifulsoup4>=4.14.2",
     "lxml>=6.0.2",
@@ -14,8 +14,6 @@ dependencies = [
     "trafilatura>=2.0.0",
 ]
 
-[tool.setuptools]
-packages = ["models", "database", "services", "controllers"]
-
-[tool.poetry.dependencies]
-python = ">=3.10"
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
