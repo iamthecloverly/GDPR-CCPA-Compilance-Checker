@@ -1,115 +1,121 @@
 from models.compliance_model import ComplianceModel
-from services.openai_service import analyze_privacy_policy, get_compliance_recommendations
-from typing import Dict
-
+from services.openai_service import OpenAIService
 
 class ComplianceController:
-    def __init__(self, url: str):
-        self.url = url
-        self.model = ComplianceModel(url)
-        self.results = {}
+    """Controller for handling compliance scanning operations"""
     
-    def run_scan(self, include_ai_analysis: bool = True) -> Dict:
-        self.results = self.model.run_all()
-        
-        if 'error' in self.results:
-            return self.results
-        
-        if include_ai_analysis:
-            privacy_policy = self.results.get('privacy_policy', {})
-            
-            if privacy_policy.get('found') and privacy_policy.get('links'):
-                policy_url = privacy_policy['links'][0]['url']
-                
-                ai_analysis = analyze_privacy_policy(policy_url)
-                self.results['policy_analysis'] = ai_analysis
-            else:
-                self.results['policy_analysis'] = {
-                    'error': 'No privacy policy found to analyze',
-                    'gdpr_compliant': False,
-                    'ccpa_compliant': False
-                }
-            
-            recommendations = get_compliance_recommendations(self.results)
-            self.results['recommendations'] = recommendations
-        
-        self.results['compliance_summary'] = self._calculate_compliance_summary()
-        
-        return self.results
+    def __init__(self):
+        self.model = ComplianceModel()
+        self.openai_service = OpenAIService()
     
-    def _calculate_compliance_summary(self) -> Dict:
-        weights = {
-            'cookie_consent': 0.30,
-            'privacy_policy': 0.40,
-            'trackers': 0.20,
-            'contact_info': 0.10
-        }
+    def scan_website(self, url):
+        """
+        Perform a comprehensive compliance scan on a website
         
-        scores = {}
+        Args:
+            url: The website URL to scan
+            
+        Returns:
+            dict: Scan results with score, grade, and details
+        """
+        try:
+            # Fetch and analyze the webpage
+            results = self.model.analyze_compliance(url)
+            
+            # Calculate compliance score
+            score = self._calculate_score(results)
+            grade = self._calculate_grade(score)
+            status = self._determine_status(score)
+            
+            return {
+                "score": score,
+                "grade": grade,
+                "status": status,
+                "cookie_consent": results.get("cookie_consent", "Not Found"),
+                "privacy_policy": results.get("privacy_policy", "Not Found"),
+                "contact_info": results.get("contact_info", "Not Found"),
+                "trackers": results.get("trackers", []),
+                "details": results
+            }
+            
+        except Exception as e:
+            raise Exception(f"Scan failed: {str(e)}")
+    
+    def _calculate_score(self, results):
+        """Calculate compliance score based on findings"""
+        score = 0
         
-        cookie_banner = self.results.get('cookie_banner', {})
-        if cookie_banner.get('detected'):
-            scores['cookie_consent'] = 100
+        # Cookie consent (30 points)
+        if "Found" in results.get("cookie_consent", ""):
+            score += 30
+        
+        # Privacy policy (30 points)
+        if "Found" in results.get("privacy_policy", ""):
+            score += 30
+        
+        # Contact information (20 points)
+        if "Found" in results.get("contact_info", ""):
+            score += 20
+        
+        # Tracker penalty (up to 20 points deduction)
+        trackers = results.get("trackers", [])
+        if len(trackers) == 0:
+            score += 20
+        elif len(trackers) <= 3:
+            score += 15
+        elif len(trackers) <= 5:
+            score += 10
+        elif len(trackers) <= 10:
+            score += 5
+        # More than 10 trackers = 0 points
+        
+        return min(100, max(0, score))
+    
+    def _calculate_grade(self, score):
+        """Convert score to letter grade"""
+        if score >= 90:
+            return "A"
+        elif score >= 80:
+            return "B"
+        elif score >= 70:
+            return "C"
+        elif score >= 60:
+            return "D"
         else:
-            scores['cookie_consent'] = 0
-        
-        privacy_policy = self.results.get('privacy_policy', {})
-        policy_analysis = self.results.get('policy_analysis', {})
-        
-        if privacy_policy.get('found'):
-            if not policy_analysis.get('error'):
-                ai_score = policy_analysis.get('overall_compliance_score', 0)
-                scores['privacy_policy'] = ai_score
-            else:
-                scores['privacy_policy'] = 50
+            return "F"
+    
+    def _determine_status(self, score):
+        """Determine compliance status"""
+        if score >= 80:
+            return "Compliant"
+        elif score >= 60:
+            return "Needs Improvement"
         else:
-            scores['privacy_policy'] = 0
+            return "Non-Compliant"
+    
+    def batch_scan(self, urls):
+        """
+        Scan multiple URLs
         
-        tracking = self.results.get('tracking_scripts', {})
-        total_trackers = tracking.get('total_trackers', 0)
-        if total_trackers == 0:
-            scores['trackers'] = 100
-        elif total_trackers <= 3:
-            scores['trackers'] = 70
-        elif total_trackers <= 6:
-            scores['trackers'] = 40
-        else:
-            scores['trackers'] = 20
+        Args:
+            urls: List of URLs to scan
+            
+        Returns:
+            list: List of scan results
+        """
+        results = []
+        for url in urls:
+            try:
+                result = self.scan_website(url)
+                result["url"] = url
+                results.append(result)
+            except Exception as e:
+                results.append({
+                    "url": url,
+                    "error": str(e),
+                    "score": 0,
+                    "grade": "F",
+                    "status": "Error"
+                })
         
-        contact_info = self.results.get('contact_info', {})
-        if contact_info.get('detected'):
-            scores['contact_info'] = 100
-        else:
-            scores['contact_info'] = 0
-        
-        weighted_score = sum(scores[key] * weights[key] for key in weights.keys())
-        
-        if weighted_score >= 75:
-            status = 'Excellent'
-            color = 'green'
-            grade = 'A'
-        elif weighted_score >= 65:
-            status = 'Good'
-            color = 'green'
-            grade = 'B'
-        elif weighted_score >= 50:
-            status = 'Fair'
-            color = 'orange'
-            grade = 'C'
-        elif weighted_score >= 35:
-            status = 'Poor'
-            color = 'orange'
-            grade = 'D'
-        else:
-            status = 'Critical'
-            color = 'red'
-            grade = 'F'
-        
-        return {
-            'weighted_score': round(weighted_score, 1),
-            'category_scores': scores,
-            'weights': weights,
-            'status': status,
-            'color': color,
-            'grade': grade
-        }
+        return results
