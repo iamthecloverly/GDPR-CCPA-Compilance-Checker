@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from contextlib import contextmanager
 
@@ -42,21 +42,47 @@ def get_db():
 def init_db():
     """Initialize database tables"""
     if engine:
-        # Import models here to avoid circular import at module level
-        from database.models import ComplianceScan
-        
-        # Check if table exists and has correct schema
-        inspector = inspect(engine)
-        if inspector.has_table("compliance_scans"):
-            # Drop the old table (WARNING: This deletes all data)
-            Base.metadata.drop_all(bind=engine)
-        
-        # Create new table with correct schema
-        Base.metadata.create_all(bind=engine)
+        try:
+            # Import models here to avoid circular import at module level
+            from database.models import ComplianceScan
+            
+            # Check if table exists
+            inspector = inspect(engine)
+            
+            if inspector.has_table("compliance_scans"):
+                # Check if table has correct columns
+                columns = [col['name'] for col in inspector.get_columns("compliance_scans")]
+                required_columns = ['id', 'url', 'score', 'grade', 'status', 
+                                   'cookie_consent', 'privacy_policy', 'contact_info', 
+                                   'trackers', 'scan_date', 'ai_analysis']
+                
+                # If schema is incorrect, drop and recreate
+                if not all(col in columns for col in required_columns):
+                    with engine.connect() as conn:
+                        conn.execute(text("DROP TABLE IF EXISTS compliance_scans CASCADE"))
+                        conn.commit()
+                    Base.metadata.create_all(bind=engine)
+            else:
+                # Table doesn't exist, create it
+                Base.metadata.create_all(bind=engine)
+                
+        except Exception as e:
+            # If any error, try to create fresh
+            Base.metadata.create_all(bind=engine)
 
 def reset_db():
     """Reset database - drops all tables and recreates them"""
     if engine:
-        from database.models import ComplianceScan
-        Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
+        try:
+            from database.models import ComplianceScan
+            
+            # Use raw SQL to drop table if exists
+            with engine.connect() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS compliance_scans CASCADE"))
+                conn.commit()
+            
+            # Create new table
+            Base.metadata.create_all(bind=engine)
+            
+        except Exception as e:
+            raise Exception(f"Failed to reset database: {str(e)}")
