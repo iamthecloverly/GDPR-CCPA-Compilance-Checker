@@ -6,6 +6,15 @@ from datetime import datetime
 from urllib.parse import urlparse
 import pandas as pd
 
+# Import configuration and validation
+from config import Config
+from logger_config import setup_logging, get_logger
+from validators import validate_url, validate_batch_urls, InvalidURLError, ValidationError
+from exceptions import (
+    ComplianceCheckerError, ScanError, NetworkError, 
+    DatabaseError, AIServiceError, ConfigurationError
+)
+
 # Page config
 st.set_page_config(
     page_title="GDPR/CCPA Compliance Checker",
@@ -298,18 +307,25 @@ def safe_filename_from_url(url: str) -> str:
     except Exception:
         return "report"
 
+# Initialize logging
+setup_logging(log_level="INFO")
+logger = get_logger(__name__)
+DEBUG = Config.DEBUG
+
 # Initialize database
 DB_AVAILABLE = False
 try:
     from database.db import init_db
-    if os.getenv("DATABASE_URL"):
+    if Config.DATABASE_URL:
         init_db()
         DB_AVAILABLE = True
+        logger.info("Database initialized successfully")
+except DatabaseError as e:
+    DB_AVAILABLE = False
+    logger.error(f"Database initialization failed: {e}")
 except Exception as e:
     DB_AVAILABLE = False
-    if DEBUG:
-        st.sidebar.caption(f"Error: {str(e)}")
-    logger.exception("Database initialization failed")
+    logger.exception("Unexpected error during database initialization")
     
 # Import operations after database initialization
 try:
@@ -447,26 +463,53 @@ with tab1:
     )
 
     if submitted:
-        url = normalize_url(raw_url, assume_https=assume_https)
-        if not url:
+        if not raw_url or not raw_url.strip():
             st.error("Please enter a URL")
-        elif not is_valid_url(url):
-            st.error("Please enter a valid URL (http:// or https://)")
         else:
-            with st.spinner("Scanning website..."):
-                try:
-                    results = controller.scan_website(url)
-                    st.session_state["last_results"] = {
-                        "url": url,
-                        "results": results
-                    }
-                except Exception as e:
-                    logger.exception("Scan failed")
-                    st.error("Scan failed. Please try again or check the URL.")
-                    st.info("Tip: Some sites block automated requests. Try again later.")
-                    if DEBUG:
-                        with st.expander("Error Details"):
-                            st.code(traceback.format_exc())
+            try:
+                # Validate URL
+                is_valid, url = validate_url(raw_url)
+                
+                with st.spinner("Scanning website..."):
+                    try:
+                        results = controller.scan_website(url)
+                        st.session_state["last_results"] = {
+                            "url": url,
+                            "results": results
+                        }
+                        logger.info(f"Successful scan for {url}")
+                    except NetworkError as e:
+                        st.error(f"Network error: {str(e)}")
+                        st.info("Tip: Some sites block automated requests. Try again later.")
+                        logger.warning(f"Network error during scan: {e}")
+                        if DEBUG:
+                            with st.expander("Error Details"):
+                                st.code(str(e))
+                    except ScanError as e:
+                        st.error(f"Scan error: {str(e)}")
+                        logger.error(f"Scan failed: {e}")
+                        if DEBUG:
+                            with st.expander("Error Details"):
+                                st.code(traceback.format_exc())
+                    except ComplianceCheckerError as e:
+                        st.error(f"Application error: {str(e)}")
+                        logger.error(f"Compliance checker error: {e}")
+                        if DEBUG:
+                            with st.expander("Error Details"):
+                                st.code(traceback.format_exc())
+                    except Exception as e:
+                        st.error("Unexpected error during scan. Please try again.")
+                        logger.exception("Unexpected error during scan")
+                        if DEBUG:
+                            with st.expander("Error Details"):
+                                st.code(traceback.format_exc())
+                                
+            except InvalidURLError as e:
+                st.error(f"Invalid URL: {str(e)}")
+                logger.warning(f"Invalid URL provided: {e}")
+            except Exception as e:
+                st.error(f"Error processing URL: {str(e)}")
+                logger.error(f"URL processing error: {e}")
 
     if st.session_state.get("last_results"):
         url = st.session_state["last_results"]["url"]
@@ -625,55 +668,65 @@ with tab3:
     
     if st.button("Scan All URLs", type="primary"):
         raw_urls = [url.strip() for url in urls_input.split("\n") if url.strip()]
-        normalized_urls = [normalize_url(u, assume_https=assume_https) for u in raw_urls]
-        urls = []
-        invalid_urls = []
-
-        for url in normalized_urls:
-            if is_valid_url(url):
-                urls.append(url)
-            else:
-                invalid_urls.append(url)
-
-        # Deduplicate while preserving order
-        urls = list(dict.fromkeys(urls))
-
-        if not urls:
-            st.error("Please enter at least one valid URL")
-            if invalid_urls:
-                with st.expander("Invalid URLs"):
-                    st.write("\n".join(invalid_urls))
-        elif len(urls) > 10:
-            st.error("Maximum 10 URLs allowed")
+        
+        if not raw_urls:
+            st.error("Please enter at least one URL")
         else:
-            if invalid_urls:
-                st.warning("Some URLs were invalid and will be skipped.")
-                with st.expander("Invalid URLs"):
-                    st.write("\n".join(invalid_urls))
+            try:
+                # Validate batch of URLs
+                valid_urls, invalid_urls = validate_batch_urls(raw_urls)
+                
+                # Deduplicate while preserving order
+                valid_urls = list(dict.fromkeys(valid_urls))
+                
+                if len(valid_urls) > Config.BATCH_SCAN_LIMIT:
+                    st.error(f"Maximum {Config.BATCH_SCAN_LIMIT} URLs allowed")
+                else:
+                    if invalid_urls:
+                        st.warning(f"{len(invalid_urls)} URLs were invalid and will be skipped.")
+                        with st.expander("Invalid URLs"):
+                            for item in invalid_urls:
+                                st.write(f"- {item['url']}: {item['error']}")
 
-            results_list = []
-            progress_bar = st.progress(0)
-            status_text = st.empty()
+                    results_list = []
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
 
-            for i, url in enumerate(urls):
-                status_text.text(f"Scanning {i+1}/{len(urls)}: {url}")
+                    for i, url in enumerate(valid_urls):
+                        status_text.text(f"Scanning {i+1}/{len(valid_urls)}: {url}")
 
-                try:
-                    result = controller.scan_website(url)
-                    result["url"] = url
-                    results_list.append(result)
-
-                    if DB_AVAILABLE:
                         try:
-                            save_scan_result(url, result)
-                        except Exception:
-                            logger.exception("Batch save failed")
-                except Exception as e:
-                    st.warning(f"Failed to scan {url}: {str(e)}")
+                            result = controller.scan_website(url)
+                            result["url"] = url
+                            results_list.append(result)
 
-                progress_bar.progress((i + 1) / len(urls))
+                            if DB_AVAILABLE:
+                                try:
+                                    save_scan_result(url, result)
+                                    logger.info(f"Saved batch scan result for {url}")
+                                except DatabaseError as e:
+                                    logger.error(f"Failed to save batch result: {e}")
+                                except Exception as e:
+                                    logger.exception("Unexpected error saving batch result")
+                        except NetworkError as e:
+                            st.warning(f"Network error scanning {url}: {str(e)}")
+                            logger.warning(f"Network error in batch scan: {e}")
+                        except ScanError as e:
+                            st.warning(f"Scan error for {url}: {str(e)}")
+                            logger.error(f"Scan error in batch: {e}")
+                        except Exception as e:
+                            st.warning(f"Failed to scan {url}: {str(e)}")
+                            logger.error(f"Unexpected error in batch scan: {e}")
 
-            status_text.text("✅ Batch scan complete!")
+                        progress_bar.progress((i + 1) / len(valid_urls))
+
+                    status_text.text("✅ Batch scan complete!")
+            except ValidationError as e:
+                st.error(f"Validation error: {str(e)}")
+                logger.error(f"Batch validation error: {e}")
+            except Exception as e:
+                st.error(f"Error processing batch: {str(e)}")
+                logger.error(f"Unexpected error in batch processing: {e}")
             
             # Display results
             if results_list:

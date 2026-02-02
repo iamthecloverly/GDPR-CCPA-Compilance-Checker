@@ -1,49 +1,126 @@
+"""
+Compliance Model Module
+
+This module provides web scraping and analysis capabilities for detecting GDPR/CCPA
+compliance indicators on websites. It uses BeautifulSoup4 for HTML parsing and 
+requests with retry logic for robust HTTP requests.
+
+Classes:
+    ComplianceModel: Main class for analyzing website compliance
+
+Key Features:
+    - HTTP retry logic with exponential backoff
+    - Connection pooling for performance
+    - Detection of cookie consent banners
+    - Privacy policy link detection
+    - Contact information detection (email, phone)
+    - Third-party tracker identification
+    
+Example:
+    >>> model = ComplianceModel()
+    >>> results = model.analyze_compliance('https://example.com')
+    >>> print(f"Cookie consent: {results['cookie_consent']}")
+"""
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import re
+from typing import Dict, List, Optional
+import logging
+
+from config import Config
+from constants import (
+    COOKIE_KEYWORDS, PRIVACY_KEYWORDS, TRACKING_DOMAINS,
+    EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
+)
+from exceptions import NetworkError, ScanError
+
+logger = logging.getLogger(__name__)
 
 class ComplianceModel:
-    """Model for analyzing website compliance indicators"""
+    """
+    Model for analyzing website compliance indicators.
+    
+    Performs web scraping to detect GDPR/CCPA compliance elements including
+    cookie consent banners, privacy policies, contact information, and trackers.
+    
+    Attributes:
+        timeout: Request timeout in seconds
+        headers: HTTP headers for requests
+        session: Persistent HTTP session with retry logic
+    """
     
     def __init__(self):
-        self.timeout = 10
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        self.session = requests.Session()
+        """Initialize the compliance model with configured session."""
+        self.timeout = Config.REQUEST_TIMEOUT
+        self.headers = {"User-Agent": USER_AGENT}
+        self.session = self._create_session()
+    
+    def _create_session(self) -> requests.Session:
+        """
+        Create a requests session with retry logic and connection pooling.
+        
+        Returns:
+            Configured requests.Session with HTTPAdapter and Retry strategy.
+        """
+        session = requests.Session()
         retries = Retry(
-            total=3,
-            backoff_factor=0.5,
+            total=Config.MAX_RETRIES,
+            backoff_factor=Config.BACKOFF_FACTOR,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["GET", "HEAD"]
         )
-        self.session.mount("http://", HTTPAdapter(max_retries=retries))
-        self.session.mount("https://", HTTPAdapter(max_retries=retries))
+        session.mount("http://", HTTPAdapter(max_retries=retries))
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        return session
 
     def _get_html(self, url: str) -> bytes:
-        response = self.session.get(
-            url,
-            timeout=self.timeout,
-            headers=self.headers,
-            allow_redirects=True
-        )
-        response.raise_for_status()
-        content_type = response.headers.get("Content-Type", "")
-        if "text/html" not in content_type:
-            raise Exception("URL did not return HTML content")
-        return response.content
-    
-    def analyze_compliance(self, url):
         """
-        Analyze a website for compliance indicators
+        Fetch HTML content from a URL.
         
         Args:
-            url: The website URL
+            url: The URL to fetch
             
         Returns:
-            dict: Compliance findings
+            Raw HTML content as bytes
+            
+        Raises:
+            NetworkError: If the request fails or doesn't return HTML
+        """
+        try:
+            response = self.session.get(
+                url,
+                timeout=self.timeout,
+                headers=self.headers,
+                allow_redirects=True
+            )
+            response.raise_for_status()
+            content_type = response.headers.get("Content-Type", "")
+            if "text/html" not in content_type:
+                raise NetworkError(f"URL did not return HTML content (got {content_type})")
+            return response.content
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to fetch URL {url}: {e}")
+            raise NetworkError(f"Failed to fetch URL: {str(e)}") from e
+    
+    def analyze_compliance(self, url: str) -> Dict[str, any]:
+        """
+        Analyze a website for compliance indicators.
+        
+        Args:
+            url: The website URL to analyze
+            
+        Returns:
+            Dictionary containing compliance findings:
+                - cookie_consent: Cookie banner detection result
+                - privacy_policy: Privacy policy detection result
+                - contact_info: Contact information detection result
+                - trackers: List of detected tracking domains
+                
+        Raises:
+            ScanError: If analysis fails
         """
         try:
             # Fetch webpage
@@ -57,22 +134,27 @@ class ComplianceModel:
                 "trackers": self._detect_trackers(soup)
             }
             
+            logger.info(f"Successfully analyzed {url}")
             return results
             
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Failed to fetch URL: {str(e)}")
+        except NetworkError:
+            raise
         except Exception as e:
-            raise Exception(f"Analysis error: {str(e)}")
+            logger.error(f"Analysis error for {url}: {e}")
+            raise ScanError(f"Analysis error: {str(e)}") from e
     
-    def _check_cookie_consent(self, soup):
-        """Check for cookie consent banner"""
-        cookie_keywords = [
-            "cookie", "consent", "privacy notice", "we use cookies",
-            "accept cookies", "cookie policy", "cookie banner"
-        ]
+    def _check_cookie_consent(self, soup: BeautifulSoup) -> str:
+        """
+        Check for cookie consent banner.
         
+        Args:
+            soup: BeautifulSoup object of the page
+            
+        Returns:
+            Status string indicating whether cookie consent was found
+        """
         # Check for common cookie banner elements
-        for keyword in cookie_keywords:
+        for keyword in COOKIE_KEYWORDS:
             # Check in text content
             if soup.find(string=re.compile(keyword, re.IGNORECASE)):
                 return "Found - Cookie consent detected"
@@ -86,10 +168,17 @@ class ComplianceModel:
         
         return "Not Found - No cookie consent banner detected"
     
-    def _check_privacy_policy(self, soup, base_url):
-        """Check for privacy policy link"""
-        privacy_keywords = ["privacy", "privacy policy", "privacy notice", "data protection"]
+    def _check_privacy_policy(self, soup: BeautifulSoup, base_url: str) -> str:
+        """
+        Check for privacy policy link.
         
+        Args:
+            soup: BeautifulSoup object of the page
+            base_url: Base URL of the website
+            
+        Returns:
+            Status string indicating whether privacy policy was found
+        """
         # Look for links containing privacy keywords
         all_links = soup.find_all("a", href=True)
         
@@ -97,24 +186,26 @@ class ComplianceModel:
             link_text = link.get_text().lower()
             href = link.get("href", "").lower()
             
-            for keyword in privacy_keywords:
+            for keyword in PRIVACY_KEYWORDS:
                 if keyword in link_text or keyword in href:
                     return "Found - Privacy policy link detected"
         
         return "Not Found - No privacy policy link detected"
     
-    def _check_contact_info(self, soup):
-        """Check for contact information"""
-        # Email pattern
-        email_pattern = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+    def _check_contact_info(self, soup: BeautifulSoup) -> str:
+        """
+        Check for contact information.
         
-        # Phone pattern (simple)
-        phone_pattern = re.compile(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\b\+?\d{1,3}[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}\b')
-        
+        Args:
+            soup: BeautifulSoup object of the page
+            
+        Returns:
+            Status string with details of found contact information
+        """
         page_text = soup.get_text()
         
-        has_email = bool(email_pattern.search(page_text))
-        has_phone = bool(phone_pattern.search(page_text))
+        has_email = bool(EMAIL_PATTERN.search(page_text))
+        has_phone = bool(PHONE_PATTERN.search(page_text))
         
         # Check for contact page link
         contact_link = soup.find("a", href=True, string=re.compile("contact", re.IGNORECASE))
@@ -132,35 +223,24 @@ class ComplianceModel:
         
         return "Not Found - No contact information detected"
     
-    def _detect_trackers(self, soup):
-        """Detect third-party tracking scripts"""
-        trackers = []
+    def _detect_trackers(self, soup: BeautifulSoup) -> List[str]:
+        """
+        Detect third-party tracking scripts.
         
-        # Common tracking domains
-        tracking_domains = [
-            "google-analytics.com",
-            "googletagmanager.com",
-            "facebook.net",
-            "doubleclick.net",
-            "scorecardresearch.com",
-            "quantserve.com",
-            "hotjar.com",
-            "mouseflow.com",
-            "crazyegg.com",
-            "inspectlet.com",
-            "hubspot.com",
-            "mixpanel.com",
-            "segment.com",
-            "amplitude.com",
-            "heap.io"
-        ]
+        Args:
+            soup: BeautifulSoup object of the page
+            
+        Returns:
+            List of detected tracking domains
+        """
+        trackers = []
         
         # Check script tags
         scripts = soup.find_all("script", src=True)
         
         for script in scripts:
             src = script.get("src", "")
-            for domain in tracking_domains:
+            for domain in TRACKING_DOMAINS:
                 if domain in src:
                     if domain not in trackers:
                         trackers.append(domain)
@@ -169,7 +249,7 @@ class ComplianceModel:
         inline_scripts = soup.find_all("script", src=False)
         for script in inline_scripts:
             script_content = script.string or ""
-            for domain in tracking_domains:
+            for domain in TRACKING_DOMAINS:
                 if domain in script_content:
                     if domain not in trackers:
                         trackers.append(domain)

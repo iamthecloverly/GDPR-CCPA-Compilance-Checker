@@ -1,4 +1,32 @@
+"""
+OpenAI Service Module
+
+This module provides AI-powered privacy policy analysis using OpenAI's GPT models.
+It integrates with the compliance scanning pipeline to offer intelligent insights
+about GDPR/CCPA compliance.
+
+Classes:
+    OpenAIService: Main service for AI-powered analysis
+
+Features:
+    - Privacy policy fetching from websites
+    - GDPR/CCPA compliance analysis
+    - Remediation advice generation
+    - Robust error handling with retries
+    
+Configuration:
+    Requires OPENAI_API_KEY environment variable to be set for AI features.
+    Without this, the service gracefully degrades to manual analysis only.
+
+Example:
+    >>> service = OpenAIService()
+    >>> analysis = service.analyze_privacy_policy(url, scan_results)
+    >>> print(analysis)
+"""
+
 import os
+from typing import Dict, Any, Optional
+import logging
 from openai import OpenAI
 import requests
 from requests.adapters import HTTPAdapter
@@ -6,34 +34,65 @@ from urllib3.util.retry import Retry
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
+from config import Config
+from exceptions import AIServiceError, NetworkError
+
+logger = logging.getLogger(__name__)
+
+
 class OpenAIService:
-    """Service for OpenAI-powered privacy policy analysis"""
+    """
+    Service for OpenAI-powered privacy policy analysis.
+    
+    Provides AI-powered analysis of privacy policies including:
+    - GDPR/CCPA compliance assessment
+    - Data collection practices
+    - User rights documentation
+    - Remediation recommendations
+    
+    Attributes:
+        api_key: OpenAI API key from environment
+        client: OpenAI client instance
+        session: HTTP session for fetching policy content
+    """
     
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        """Initialize the OpenAI service with API key and HTTP session."""
+        self.api_key = Config.OPENAI_API_KEY
         self.client = OpenAI(api_key=self.api_key) if self.api_key else None
-        self.session = requests.Session()
+        self.session = self._create_session()
+    
+    def _create_session(self) -> requests.Session:
+        """
+        Create a requests session with retry logic.
+        
+        Returns:
+            Configured requests.Session instance.
+        """
+        session = requests.Session()
         retries = Retry(
-            total=3,
-            backoff_factor=0.5,
+            total=Config.MAX_RETRIES,
+            backoff_factor=Config.BACKOFF_FACTOR,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["GET", "HEAD"]
         )
-        self.session.mount("http://", HTTPAdapter(max_retries=retries))
-        self.session.mount("https://", HTTPAdapter(max_retries=retries))
+        session.mount("http://", HTTPAdapter(max_retries=retries))
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        return session
     
-    def analyze_privacy_policy(self, url, scan_results):
+    def analyze_privacy_policy(self, url: str, scan_results: Dict[str, Any]) -> Optional[str]:
         """
-        Analyze privacy policy using OpenAI
+        Analyze privacy policy using OpenAI.
         
         Args:
             url: The website URL
             scan_results: Dictionary containing scan results
             
         Returns:
-            str: AI-generated analysis or None if unavailable
+            AI-generated analysis string or None if unavailable
         """
         if not self.client:
+            logger.warning("OpenAI API key not configured - skipping AI analysis")
             return None
         
         try:
@@ -44,13 +103,13 @@ class OpenAIService:
                 return "**No privacy policy detected** - Cannot perform AI analysis without a privacy policy."
             
             # Extract privacy policy content
-            policy_text = self._fetch_privacy_policy(url, scan_results)
+            policy_text = self._fetch_privacy_policy(url)
             
             if not policy_text:
                 return "**Unable to fetch privacy policy content** - The policy may be behind authentication or dynamically loaded."
             
             # Truncate if too long (to stay within token limits)
-            max_length = 8000
+            max_length = Config.OPENAI_MAX_TOKENS * 2
             if len(policy_text) > max_length:
                 policy_text = policy_text[:max_length] + "...\n[Content truncated]"
             
@@ -59,7 +118,7 @@ class OpenAIService:
             
             # Call OpenAI API
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=Config.OPENAI_MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -71,16 +130,26 @@ class OpenAIService:
                     }
                 ],
                 temperature=0.7,
-                max_tokens=1500
+                max_tokens=Config.OPENAI_MAX_TOKENS
             )
             
+            logger.info(f"Successfully analyzed privacy policy for {url}")
             return response.choices[0].message.content
             
         except Exception as e:
-            return f"**AI Analysis Error:** {str(e)}"
+            logger.error(f"AI analysis error for {url}: {e}")
+            raise AIServiceError(f"AI Analysis Error: {str(e)}") from e
     
-    def _fetch_privacy_policy(self, base_url, scan_results):
-        """Fetch privacy policy content from the website"""
+    def _fetch_privacy_policy(self, base_url: str) -> Optional[str]:
+        """
+        Fetch privacy policy content from the website.
+        
+        Args:
+            base_url: Base URL of the website
+            
+        Returns:
+            Privacy policy text or None if not found
+        """
         try:
             # Common privacy policy paths
             policy_paths = [
@@ -91,18 +160,28 @@ class OpenAIService:
                 "/privacy-statement"
             ]
             
+            headers = {"User-Agent": Config.USER_AGENT}
+            
             # Try to find privacy policy link in the page
-            response = self.session.get(base_url, timeout=10, headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }, allow_redirects=True)
+            response = self.session.get(
+                base_url,
+                timeout=Config.REQUEST_TIMEOUT,
+                headers=headers,
+                allow_redirects=True
+            )
             response.raise_for_status()
             content_type = response.headers.get("Content-Type", "")
             if "text/html" not in content_type:
                 return None
+            
             soup = BeautifulSoup(response.content, "html.parser")
             
             # Look for privacy policy links
-            privacy_links = soup.find_all("a", href=True, string=lambda s: s and "privacy" in s.lower())
+            privacy_links = soup.find_all(
+                "a",
+                href=True,
+                string=lambda s: s and "privacy" in s.lower()
+            )
             
             policy_url = None
             if privacy_links:
@@ -118,29 +197,41 @@ class OpenAIService:
                 for path in policy_paths:
                     test_url = base_url.rstrip("/") + path
                     try:
-                        test_response = self.session.head(test_url, timeout=5, allow_redirects=True)
+                        test_response = self.session.head(
+                            test_url,
+                            timeout=5,
+                            allow_redirects=True
+                        )
                         if test_response.status_code == 200:
                             policy_url = test_url
                             break
                         if test_response.status_code in {403, 405}:
-                            get_response = self.session.get(test_url, timeout=5, allow_redirects=True)
+                            get_response = self.session.get(
+                                test_url,
+                                timeout=5,
+                                allow_redirects=True
+                            )
                             if get_response.status_code == 200:
                                 policy_url = test_url
                                 break
-                    except:
+                    except requests.RequestException:
                         continue
             
             if not policy_url:
                 return None
             
             # Fetch privacy policy content
-            policy_response = self.session.get(policy_url, timeout=10, headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }, allow_redirects=True)
+            policy_response = self.session.get(
+                policy_url,
+                timeout=Config.REQUEST_TIMEOUT,
+                headers=headers,
+                allow_redirects=True
+            )
             policy_response.raise_for_status()
             policy_content_type = policy_response.headers.get("Content-Type", "")
             if "text/html" not in policy_content_type:
                 return None
+            
             policy_soup = BeautifulSoup(policy_response.content, "html.parser")
             
             # Remove script and style elements
@@ -154,13 +245,25 @@ class OpenAIService:
             lines = [line.strip() for line in text.splitlines() if line.strip()]
             clean_text = "\n".join(lines)
             
+            logger.info(f"Successfully fetched privacy policy from {policy_url}")
             return clean_text
             
-        except Exception as e:
+        except requests.RequestException as e:
+            logger.warning(f"Failed to fetch privacy policy from {base_url}: {e}")
             return None
     
-    def _create_analysis_prompt(self, url, policy_text, scan_results):
-        """Create the analysis prompt for OpenAI"""
+    def _create_analysis_prompt(self, url: str, policy_text: str, scan_results: Dict[str, Any]) -> str:
+        """
+        Create the analysis prompt for OpenAI.
+        
+        Args:
+            url: Website URL
+            policy_text: Privacy policy content
+            scan_results: Scan results dictionary
+            
+        Returns:
+            Formatted prompt for OpenAI API
+        """
         prompt = f"""Analyze the following privacy policy for GDPR and CCPA compliance.
 
 **Website:** {url}
@@ -186,9 +289,18 @@ Keep the analysis concise and actionable."""
         
         return prompt
     
-    def get_remediation_advice(self, scan_results):
-        """Get AI-powered remediation advice based on scan results"""
+    def get_remediation_advice(self, scan_results: Dict[str, Any]) -> Optional[str]:
+        """
+        Get AI-powered remediation advice based on scan results.
+        
+        Args:
+            scan_results: Dictionary containing scan results
+            
+        Returns:
+            AI-generated remediation advice or None if unavailable
+        """
         if not self.client:
+            logger.warning("OpenAI API key not configured - skipping remediation advice")
             return None
         
         try:
@@ -220,16 +332,18 @@ Provide:
 Be concise and actionable."""
             
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=Config.OPENAI_MODEL,
                 messages=[
-                    {"role": "system", "content": "You are a privacy compliance expert."},
+                    {"role": "system", "content": "You are a privacy compliance expert specializing in GDPR and CCPA."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=800
+                max_tokens=Config.OPENAI_MAX_TOKENS // 2
             )
             
+            logger.info("Successfully generated remediation advice")
             return response.choices[0].message.content
             
         except Exception as e:
-            return f"**Error generating advice:** {str(e)}"
+            logger.error(f"Error generating remediation advice: {e}")
+            raise AIServiceError(f"Error generating advice: {str(e)}") from e
