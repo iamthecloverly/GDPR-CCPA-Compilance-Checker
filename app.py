@@ -17,16 +17,43 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     :root {
         color-scheme: dark;
     }
     .stApp {
-        background: radial-gradient(1200px 800px at 10% -10%, #1a2a3a 0%, #0b0f14 35%, #0b0f14 100%);
+        background: radial-gradient(1200px 800px at 20% -10%, #0b0f14 0%, #05070a 45%, #000000 100%);
         color: #e6edf3;
+        font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
     }
+    .stApp::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+        opacity: 0.05;
+        mix-blend-mode: soft-light;
+        z-index: 0;
+    }
+    .block-container {
+        position: relative;
+        z-index: 1;
+        max-width: 72rem;
+        margin: 0 auto;
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+        animation: fadeInUp 0.6s ease forwards;
+        opacity: 0;
+    }
+    .stApp a { color: #7dd3fc; }
     section[data-testid="stSidebar"] {
-        background: rgba(8, 12, 18, 0.95);
-        border-right: 1px solid rgba(148, 163, 184, 0.12);
+        background: rgba(9, 13, 19, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(14px);
+        border-radius: 18px;
+        margin: 1rem;
+        width: 240px;
     }
     section[data-testid="stSidebar"] .stMarkdown,
     section[data-testid="stSidebar"] label,
@@ -36,79 +63,188 @@ st.markdown(
         color: #e6edf3;
     }
     header[data-testid="stHeader"] {
-        background: rgba(8, 12, 18, 0.85);
-        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        background: rgba(8, 12, 18, 0.7);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
     h1, h2, h3, h4, h5 {
         color: #e6edf3;
     }
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-    }
     .hero {
-        background: linear-gradient(135deg, rgba(22, 35, 51, 0.9), rgba(12, 18, 26, 0.9));
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 18px;
-        padding: 28px 32px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-        margin-bottom: 24px;
+        background: rgba(15, 18, 26, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+        border-radius: 20px;
+        padding: 32px 36px;
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+        margin-bottom: 26px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .hero:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: scale(1.01);
     }
     .hero-title {
-        font-size: 2.1rem;
+        font-size: 3rem;
         font-weight: 700;
-        margin-bottom: 0.35rem;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(180deg, #ffffff, #cbd5e1);
+        -webkit-background-clip: text;
+        color: transparent;
     }
     .hero-subtitle {
         font-size: 1.05rem;
-        color: #cbd5e1;
-        margin-bottom: 0.75rem;
+        color: #a1a1aa;
+        margin-bottom: 1rem;
     }
     .pill {
         display: inline-block;
         padding: 6px 12px;
         border-radius: 999px;
         font-size: 0.85rem;
-        background: rgba(56, 189, 248, 0.12);
-        border: 1px solid rgba(56, 189, 248, 0.35);
-        color: #7dd3fc;
+        background: rgba(39, 39, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #e4e4e7;
         margin-right: 8px;
         margin-top: 6px;
+    }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        color: #4ade80;
+        font-size: 0.85rem;
+    }
+    .status-pill .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+        70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
     }
     .stTabs [data-baseweb="tab"] {
         background: transparent;
         color: #cbd5e1;
-        border-radius: 10px;
-        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 8px 14px;
     }
     .stTabs [aria-selected="true"] {
-        background: rgba(56, 189, 248, 0.12);
-        border-color: rgba(56, 189, 248, 0.5);
+        background: rgba(24, 24, 27, 0.6);
+        border-color: rgba(255, 255, 255, 0.2);
         color: #e6edf3;
     }
-    .stButton > button {
-        border-radius: 10px;
-        border: 1px solid rgba(56, 189, 248, 0.4);
-        background: linear-gradient(135deg, #0ea5e9, #2563eb);
-        color: white;
-        box-shadow: 0 6px 16px rgba(14, 165, 233, 0.25);
+    .stButton > button, .stDownloadButton > button {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(9, 13, 19, 0.9);
+        color: #e6edf3;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
     }
-    .stTextInput input, .stTextArea textarea, .stSelectbox div {
-        background: rgba(15, 23, 42, 0.85) !important;
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+        background: rgba(9, 13, 19, 1);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+    .stButton > button:focus, .stDownloadButton > button:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.3);
+    }
+    .primary-action > button {
+        border: 1px solid rgba(34, 211, 238, 0.4) !important;
+        background: radial-gradient(circle at top, rgba(34, 211, 238, 0.45), rgba(37, 99, 235, 0.55)) !important;
+        color: #f8fafc !important;
+        box-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
+    }
+    .stTextInput input, .stSelectbox div {
+        background: rgba(2, 6, 10, 0.85) !important;
         color: #e6edf3 !important;
-        border: 1px solid rgba(148, 163, 184, 0.2) !important;
-        border-radius: 10px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 999px !important;
+        height: 3.5rem;
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
+    }
+    .stTextInput div[data-baseweb="input"] {
+        background: transparent !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 999px !important;
+        box-shadow: none !important;
+    }
+    .stTextInput div[data-baseweb="input"]:hover {
+        border-color: rgba(255, 255, 255, 0.16) !important;
+    }
+    .stTextInput input:hover, .stSelectbox div:hover {
+        border-color: rgba(255, 255, 255, 0.16) !important;
+    }
+    .stTextArea textarea {
+        background: rgba(2, 6, 10, 0.85) !important;
+        color: #e6edf3 !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 16px !important;
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
+    }
+    .stTextInput input:focus, .stTextArea textarea:focus {
+        border-color: rgba(34, 211, 238, 0.45) !important;
+        box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2) !important;
+    }
+    .stTextInput input::placeholder, .stTextArea textarea::placeholder {
+        color: #71717a !important;
     }
     .stMetric {
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(148, 163, 184, 0.12);
-        border-radius: 14px;
+        background: rgba(15, 18, 26, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
         padding: 12px 16px;
+        backdrop-filter: blur(10px);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    div[data-testid="stMetric"] label,
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricDelta"],
+    div[data-testid="stMetric"] .metric-label,
+    div[data-testid="stMetric"] .metric-value,
+    div[data-testid="stMetric"] .metric-delta {
+        color: #f8fafc !important;
+    }
+    div[data-testid="stMetric"] span,
+    div[data-testid="stMetricValue"] span,
+    div[data-testid="stMetricLabel"] span {
+        color: #e2e8f0 !important;
+    }
+    .stMetric:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: scale(1.01);
+    }
+    .stExpander {
+        background: rgba(15, 18, 26, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        backdrop-filter: blur(10px);
     }
     .stDataFrame {
         border-radius: 12px;
         overflow: hidden;
+    }
+    .content-fade-in {
+        animation: fadeInUp 0.6s ease forwards;
+        opacity: 0;
+    }
+    @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
     }
     </style>
     """,
@@ -153,10 +289,8 @@ try:
     if os.getenv("DATABASE_URL"):
         init_db()
         DB_AVAILABLE = True
-        st.sidebar.success("✅ Database connected")
 except Exception as e:
     DB_AVAILABLE = False
-    st.sidebar.warning("⚠️ Running without database")
     if DEBUG:
         st.sidebar.caption(f"Error: {str(e)}")
     logger.exception("Database initialization failed")
@@ -185,12 +319,12 @@ openai_service = OpenAIService()
 # App title
 st.markdown(
     """
-    <div class="hero">
-        <div class="hero-title">🔒 GDPR/CCPA Compliance Checker</div>
-        <div class="hero-subtitle">Modern privacy compliance scanning with AI-powered insights and export-ready reports.</div>
-        <span class="pill">Fast scans</span>
-        <span class="pill">AI analysis</span>
-        <span class="pill">Audit-ready exports</span>
+    <div class="hero content-fade-in">
+        <div class="hero-title">Privacy Compliance, Instantly.</div>
+        <div class="hero-subtitle">Scan any site in seconds and surface GDPR/CCPA gaps with AI‑ready, audit‑friendly outputs.</div>
+        <span class="pill">Lightning scans</span>
+        <span class="pill">AI insights</span>
+        <span class="pill">Audit exports</span>
     </div>
     """,
     unsafe_allow_html=True
@@ -214,6 +348,26 @@ if ai_enabled and not os.getenv("OPENAI_API_KEY"):
     ai_enabled = False
 
 st.sidebar.markdown("---")
+if DB_AVAILABLE:
+    st.sidebar.markdown(
+        """
+        <div class="status-pill">
+            <span class="dot"></span>
+            Database connected
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    st.sidebar.markdown(
+        """
+        <div class="status-pill" style="border-color: rgba(248, 113, 113, 0.25); color: #f87171;">
+            <span class="dot" style="background: #f87171; box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6);"></span>
+            Database offline
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 st.sidebar.caption("Tip: Use full URLs to improve scan accuracy.")
 with st.sidebar.expander("How it works"):
     st.write("1) Enter a URL\n2) Run a scan\n3) Review score and details\n4) Export CSV")
@@ -225,14 +379,56 @@ tab1, tab2, tab3 = st.tabs(["Single Scan", "Scan History", "Batch Scan"])
 with tab1:
     st.header("Single URL Scan")
     st.caption("Enter a website URL to check for privacy compliance signals.")
-    
+
     with st.form("single_scan_form"):
-        raw_url = st.text_input(
-            "Enter URL to scan",
-            placeholder="https://example.com",
-            help="Enter a complete URL including https://"
-        )
-        submitted = st.form_submit_button("Scan URL", type="primary")
+        input_col, button_col = st.columns([5, 1])
+        with input_col:
+            raw_url = st.text_input(
+                "Enter URL to scan",
+                placeholder="https://example.com",
+                help="Enter a complete URL including https://"
+            )
+        with button_col:
+            st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
+            submitted = st.form_submit_button("➜", type="primary")
+
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stForm"] button[kind="primary"] {
+            width: 56px;
+            height: 56px;
+            border-radius: 999px !important;
+            font-size: 1.2rem;
+            padding: 0;
+        }
+        div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stForm"] button[kind="primary"] {
+            border: 1px solid rgba(34, 211, 238, 0.4) !important;
+            background: radial-gradient(circle at top, rgba(34, 211, 238, 0.5), rgba(37, 99, 235, 0.6)) !important;
+            box-shadow: 0 0 24px rgba(34, 211, 238, 0.45) !important;
+        }
+        div[data-testid="stForm"] button[kind="primary"]:hover::after {
+            content: " Scan";
+            font-size: 0.85rem;
+            margin-left: 6px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
     if submitted:
         url = normalize_url(raw_url, assume_https=assume_https)
