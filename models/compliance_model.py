@@ -1,216 +1,156 @@
 import requests
 from bs4 import BeautifulSoup
+import re
 from urllib.parse import urljoin, urlparse
-from typing import Dict, List, Optional
-
 
 class ComplianceModel:
-    def __init__(self, url: str):
-        self.url = url if url.startswith(('http://', 'https://')) else f'https://{url}'
-        self.html = None
-        self.soup = None
-        self.results = {}
+    """Model for analyzing website compliance indicators"""
+    
+    def __init__(self):
+        self.timeout = 10
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+    
+    def analyze_compliance(self, url):
+        """
+        Analyze a website for compliance indicators
         
-    def fetch_website(self) -> bool:
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
+        Args:
+            url: The website URL
             
-            # Try with verify=True first, then False if SSLError occurs
-            try:
-                response = requests.get(self.url, headers=headers, timeout=15, verify=True)
-            except requests.exceptions.SSLError:
-                response = requests.get(self.url, headers=headers, timeout=15, verify=False)
-                
+        Returns:
+            dict: Compliance findings
+        """
+        try:
+            # Fetch webpage
+            response = requests.get(url, timeout=self.timeout, headers=self.headers)
             response.raise_for_status()
             
-            # Handle encoding explicitly if needed, but requests usually does a good job
-            if response.encoding is None:
-                response.encoding = 'utf-8'
-                
-            self.html = response.text
-            self.soup = BeautifulSoup(self.html, 'lxml')
-            return True
+            soup = BeautifulSoup(response.content, "html.parser")
             
-        except requests.exceptions.ConnectionError as e:
-            error_msg = str(e)
-            # Try adding www. if it's missing and connection failed
-            parsed = urlparse(self.url)
-            domain = parsed.netloc or parsed.path.split('/')[0]
+            results = {
+                "cookie_consent": self._check_cookie_consent(soup),
+                "privacy_policy": self._check_privacy_policy(soup, url),
+                "contact_info": self._check_contact_info(soup),
+                "trackers": self._detect_trackers(soup)
+            }
             
-            if not domain.startswith('www.') and 'Failed to resolve' in error_msg:
-                try:
-                    www_url = self.url.replace(f'://{domain}', f'://www.{domain}', 1)
-                    response = requests.get(www_url, headers=headers, timeout=15)
-                    response.raise_for_status()
-                    self.html = response.text
-                    self.soup = BeautifulSoup(self.html, 'lxml')
-                    self.url = www_url
-                    return True
-                except Exception:
-                    pass
+            return results
             
-            self.results['error'] = f"Unable to reach website: {error_msg}"
-            return False
-        except requests.exceptions.Timeout:
-            self.results['error'] = "Request timed out. The website took too long to respond."
-            return False
-        except requests.exceptions.HTTPError as e:
-            self.results['error'] = f"HTTP Error {e.response.status_code}: {e.response.reason}"
-            return False
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to fetch URL: {str(e)}")
         except Exception as e:
-            self.results['error'] = f"Failed to fetch website: {str(e)}"
-            return False
+            raise Exception(f"Analysis error: {str(e)}")
     
-    def detect_cookie_banner(self) -> Dict:
-        keywords = [
-            'cookie', 'cookies', 'consent', 'accept cookies', 
-            'cookie policy', 'we use cookies', 'cookie consent',
-            'cookie notice', 'cookie preferences', 'manage cookies'
+    def _check_cookie_consent(self, soup):
+        """Check for cookie consent banner"""
+        cookie_keywords = [
+            "cookie", "consent", "privacy notice", "we use cookies",
+            "accept cookies", "cookie policy", "cookie banner"
         ]
         
-        text = self.soup.get_text().lower()
-        found_keywords = [k for k in keywords if k in text]
+        # Check for common cookie banner elements
+        for keyword in cookie_keywords:
+            # Check in text content
+            if soup.find(string=re.compile(keyword, re.IGNORECASE)):
+                return "Found - Cookie consent detected"
+            
+            # Check in div IDs and classes
+            if soup.find(["div", "section"], {"id": re.compile(keyword, re.IGNORECASE)}):
+                return "Found - Cookie consent banner detected"
+            
+            if soup.find(["div", "section"], {"class": re.compile(keyword, re.IGNORECASE)}):
+                return "Found - Cookie consent banner detected"
         
-        banner_elements = self.soup.find_all(['div', 'section', 'aside'], 
-                                             class_=lambda x: x and any(
-                                                 term in str(x).lower() 
-                                                 for term in ['cookie', 'consent', 'gdpr', 'privacy-banner']
-                                             ))
-        
-        has_banner = len(found_keywords) > 0 or len(banner_elements) > 0
-        
-        self.results['cookie_banner'] = {
-            'detected': has_banner,
-            'keywords_found': found_keywords[:5],
-            'banner_elements': len(banner_elements)
-        }
-        return self.results['cookie_banner']
+        return "Not Found - No cookie consent banner detected"
     
-    def detect_tracking_scripts(self) -> Dict:
-        trackers = {
-            'Google Analytics': ['google-analytics.com', 'googletagmanager.com', 'ga.js', 'analytics.js', 'gtag/js'],
-            'Facebook Pixel': ['connect.facebook.net', 'facebook.com/tr', 'fbevents.js'],
-            'Google Ads': ['googleadservices.com', 'doubleclick.net', 'googlesyndication.com'],
-            'Hotjar': ['hotjar.com', 'static.hotjar.com'],
-            'Mixpanel': ['mixpanel.com', 'cdn.mxpnl.com'],
-            'Segment': ['segment.com', 'cdn.segment.com', 'segment.io'],
-            'Intercom': ['intercom.io', 'widget.intercom.io', 'js.intercomcdn.com'],
-            'HubSpot': ['hubspot.com', 'hs-scripts.com', 'js.hs-analytics.net'],
-            'Salesforce': ['salesforce.com', 'pardot.com'],
-            'LinkedIn Insight': ['snap.licdn.com', 'px.ads.linkedin.com'],
-            'Twitter/X Pixel': ['static.ads-twitter.com', 'analytics.twitter.com'],
-            'Pinterest Tag': ['ct.pinterest.com', 'pintrk'],
-            'TikTok Pixel': ['analytics.tiktok.com', 'tiktok.com/i18n/pixel'],
-            'Snapchat Pixel': ['sc-static.net', 'tr.snapchat.com'],
-            'Microsoft Clarity': ['clarity.ms', 'c.clarity.ms'],
-            'Amplitude': ['amplitude.com', 'cdn.amplitude.com'],
-            'Heap Analytics': ['heapanalytics.com', 'cdn.heapanalytics.com'],
-            'FullStory': ['fullstory.com', 'rs.fullstory.com'],
-            'Crazy Egg': ['crazyegg.com', 'script.crazyegg.com'],
-            'Mouseflow': ['mouseflow.com', 'cdn.mouseflow.com'],
-            'Lucky Orange': ['luckyorange.com', 'tools.luckyorange.com'],
-            'VWO': ['visualwebsiteoptimizer.com', 'dev.visualwebsiteoptimizer.com'],
-            'Optimizely': ['optimizely.com', 'cdn.optimizely.com'],
-            'Quantcast': ['quantserve.com', 'pixel.quantserve.com'],
-            'Adobe Analytics': ['omtrdc.net', 'sc.omtrdc.net', '2o7.net'],
-            'Matomo': ['matomo', 'piwik'],
-            'Plausible': ['plausible.io'],
-            'Fathom': ['cdn.usefathom.com'],
-            'OneTrust': ['onetrust.com', 'cdn.cookielaw.org'],
-            'Cookiebot': ['cookiebot.com', 'consent.cookiebot.com'],
-            'Termly': ['termly.io', 'app.termly.io'],
-            'Osano': ['osano.com', 'cmp.osano.com'],
-            'Usercentrics': ['usercentrics.eu', 'app.usercentrics.eu'],
-            'Didomi': ['didomi.io', 'sdk.privacy-center.org'],
-            'Sentry': ['sentry.io', 'browser.sentry-cdn.com']
-        }
+    def _check_privacy_policy(self, soup, base_url):
+        """Check for privacy policy link"""
+        privacy_keywords = ["privacy", "privacy policy", "privacy notice", "data protection"]
         
-        scripts = self.soup.find_all('script')
-        detected_trackers = {}
-        all_scripts = []
+        # Look for links containing privacy keywords
+        all_links = soup.find_all("a", href=True)
+        
+        for link in all_links:
+            link_text = link.get_text().lower()
+            href = link.get("href", "").lower()
+            
+            for keyword in privacy_keywords:
+                if keyword in link_text or keyword in href:
+                    return f"Found - Privacy policy link detected"
+        
+        return "Not Found - No privacy policy link detected"
+    
+    def _check_contact_info(self, soup):
+        """Check for contact information"""
+        # Email pattern
+        email_pattern = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+        
+        # Phone pattern (simple)
+        phone_pattern = re.compile(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\b\+?\d{1,3}[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}\b')
+        
+        page_text = soup.get_text()
+        
+        has_email = bool(email_pattern.search(page_text))
+        has_phone = bool(phone_pattern.search(page_text))
+        
+        # Check for contact page link
+        contact_link = soup.find("a", href=True, string=re.compile("contact", re.IGNORECASE))
+        
+        if has_email or has_phone or contact_link:
+            details = []
+            if has_email:
+                details.append("email")
+            if has_phone:
+                details.append("phone")
+            if contact_link:
+                details.append("contact page")
+            
+            return f"Found - Contact info detected ({', '.join(details)})"
+        
+        return "Not Found - No contact information detected"
+    
+    def _detect_trackers(self, soup):
+        """Detect third-party tracking scripts"""
+        trackers = []
+        
+        # Common tracking domains
+        tracking_domains = [
+            "google-analytics.com",
+            "googletagmanager.com",
+            "facebook.net",
+            "doubleclick.net",
+            "scorecardresearch.com",
+            "quantserve.com",
+            "hotjar.com",
+            "mouseflow.com",
+            "crazyegg.com",
+            "inspectlet.com",
+            "hubspot.com",
+            "mixpanel.com",
+            "segment.com",
+            "amplitude.com",
+            "heap.io"
+        ]
+        
+        # Check script tags
+        scripts = soup.find_all("script", src=True)
         
         for script in scripts:
-            src = script.get('src', '')
-            content = script.string or ''
-            all_scripts.append(src)
-            
-            for tracker_name, patterns in trackers.items():
-                for pattern in patterns:
-                    if pattern in src or pattern in content:
-                        if tracker_name not in detected_trackers:
-                            detected_trackers[tracker_name] = []
-                        if src:
-                            detected_trackers[tracker_name].append(src)
+            src = script.get("src", "")
+            for domain in tracking_domains:
+                if domain in src:
+                    if domain not in trackers:
+                        trackers.append(domain)
         
-        self.results['tracking_scripts'] = {
-            'detected_trackers': detected_trackers,
-            'total_trackers': len(detected_trackers),
-            'tracker_names': list(detected_trackers.keys()),
-            'total_scripts': len(scripts)
-        }
-        return self.results['tracking_scripts']
-    
-    def get_privacy_policy(self) -> Dict:
-        links = self.soup.find_all('a', href=True)
-        privacy_links = []
+        # Check inline scripts for tracking code
+        inline_scripts = soup.find_all("script", src=False)
+        for script in inline_scripts:
+            script_content = script.string or ""
+            for domain in tracking_domains:
+                if domain in script_content:
+                    if domain not in trackers:
+                        trackers.append(domain)
         
-        privacy_keywords = ['privacy', 'privacidad', 'datenschutz', 'confidentialité']
-        
-        for link in links:
-            href = link.get('href', '')
-            text = link.get_text().lower()
-            
-            if any(keyword in text or keyword in href.lower() for keyword in privacy_keywords):
-                full_url = urljoin(self.url, href)
-                privacy_links.append({
-                    'url': full_url,
-                    'text': link.get_text().strip()
-                })
-        
-        unique_links = []
-        seen_urls = set()
-        for link in privacy_links:
-            if link['url'] not in seen_urls:
-                unique_links.append(link)
-                seen_urls.add(link['url'])
-        
-        self.results['privacy_policy'] = {
-            'found': len(unique_links) > 0,
-            'links': unique_links[:3],
-            'count': len(unique_links)
-        }
-        return self.results['privacy_policy']
-    
-    def detect_contact_information(self) -> Dict:
-        contact_keywords = ['contact', 'email', 'phone', 'address', 'support']
-        text = self.soup.get_text().lower()
-        
-        has_contact = any(keyword in text for keyword in contact_keywords)
-        
-        email_pattern = self.soup.find_all(string=lambda text: text and '@' in text)
-        
-        self.results['contact_info'] = {
-            'detected': has_contact,
-            'emails_found': len(email_pattern) > 0
-        }
-        return self.results['contact_info']
-    
-    def run_all(self) -> Dict:
-        if not self.fetch_website():
-            return self.results
-        
-        self.detect_cookie_banner()
-        self.detect_tracking_scripts()
-        self.get_privacy_policy()
-        self.detect_contact_information()
-        
-        self.results['url'] = self.url
-        self.results['scan_completed'] = True
-        
-        return self.results
+        return trackers
