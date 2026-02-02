@@ -2,6 +2,7 @@ from database.db import get_db
 from database.models import ComplianceScan
 from datetime import datetime
 from sqlalchemy import func, desc
+from sqlalchemy.orm import joinedload
 
 def save_scan_result(url, results, ai_analysis=None):
     """Save a compliance scan result to the database"""
@@ -43,7 +44,24 @@ def get_scan_history(url, limit=10):
                 desc(ComplianceScan.scan_date)
             ).limit(limit).all()
             
-            return scans
+            # Convert to dictionaries to detach from session
+            result = []
+            for scan in scans:
+                result.append({
+                    'id': scan.id,
+                    'url': scan.url,
+                    'score': scan.score,
+                    'grade': scan.grade,
+                    'status': scan.status,
+                    'cookie_consent': scan.cookie_consent,
+                    'privacy_policy': scan.privacy_policy,
+                    'contact_info': scan.contact_info,
+                    'trackers': scan.trackers,
+                    'scan_date': scan.scan_date,
+                    'ai_analysis': scan.ai_analysis
+                })
+            
+            return result
         except Exception as e:
             return []
 
@@ -60,7 +78,8 @@ def get_score_trend(url):
                 ComplianceScan.scan_date.asc()
             ).all()
             
-            return [(s.scan_date, s.score) for s in scans]
+            # Convert to tuples immediately while session is active
+            return [(scan.scan_date, scan.score) for scan in scans]
         except Exception as e:
             return []
 
@@ -89,6 +108,22 @@ def get_latest_scan(url):
                 desc(ComplianceScan.scan_date)
             ).first()
             
-            return scan
+            if scan:
+                # Convert to dictionary to detach from session
+                return {
+                    'id': scan.id,
+                    'url': scan.url,
+                    'score': scan.score,
+                    'grade': scan.grade,
+                    'status': scan.status,
+                    'cookie_consent': scan.cookie_consent,
+                    'privacy_policy': scan.privacy_policy,
+                    'contact_info': scan.contact_info,
+                    'trackers': scan.trackers,
+                    'scan_date': scan.scan_date,
+                    'ai_analysis': scan.ai_analysis
+                }
+            
+            return None
         except Exception as e:
             return None
