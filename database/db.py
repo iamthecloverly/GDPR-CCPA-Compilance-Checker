@@ -8,15 +8,27 @@ Base = declarative_base()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if DATABASE_URL:
-    db_url = DATABASE_URL.replace("&channel_binding=require", "").replace("?channel_binding=require", "")
-    
-    engine = create_engine(
+def _create_engine(db_url: str):
+    if db_url.startswith("sqlite"):
+        return create_engine(
+            db_url,
+            connect_args={"check_same_thread": False}
+        )
+
+    connect_args = {}
+    if "sslmode=" not in db_url:
+        connect_args["sslmode"] = "require"
+
+    return create_engine(
         db_url,
         pool_pre_ping=True,
         pool_recycle=300,
-        connect_args={"sslmode": "require"}
+        connect_args=connect_args
     )
+
+if DATABASE_URL:
+    db_url = DATABASE_URL.replace("&channel_binding=require", "").replace("?channel_binding=require", "")
+    engine = _create_engine(db_url)
     SessionLocal = sessionmaker(bind=engine)
 else:
     engine = None

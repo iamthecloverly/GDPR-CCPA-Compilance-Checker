@@ -1,7 +1,8 @@
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import re
-from urllib.parse import urljoin, urlparse
 
 class ComplianceModel:
     """Model for analyzing website compliance indicators"""
@@ -11,6 +12,28 @@ class ComplianceModel:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
+        self.session = requests.Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET", "HEAD"]
+        )
+        self.session.mount("http://", HTTPAdapter(max_retries=retries))
+        self.session.mount("https://", HTTPAdapter(max_retries=retries))
+
+    def _get_html(self, url: str) -> bytes:
+        response = self.session.get(
+            url,
+            timeout=self.timeout,
+            headers=self.headers,
+            allow_redirects=True
+        )
+        response.raise_for_status()
+        content_type = response.headers.get("Content-Type", "")
+        if "text/html" not in content_type:
+            raise Exception("URL did not return HTML content")
+        return response.content
     
     def analyze_compliance(self, url):
         """
@@ -24,10 +47,8 @@ class ComplianceModel:
         """
         try:
             # Fetch webpage
-            response = requests.get(url, timeout=self.timeout, headers=self.headers)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.content, "html.parser")
+            html = self._get_html(url)
+            soup = BeautifulSoup(html, "html.parser")
             
             results = {
                 "cookie_consent": self._check_cookie_consent(soup),
@@ -78,7 +99,7 @@ class ComplianceModel:
             
             for keyword in privacy_keywords:
                 if keyword in link_text or keyword in href:
-                    return f"Found - Privacy policy link detected"
+                    return "Found - Privacy policy link detected"
         
         return "Not Found - No privacy policy link detected"
     

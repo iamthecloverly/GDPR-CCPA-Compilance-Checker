@@ -1,6 +1,9 @@
 import os
 from openai import OpenAI
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 class OpenAIService:
@@ -9,6 +12,15 @@ class OpenAIService:
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+        self.session = requests.Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET", "HEAD"]
+        )
+        self.session.mount("http://", HTTPAdapter(max_retries=retries))
+        self.session.mount("https://", HTTPAdapter(max_retries=retries))
     
     def analyze_privacy_policy(self, url, scan_results):
         """
@@ -80,9 +92,13 @@ class OpenAIService:
             ]
             
             # Try to find privacy policy link in the page
-            response = requests.get(base_url, timeout=10, headers={
+            response = self.session.get(base_url, timeout=10, headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            })
+            }, allow_redirects=True)
+            response.raise_for_status()
+            content_type = response.headers.get("Content-Type", "")
+            if "text/html" not in content_type:
+                return None
             soup = BeautifulSoup(response.content, "html.parser")
             
             # Look for privacy policy links
@@ -93,17 +109,24 @@ class OpenAIService:
                 href = privacy_links[0]["href"]
                 if href.startswith("http"):
                     policy_url = href
+                elif href.startswith("//"):
+                    policy_url = "https:" + href
                 else:
-                    policy_url = base_url.rstrip("/") + ("" if href.startswith("/") else "/") + href
+                    policy_url = urljoin(base_url.rstrip("/") + "/", href)
             else:
                 # Try common paths
                 for path in policy_paths:
                     test_url = base_url.rstrip("/") + path
                     try:
-                        test_response = requests.head(test_url, timeout=5)
+                        test_response = self.session.head(test_url, timeout=5, allow_redirects=True)
                         if test_response.status_code == 200:
                             policy_url = test_url
                             break
+                        if test_response.status_code in {403, 405}:
+                            get_response = self.session.get(test_url, timeout=5, allow_redirects=True)
+                            if get_response.status_code == 200:
+                                policy_url = test_url
+                                break
                     except:
                         continue
             
@@ -111,9 +134,13 @@ class OpenAIService:
                 return None
             
             # Fetch privacy policy content
-            policy_response = requests.get(policy_url, timeout=10, headers={
+            policy_response = self.session.get(policy_url, timeout=10, headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            })
+            }, allow_redirects=True)
+            policy_response.raise_for_status()
+            policy_content_type = policy_response.headers.get("Content-Type", "")
+            if "text/html" not in policy_content_type:
+                return None
             policy_soup = BeautifulSoup(policy_response.content, "html.parser")
             
             # Remove script and style elements
