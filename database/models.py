@@ -7,13 +7,13 @@ class ComplianceScan(Base):
     __tablename__ = "compliance_scans"
     
     id = Column(Integer, primary_key=True, index=True)
-    url = Column(String, index=True, nullable=False)
+    url = Column(String(500), index=True, nullable=False)
     score = Column(Float, nullable=False)
     grade = Column(String(2), nullable=False)
     status = Column(String(50), nullable=False)
-    cookie_consent = Column(String(50))
-    privacy_policy = Column(String(50))
-    contact_info = Column(String(50))
+    cookie_consent = Column(String(200))
+    privacy_policy = Column(String(200))
+    contact_info = Column(String(200))
     trackers = Column(Text)
     scan_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     ai_analysis = Column(Text, nullable=True)
