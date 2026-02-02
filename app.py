@@ -172,36 +172,48 @@ st.markdown(
         color: #f8fafc !important;
         box-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
     }
-    .stTextInput input, .stSelectbox div {
-        background: rgba(2, 6, 10, 0.85) !important;
+    .stTextInput input {
+        background: rgba(30, 33, 46, 0.85) !important;
         color: #e6edf3 !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
         border-radius: 999px !important;
         height: 3.5rem;
         font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
     }
+    .stSelectbox div[data-baseweb="select"] {
+        background: rgba(30, 33, 46, 0.85) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
+        border-radius: 12px !important;
+    }
+    .stSelectbox div[data-baseweb="select"] > div {
+        background: rgba(30, 33, 46, 0.95) !important;
+        color: #e6edf3 !important;
+    }
     .stTextInput div[data-baseweb="input"] {
         background: transparent !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
         border-radius: 999px !important;
         box-shadow: none !important;
     }
     .stTextInput div[data-baseweb="input"]:hover {
-        border-color: rgba(255, 255, 255, 0.16) !important;
+        border-color: rgba(139, 92, 246, 0.4) !important;
     }
-    .stTextInput input:hover, .stSelectbox div:hover {
-        border-color: rgba(255, 255, 255, 0.16) !important;
+    .stTextInput input:hover {
+        border-color: rgba(139, 92, 246, 0.4) !important;
+    }
+    .stSelectbox:hover div[data-baseweb="select"] {
+        border-color: rgba(139, 92, 246, 0.4) !important;
     }
     .stTextArea textarea {
-        background: rgba(2, 6, 10, 0.85) !important;
+        background: rgba(30, 33, 46, 0.85) !important;
         color: #e6edf3 !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
         border-radius: 16px !important;
         font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
     }
     .stTextInput input:focus, .stTextArea textarea:focus {
-        border-color: rgba(34, 211, 238, 0.45) !important;
-        box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2) !important;
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3) !important;
     }
     .stTextInput input::placeholder, .stTextArea textarea::placeholder {
         color: #71717a !important;
