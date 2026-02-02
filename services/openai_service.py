@@ -1,176 +1,208 @@
-import json
 import os
-import re
 from openai import OpenAI
-import trafilatura
+import requests
+from bs4 import BeautifulSoup
 
-def _get_openai_client():
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is not set")
-    return OpenAI(api_key=api_key)
-
-def _clean_json_response(content: str) -> str:
-    """
-    Clean the response content to ensure it's valid JSON.
-    Removes markdown code blocks if present.
-    """
-    if not content:
-        return ""
+class OpenAIService:
+    """Service for OpenAI-powered privacy policy analysis"""
     
-    # Remove markdown code blocks
-    content = re.sub(r'^```json\s*', '', content, flags=re.MULTILINE)
-    content = re.sub(r'^```\s*', '', content, flags=re.MULTILINE)
-    content = re.sub(r'\s*```$', '', content, flags=re.MULTILINE)
+    def __init__(self):
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
     
-    return content.strip()
-
-def analyze_privacy_policy(privacy_url: str) -> dict:
-    try:
-        client = _get_openai_client()
-    except ValueError:
-        return {
-            'error': 'AI analysis unavailable: OpenAI API key not configured',
-            'gdpr_compliant': False,
-            'ccpa_compliant': False
-        }
+    def analyze_privacy_policy(self, url, scan_results):
+        """
+        Analyze privacy policy using OpenAI
+        
+        Args:
+            url: The website URL
+            scan_results: Dictionary containing scan results
+            
+        Returns:
+            str: AI-generated analysis or None if unavailable
+        """
+        if not self.client:
+            return None
+        
+        try:
+            # Get privacy policy URL from scan results
+            privacy_policy_status = scan_results.get("privacy_policy", "")
+            
+            if "Found" not in privacy_policy_status:
+                return "**No privacy policy detected** - Cannot perform AI analysis without a privacy policy."
+            
+            # Extract privacy policy content
+            policy_text = self._fetch_privacy_policy(url, scan_results)
+            
+            if not policy_text:
+                return "**Unable to fetch privacy policy content** - The policy may be behind authentication or dynamically loaded."
+            
+            # Truncate if too long (to stay within token limits)
+            max_length = 8000
+            if len(policy_text) > max_length:
+                policy_text = policy_text[:max_length] + "...\n[Content truncated]"
+            
+            # Create analysis prompt
+            prompt = self._create_analysis_prompt(url, policy_text, scan_results)
+            
+            # Call OpenAI API
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a privacy compliance expert specializing in GDPR and CCPA regulations. Provide clear, actionable analysis."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=1500
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            return f"**AI Analysis Error:** {str(e)}"
     
-    try:
-        downloaded = trafilatura.fetch_url(privacy_url)
-        if not downloaded:
-            return {
-                'error': 'Failed to fetch privacy policy content',
-                'compliant': False
-            }
-        
-        text = trafilatura.extract(downloaded)
-        
-        if not text or len(text) < 100:
-            return {
-                'error': 'Privacy policy content too short or unavailable',
-                'compliant': False
-            }
-        
-        truncated_text = text[:15000]  # Increased limit for gpt-4o
-        
-        prompt = f"""Analyze this privacy policy for GDPR and CCPA compliance. 
-
-Privacy Policy Content:
-{truncated_text}
-
-Provide a JSON response with the following structure:
-{{
-    "gdpr_compliant": true/false,
-    "ccpa_compliant": true/false,
-    "overall_compliance_score": 0-100,
-    "data_collection_mentioned": true/false,
-    "data_deletion_rights": true/false,
-    "data_sharing_disclosed": true/false,
-    "user_consent_mechanism": true/false,
-    "contact_information_provided": true/false,
-    "cookie_usage_explained": true/false,
-    "third_party_disclosure": true/false,
-    "missing_elements": ["list of missing compliance elements"],
-    "strengths": ["list of compliance strengths"],
-    "summary": "brief summary of compliance status"
-}}"""
-
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a privacy compliance expert specializing in GDPR and CCPA regulations. Analyze privacy policies and provide detailed compliance assessments in JSON format."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            response_format={"type": "json_object"},
-            max_completion_tokens=2048
-        )
-        
-        content = response.choices[0].message.content
-        cleaned_content = _clean_json_response(content)
-        
-        if not cleaned_content:
-            return {
-                'error': 'AI returned empty response',
-                'gdpr_compliant': False,
-                'ccpa_compliant': False
-            }
-        
-        result = json.loads(cleaned_content)
-        return result
-        
-    except Exception as e:
-        return {
-            'error': f'AI analysis failed: {str(e)}',
-            'compliant': False
-        }
-
-
-def get_compliance_recommendations(scan_results: dict) -> dict:
-    try:
-        client = _get_openai_client()
-    except ValueError:
-        return {
-            'error': 'AI recommendations unavailable: OpenAI API key not configured'
-        }
+    def _fetch_privacy_policy(self, base_url, scan_results):
+        """Fetch privacy policy content from the website"""
+        try:
+            # Common privacy policy paths
+            policy_paths = [
+                "/privacy-policy",
+                "/privacy",
+                "/privacy-notice",
+                "/legal/privacy",
+                "/privacy-statement"
+            ]
+            
+            # Try to find privacy policy link in the page
+            response = requests.get(base_url, timeout=10, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            })
+            soup = BeautifulSoup(response.content, "html.parser")
+            
+            # Look for privacy policy links
+            privacy_links = soup.find_all("a", href=True, string=lambda s: s and "privacy" in s.lower())
+            
+            policy_url = None
+            if privacy_links:
+                href = privacy_links[0]["href"]
+                if href.startswith("http"):
+                    policy_url = href
+                else:
+                    policy_url = base_url.rstrip("/") + ("" if href.startswith("/") else "/") + href
+            else:
+                # Try common paths
+                for path in policy_paths:
+                    test_url = base_url.rstrip("/") + path
+                    try:
+                        test_response = requests.head(test_url, timeout=5)
+                        if test_response.status_code == 200:
+                            policy_url = test_url
+                            break
+                    except:
+                        continue
+            
+            if not policy_url:
+                return None
+            
+            # Fetch privacy policy content
+            policy_response = requests.get(policy_url, timeout=10, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            })
+            policy_soup = BeautifulSoup(policy_response.content, "html.parser")
+            
+            # Remove script and style elements
+            for script in policy_soup(["script", "style", "nav", "header", "footer"]):
+                script.decompose()
+            
+            # Get text
+            text = policy_soup.get_text(separator="\n", strip=True)
+            
+            # Clean up whitespace
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            clean_text = "\n".join(lines)
+            
+            return clean_text
+            
+        except Exception as e:
+            return None
     
-    try:
-        # Safely extract values with defaults
-        cookie_banner = scan_results.get('cookie_banner', {})
-        tracking = scan_results.get('tracking_scripts', {})
-        privacy = scan_results.get('privacy_policy', {})
-        contact = scan_results.get('contact_info', {})
-        
-        prompt = f"""Based on this website compliance scan, provide actionable recommendations for improving GDPR/CCPA compliance.
+    def _create_analysis_prompt(self, url, policy_text, scan_results):
+        """Create the analysis prompt for OpenAI"""
+        prompt = f"""Analyze the following privacy policy for GDPR and CCPA compliance.
 
-Scan Results:
-- Cookie Banner Detected: {cookie_banner.get('detected', False)}
-- Tracking Scripts Found: {tracking.get('total_trackers', 0)}
-- Trackers: {', '.join(tracking.get('tracker_names', []))}
-- Privacy Policy Found: {privacy.get('found', False)}
-- Contact Information: {contact.get('detected', False)}
+**Website:** {url}
 
-Provide a JSON response with:
-{{
-    "priority_actions": ["list of high-priority actions"],
-    "suggested_improvements": ["list of recommended improvements"],
-    "compliance_risks": ["list of potential compliance risks"],
-    "overall_assessment": "brief overall assessment"
-}}"""
+**Automated Scan Results:**
+- Cookie Consent: {scan_results.get('cookie_consent', 'Unknown')}
+- Privacy Policy: {scan_results.get('privacy_policy', 'Unknown')}
+- Contact Information: {scan_results.get('contact_info', 'Unknown')}
+- Third-party Trackers: {len(scan_results.get('trackers', []))} detected
 
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a privacy compliance consultant. Provide practical, actionable recommendations for website owners to improve their GDPR/CCPA compliance."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            response_format={"type": "json_object"},
-            max_completion_tokens=1500
-        )
+**Privacy Policy Content:**
+{policy_text}
+
+Please provide:
+
+1. **Compliance Summary** - Brief assessment of GDPR/CCPA compliance
+2. **Strengths** - What the policy does well
+3. **Gaps** - Missing or unclear elements
+4. **Recommendations** - Specific improvements needed
+5. **Risk Level** - Low/Medium/High compliance risk
+
+Keep the analysis concise and actionable."""
         
-        content = response.choices[0].message.content
-        cleaned_content = _clean_json_response(content)
+        return prompt
+    
+    def get_remediation_advice(self, scan_results):
+        """Get AI-powered remediation advice based on scan results"""
+        if not self.client:
+            return None
         
-        if not cleaned_content:
-            return {
-                'error': 'AI returned empty response'
-            }
-        
-        result = json.loads(cleaned_content)
-        return result
-        
-    except Exception as e:
-        return {
-            'error': f'Failed to generate recommendations: {str(e)}'
-        }
+        try:
+            issues = []
+            
+            if "Not Found" in scan_results.get("cookie_consent", ""):
+                issues.append("Missing cookie consent banner")
+            
+            if "Not Found" in scan_results.get("privacy_policy", ""):
+                issues.append("Missing privacy policy")
+            
+            if "Not Found" in scan_results.get("contact_info", ""):
+                issues.append("Missing contact information")
+            
+            if not issues:
+                return "**All basic compliance indicators present!** Continue with detailed policy review."
+            
+            prompt = f"""As a privacy compliance expert, provide specific remediation steps for these issues:
+
+Issues found:
+{chr(10).join(f'- {issue}' for issue in issues)}
+
+Provide:
+1. Priority order for fixing these issues
+2. Specific implementation steps for each
+3. Estimated effort (hours/days)
+4. Legal risks if left unaddressed
+
+Be concise and actionable."""
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a privacy compliance expert."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=800
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            return f"**Error generating advice:** {str(e)}"
