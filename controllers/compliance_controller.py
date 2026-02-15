@@ -122,15 +122,15 @@ class ComplianceController:
         score = 0
         
         # Cookie consent (weighted from config)
-        if "Found" in results.get("cookie_consent", ""):
+        if results.get("cookie_consent", "").startswith("Found"):
             score += Config.SCORING_WEIGHTS["cookie_consent"]
         
         # Privacy policy (weighted from config)
-        if "Found" in results.get("privacy_policy", ""):
+        if results.get("privacy_policy", "").startswith("Found"):
             score += Config.SCORING_WEIGHTS["privacy_policy"]
         
         # Contact information (weighted from config)
-        if "Found" in results.get("contact_info", ""):
+        if results.get("contact_info", "").startswith("Found"):
             score += Config.SCORING_WEIGHTS["contact_info"]
         
         # Tracker penalty (weighted from config)
