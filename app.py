@@ -284,21 +284,6 @@ logger = logging.getLogger(__name__)
 DEBUG = os.getenv("APP_DEBUG", "").lower() in {"1", "true", "yes"}
 
 # Helpers
-def normalize_url(raw_url: str, assume_https: bool = True) -> str:
-    if not raw_url:
-        return ""
-    url = raw_url.strip()
-    if assume_https and not url.startswith(("http://", "https://")):
-        url = f"https://{url}"
-    return url
-
-def is_valid_url(url: str) -> bool:
-    try:
-        parsed = urlparse(url)
-        return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
-    except Exception:
-        return False
-
 def safe_filename_from_url(url: str) -> str:
     try:
         parsed = urlparse(url)

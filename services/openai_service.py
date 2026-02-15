@@ -191,7 +191,7 @@ class OpenAIService:
                 elif href.startswith("//"):
                     policy_url = "https:" + href
                 else:
-                    policy_url = urljoin(base_url.rstrip("/") + "/", href)
+                    policy_url = urljoin(base_url, href)
             else:
                 # Try common paths
                 for path in policy_paths:
