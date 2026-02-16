@@ -26,9 +26,12 @@ def generate_pdf_report(url, results, ai_analysis=None):
 
     # Score & Grade
     pdf.set_font("Arial", "B", size=16)
-    pdf.cell(0, 10, f"Compliance Score: {results['score']}/100", ln=True)
-    pdf.cell(0, 10, f"Grade: {results['grade']}", ln=True)
-    pdf.cell(0, 10, f"Status: {results['status']}", ln=True)
+    score = results.get('score', 0)
+    grade = results.get('grade', 'N/A')
+    status = results.get('status', 'Unknown')
+    pdf.cell(0, 10, f"Compliance Score: {score}/100", ln=True)
+    pdf.cell(0, 10, f"Grade: {grade}", ln=True)
+    pdf.cell(0, 10, f"Status: {status}", ln=True)
     pdf.ln(10)
 
     # Detailed Findings
@@ -66,4 +69,11 @@ def generate_pdf_report(url, results, ai_analysis=None):
         clean_analysis = ai_analysis.replace("**", "").replace("* ", "- ")
         pdf.multi_cell(0, 6, clean_analysis)
 
-    return pdf.output(dest='S').encode('latin-1', 'replace')
+    # With fpdf2, output() returns bytes directly
+    # Using 'latin-1' here for legacy compatibility if needed, but strict to fail fast
+    # Ideally should be bytes(pdf.output()) in future fpdf2 versions if string output is fully deprecated
+    try:
+        return bytes(pdf.output())
+    except TypeError:
+        # Fallback for older FPDF versions if environment has them
+        return pdf.output(dest='S').encode('latin-1', 'strict')

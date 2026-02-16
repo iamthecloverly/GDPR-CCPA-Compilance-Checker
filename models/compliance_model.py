@@ -30,7 +30,7 @@ from bs4 import BeautifulSoup
 import re
 import io
 from pypdf import PdfReader
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import logging
 
 from config import Config
@@ -79,7 +79,7 @@ class ComplianceModel:
         session.mount("https://", HTTPAdapter(max_retries=retries))
         return session
 
-    def _get_content(self, url: str) -> (bytes, str):
+    def _get_content(self, url: str) -> Tuple[bytes, str]:
         """
         Fetch content from a URL (HTML or PDF).
         

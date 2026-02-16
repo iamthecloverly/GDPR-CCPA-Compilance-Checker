@@ -35,7 +35,8 @@ CCPA_KEYWORDS: List[str] = [
     "do not sell",
     "do not sell my personal information",
     "do not sell my data",
-    "opt-out",
+    "opt-out of sale",
+    "opt out of sale",
     "california privacy",
     "ccpa"
 ]

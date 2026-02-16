@@ -526,40 +526,8 @@ with tab1:
         # Score Breakdown Chart
         st.subheader("Score Breakdown")
 
-        # Calculate points for chart
-        breakdown_data = []
-
-        # Cookie Consent
-        cookie_score = Config.SCORING_WEIGHTS["cookie_consent"] if results.get("cookie_consent", "").startswith("Found") else 0
-        breakdown_data.append({"Category": "Cookie Consent", "Points": cookie_score, "Max": Config.SCORING_WEIGHTS["cookie_consent"]})
-
-        # Privacy Policy
-        privacy_score = Config.SCORING_WEIGHTS["privacy_policy"] if results.get("privacy_policy", "").startswith("Found") else 0
-        breakdown_data.append({"Category": "Privacy Policy", "Points": privacy_score, "Max": Config.SCORING_WEIGHTS["privacy_policy"]})
-
-        # CCPA
-        ccpa_score = Config.SCORING_WEIGHTS.get("ccpa_compliance", 0) if results.get("ccpa_compliance", "").startswith("Found") else 0
-        breakdown_data.append({"Category": "CCPA Compliance", "Points": ccpa_score, "Max": Config.SCORING_WEIGHTS.get("ccpa_compliance", 0)})
-
-        # Contact Info
-        contact_score = Config.SCORING_WEIGHTS["contact_info"] if results.get("contact_info", "").startswith("Found") else 0
-        breakdown_data.append({"Category": "Contact Info", "Points": contact_score, "Max": Config.SCORING_WEIGHTS["contact_info"]})
-
-        # Trackers (calculate penalty vs max points)
-        tracker_max = Config.SCORING_WEIGHTS["trackers"]
-        tracker_count = len(results.get("trackers", []))
-        tracker_score = 0
-        if tracker_count == 0:
-            tracker_score = tracker_max
-        elif tracker_count <= 3:
-            tracker_score = int(tracker_max * 0.75)
-        elif tracker_count <= 5:
-            tracker_score = int(tracker_max * 0.5)
-        elif tracker_count <= 10:
-            tracker_score = int(tracker_max * 0.25)
-
-        breakdown_data.append({"Category": "Tracker Safety", "Points": tracker_score, "Max": tracker_max})
-
+        # Get score breakdown from controller
+        breakdown_data = controller.get_score_breakdown(results)
         chart_df = pd.DataFrame(breakdown_data)
 
         st.bar_chart(
@@ -845,7 +813,7 @@ with tab4:
                 # Main metrics comparison
                 comp_data = {
                     "Metric": ["Score", "Grade", "Status", "Cookie Consent", "Privacy Policy", "CCPA Compliance", "Contact Info", "Trackers"],
-                    f"{url_a}": [
+                    f"{valid_url_a}": [
                         f"{results_a['score']}/100",
                         results_a['grade'],
                         results_a['status'],
@@ -855,7 +823,7 @@ with tab4:
                         "✅" if "Found" in results_a['contact_info'] else "❌",
                         len(results_a.get('trackers', []))
                     ],
-                    f"{url_b}": [
+                    f"{valid_url_b}": [
                         f"{results_b['score']}/100",
                         results_b['grade'],
                         results_b['status'],
@@ -874,14 +842,14 @@ with tab4:
                 col_a, col_b = st.columns(2)
 
                 with col_a:
-                    st.markdown(f"**{url_a}**")
+                    st.markdown(f"**{valid_url_a}**")
                     if results_a.get('trackers'):
                         with st.expander("Trackers Found"):
                             for t in results_a['trackers']:
                                 st.write(f"- {t}")
 
                 with col_b:
-                    st.markdown(f"**{url_b}**")
+                    st.markdown(f"**{valid_url_b}**")
                     if results_b.get('trackers'):
                         with st.expander("Trackers Found"):
                             for t in results_b['trackers']:

@@ -8,7 +8,10 @@ services:
     environment:
       - APP_DEBUG=false
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=sqlite:///compliance.db
+      - DATABASE_URL=sqlite:////app/data/compliance.db
     volumes:
-      - .:/app
+      - compliance_data:/app/data
     restart: unless-stopped
+
+volumes:
+  compliance_data:
