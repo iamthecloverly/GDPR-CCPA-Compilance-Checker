@@ -36,9 +36,8 @@ class Config:
     
     # Scoring Weights
     SCORING_WEIGHTS: Dict[str, int] = {
-        "cookie_consent": int(os.getenv("SCORE_COOKIE_CONSENT", "25")),
-        "privacy_policy": int(os.getenv("SCORE_PRIVACY_POLICY", "25")),
-        "ccpa_compliance": int(os.getenv("SCORE_CCPA_COMPLIANCE", "10")),
+        "cookie_consent": int(os.getenv("SCORE_COOKIE_CONSENT", "30")),
+        "privacy_policy": int(os.getenv("SCORE_PRIVACY_POLICY", "30")),
         "contact_info": int(os.getenv("SCORE_CONTACT_INFO", "20")),
         "trackers": int(os.getenv("SCORE_TRACKERS_MAX", "20")),
     }
