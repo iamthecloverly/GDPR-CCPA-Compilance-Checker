@@ -25,17 +25,14 @@ Example:
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import re
-import io
-from pypdf import PdfReader
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import logging
 
 from config import Config
 from constants import (
-    COOKIE_KEYWORDS, PRIVACY_KEYWORDS, CCPA_KEYWORDS, TRACKING_DOMAINS,
+    COOKIE_KEYWORDS, PRIVACY_KEYWORDS, TRACKING_DOMAINS,
     EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
 )
 from exceptions import NetworkError, ScanError
@@ -79,18 +76,18 @@ class ComplianceModel:
         session.mount("https://", HTTPAdapter(max_retries=retries))
         return session
 
-    def _get_content(self, url: str) -> Tuple[bytes, str]:
+    def _get_html(self, url: str) -> bytes:
         """
-        Fetch content from a URL (HTML or PDF).
+        Fetch HTML content from a URL.
         
         Args:
             url: The URL to fetch
             
         Returns:
-            Tuple of (raw content as bytes, content type)
+            Raw HTML content as bytes
             
         Raises:
-            NetworkError: If the request fails
+            NetworkError: If the request fails or doesn't return HTML
         """
         try:
             response = self.session.get(
@@ -101,14 +98,16 @@ class ComplianceModel:
             )
             response.raise_for_status()
             content_type = response.headers.get("Content-Type", "")
-            return response.content, content_type
+            if "text/html" not in content_type:
+                raise NetworkError(f"URL did not return HTML content (got {content_type})")
+            return response.content
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch URL {url}: {e}")
             raise NetworkError(f"Failed to fetch URL: {str(e)}") from e
     
     def analyze_compliance(self, url: str) -> Dict[str, any]:
         """
-        Analyze a website or PDF for compliance indicators.
+        Analyze a website for compliance indicators.
         
         Args:
             url: The website URL to analyze
@@ -124,36 +123,17 @@ class ComplianceModel:
             ScanError: If analysis fails
         """
         try:
-            # Fetch content
-            content, content_type = self._get_content(url)
-
-            if "application/pdf" in content_type:
-                return self._analyze_pdf(content, url)
-
-            if "text/html" not in content_type:
-                 raise NetworkError(f"URL returned unsupported content type: {content_type}")
-
-            soup = BeautifulSoup(content, "html.parser")
+            # Fetch webpage
+            html = self._get_html(url)
+            soup = BeautifulSoup(html, "html.parser")
             
             results = {
                 "cookie_consent": self._check_cookie_consent(soup),
                 "privacy_policy": self._check_privacy_policy(soup, url),
-                "ccpa_compliance": self._check_ccpa_compliance(soup),
                 "contact_info": self._check_contact_info(soup),
                 "trackers": self._detect_trackers(soup)
             }
             
-            # Smart Crawl: If key elements are missing, crawl internal links
-            missing_elements = []
-            if not results["privacy_policy"].startswith("Found"):
-                missing_elements.append("privacy_policy")
-            if not results["ccpa_compliance"].startswith("Found"):
-                missing_elements.append("ccpa_compliance")
-
-            if missing_elements:
-                logger.info(f"Missing elements {missing_elements}, initiating smart crawl")
-                self._smart_crawl(url, soup, results, missing_elements)
-
             logger.info(f"Successfully analyzed {url}")
             return results
             
@@ -162,45 +142,6 @@ class ComplianceModel:
         except Exception as e:
             logger.error(f"Analysis error for {url}: {e}")
             raise ScanError(f"Analysis error: {str(e)}") from e
-
-    def _analyze_pdf(self, content: bytes, url: str) -> Dict[str, any]:
-        """
-        Analyze a PDF document for compliance indicators.
-
-        Args:
-            content: Raw PDF content
-            url: The source URL
-
-        Returns:
-            Dictionary containing compliance findings
-        """
-        try:
-            reader = PdfReader(io.BytesIO(content))
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-
-            text_lower = text.lower()
-
-            # Analyze text content directly
-            results = {
-                "cookie_consent": "N/A (PDF Document)",
-                "privacy_policy": "Found - Direct PDF Link",
-                "ccpa_compliance": "Found - CCPA Terms Detected" if any(k in text_lower for k in CCPA_KEYWORDS) else "Not Found in PDF",
-                "contact_info": self._check_contact_info_text(text),
-                "trackers": [] # Cannot detect JS trackers in PDF
-            }
-
-            return results
-        except Exception as e:
-            logger.error(f"PDF analysis failed: {e}")
-            return {
-                "cookie_consent": "Error analyzing PDF",
-                "privacy_policy": "Found - Direct PDF Link",
-                "ccpa_compliance": "Error analyzing PDF",
-                "contact_info": "Error analyzing PDF",
-                "trackers": []
-            }
     
     def _check_cookie_consent(self, soup: BeautifulSoup) -> str:
         """
@@ -251,32 +192,9 @@ class ComplianceModel:
         
         return "Not Found - No privacy policy link detected"
     
-    def _check_ccpa_compliance(self, soup: BeautifulSoup) -> str:
-        """
-        Check for CCPA compliance indicators (Do Not Sell link).
-
-        Args:
-            soup: BeautifulSoup object of the page
-
-        Returns:
-            Status string indicating whether CCPA elements were found
-        """
-        # Look for links containing CCPA keywords
-        all_links = soup.find_all("a", href=True)
-
-        for link in all_links:
-            link_text = link.get_text().lower()
-            href = link.get("href", "").lower()
-
-            for keyword in CCPA_KEYWORDS:
-                if keyword in link_text or keyword in href:
-                    return "Found - CCPA 'Do Not Sell' link detected"
-
-        return "Not Found - No CCPA 'Do Not Sell' link detected"
-
     def _check_contact_info(self, soup: BeautifulSoup) -> str:
         """
-        Check for contact information in HTML.
+        Check for contact information.
         
         Args:
             soup: BeautifulSoup object of the page
@@ -284,27 +202,22 @@ class ComplianceModel:
         Returns:
             Status string with details of found contact information
         """
-        return self._check_contact_info_text(soup.get_text())
+        page_text = soup.get_text()
         
-    def _check_contact_info_text(self, text: str) -> str:
-        """
-        Check for contact information in raw text.
+        has_email = bool(EMAIL_PATTERN.search(page_text))
+        has_phone = bool(PHONE_PATTERN.search(page_text))
         
-        Args:
-            text: Text to analyze
-
-        Returns:
-            Status string with details of found contact information
-        """
-        has_email = bool(EMAIL_PATTERN.search(text))
-        has_phone = bool(PHONE_PATTERN.search(text))
+        # Check for contact page link
+        contact_link = soup.find("a", href=True, string=re.compile("contact", re.IGNORECASE))
         
-        if has_email or has_phone:
+        if has_email or has_phone or contact_link:
             details = []
             if has_email:
                 details.append("email")
             if has_phone:
                 details.append("phone")
+            if contact_link:
+                details.append("contact page")
             
             return f"Found - Contact info detected ({', '.join(details)})"
         
@@ -342,70 +255,3 @@ class ComplianceModel:
                         trackers.append(domain)
         
         return trackers
-
-    def _smart_crawl(self, base_url: str, soup: BeautifulSoup, results: Dict[str, any], missing: List[str]):
-        """
-        Crawl internal links to find missing compliance elements.
-
-        Args:
-            base_url: The starting URL
-            soup: BeautifulSoup object of the starting page
-            results: Results dictionary to update
-            missing: List of missing element keys
-        """
-        internal_links = set()
-        domain = urlparse(base_url).netloc
-
-        # Find relevant internal links (e.g., footer links, legal pages)
-        for link in soup.find_all("a", href=True):
-            href = link.get("href", "")
-            full_url = urljoin(base_url, href)
-            parsed = urlparse(full_url)
-
-            # Only follow internal links
-            if parsed.netloc == domain or not parsed.netloc:
-                # Prioritize promising paths
-                lower_href = href.lower()
-                if any(x in lower_href for x in ["legal", "terms", "about", "privacy", "compliance", "footer"]):
-                    internal_links.add(full_url)
-
-        # Limit the number of pages to crawl to avoid long scan times
-        crawl_limit = 3
-        crawled_count = 0
-
-        for url in internal_links:
-            if crawled_count >= crawl_limit:
-                break
-
-            try:
-                html = self._get_html(url)
-                sub_soup = BeautifulSoup(html, "html.parser")
-
-                if "privacy_policy" in missing and not results["privacy_policy"].startswith("Found"):
-                    status = self._check_privacy_policy(sub_soup, url)
-                    if status.startswith("Found"):
-                        results["privacy_policy"] = status
-                        missing.remove("privacy_policy")
-
-                if "ccpa_compliance" in missing and not results["ccpa_compliance"].startswith("Found"):
-                    status = self._check_ccpa_compliance(sub_soup)
-                    if status.startswith("Found"):
-                        results["ccpa_compliance"] = status
-                        missing.remove("ccpa_compliance")
-
-                crawled_count += 1
-
-                if not missing:
-                    break
-
-            except Exception as e:
-                logger.warning(f"Failed to crawl internal link {url}: {e}")
-
-    def _get_html(self, url: str) -> bytes:
-        """
-        Fetch HTML content from a URL (compatibility wrapper).
-        """
-        content, content_type = self._get_content(url)
-        if "text/html" not in content_type:
-             raise NetworkError(f"URL did not return HTML content (got {content_type})")
-        return content
