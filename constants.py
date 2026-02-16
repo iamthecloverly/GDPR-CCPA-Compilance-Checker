@@ -30,6 +30,16 @@ PRIVACY_KEYWORDS: List[str] = [
     "data protection"
 ]
 
+# CCPA specific keywords
+CCPA_KEYWORDS: List[str] = [
+    "do not sell",
+    "do not sell my personal information",
+    "do not sell my data",
+    "opt-out",
+    "california privacy",
+    "ccpa"
+]
+
 # Common privacy policy paths
 PRIVACY_POLICY_PATHS: List[str] = [
     "/privacy-policy",

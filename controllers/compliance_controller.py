@@ -26,6 +26,8 @@ Example:
 
 from typing import Dict, List, Any
 import logging
+import asyncio
+from datetime import datetime, timedelta
 
 from models.compliance_model import ComplianceModel
 from services.openai_service import OpenAIService
@@ -55,6 +57,8 @@ class ComplianceController:
         """Initialize the controller with model and AI service."""
         self.model = ComplianceModel()
         self.openai_service = OpenAIService()
+        self._cache = {}
+        self._cache_ttl = timedelta(hours=1)
     
     def scan_website(self, url: str) -> Dict[str, Any]:
         """
@@ -78,6 +82,13 @@ class ComplianceController:
             ScanError: If the scan fails
         """
         try:
+            # Check cache
+            if url in self._cache:
+                cached_time, cached_result = self._cache[url]
+                if datetime.now() - cached_time < self._cache_ttl:
+                    logger.info(f"Returning cached result for {url}")
+                    return cached_result
+
             # Fetch and analyze the webpage
             results = self.model.analyze_compliance(url)
             
@@ -88,17 +99,23 @@ class ComplianceController:
             
             logger.info(f"Scanned {url}: score={score}, grade={grade}")
             
-            return {
+            final_result = {
                 "score": score,
                 "grade": grade,
                 "status": status,
                 "cookie_consent": results.get("cookie_consent", "Not Found"),
                 "privacy_policy": results.get("privacy_policy", "Not Found"),
+                "ccpa_compliance": results.get("ccpa_compliance", "Not Found"),
                 "contact_info": results.get("contact_info", "Not Found"),
                 "trackers": results.get("trackers", []),
                 "details": results
             }
             
+            # Update cache
+            self._cache[url] = (datetime.now(), final_result)
+
+            return final_result
+
         except Exception as e:
             logger.error(f"Scan failed for {url}: {e}")
             raise ScanError(f"Scan failed: {str(e)}") from e
@@ -128,6 +145,10 @@ class ComplianceController:
         # Privacy policy (weighted from config)
         if results.get("privacy_policy", "").startswith("Found"):
             score += Config.SCORING_WEIGHTS["privacy_policy"]
+
+        # CCPA compliance (weighted from config)
+        if results.get("ccpa_compliance", "").startswith("Found"):
+            score += Config.SCORING_WEIGHTS.get("ccpa_compliance", 0)
         
         # Contact information (weighted from config)
         if results.get("contact_info", "").startswith("Found"):
@@ -183,7 +204,7 @@ class ComplianceController:
     
     def batch_scan(self, urls: List[str]) -> List[Dict[str, Any]]:
         """
-        Scan multiple URLs sequentially.
+        Scan multiple URLs (sync wrapper for async implementation).
         
         Args:
             urls: List of URLs to scan
@@ -191,20 +212,70 @@ class ComplianceController:
         Returns:
             List of scan results dictionaries
         """
-        results = []
-        for url in urls[:Config.BATCH_SCAN_LIMIT]:  # Respect batch limit
+        # Run async batch scan in a new event loop
+        try:
+            # Check if there's already a running loop
             try:
-                result = self.scan_website(url)
-                result["url"] = url
-                results.append(result)
-            except Exception as e:
-                logger.error(f"Batch scan error for {url}: {e}")
-                results.append({
-                    "url": url,
-                    "error": str(e),
-                    "score": 0,
-                    "grade": "F",
-                    "status": "Error"
-                })
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                # If we're already in a loop (unlikely with Streamlit but possible), use it
+                # Note: asyncio.run() cannot be called when a loop is running
+                return loop.run_until_complete(self._async_batch_scan(urls))
+            else:
+                return asyncio.run(self._async_batch_scan(urls))
+
+        except Exception as e:
+            logger.error(f"Async batch scan failed, falling back to sync: {e}")
+            # Fallback to sync
+            results = []
+            for url in urls[:Config.BATCH_SCAN_LIMIT]:
+                try:
+                    result = self.scan_website(url)
+                    result["url"] = url
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Batch scan error for {url}: {e}")
+                    results.append({
+                        "url": url,
+                        "error": str(e),
+                        "score": 0,
+                        "grade": "F",
+                        "status": "Error"
+                    })
+            return results
+
+    async def _async_batch_scan(self, urls: List[str]) -> List[Dict[str, Any]]:
+        """
+        Asynchronously scan multiple URLs.
         
-        return results
+        Args:
+            urls: List of URLs to scan
+
+        Returns:
+            List of scan results dictionaries
+        """
+        limited_urls = urls[:Config.BATCH_SCAN_LIMIT]
+        tasks = [self._async_scan_wrapper(url) for url in limited_urls]
+        return await asyncio.gather(*tasks)
+
+    async def _async_scan_wrapper(self, url: str) -> Dict[str, Any]:
+        """
+        Async wrapper for single URL scan.
+        """
+        try:
+            # Offload the blocking sync call to a thread
+            result = await asyncio.to_thread(self.scan_website, url)
+            result["url"] = url
+            return result
+        except Exception as e:
+            logger.error(f"Async scan error for {url}: {e}")
+            return {
+                "url": url,
+                "error": str(e),
+                "score": 0,
+                "grade": "F",
+                "status": "Error"
+            }
