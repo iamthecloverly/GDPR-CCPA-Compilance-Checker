@@ -1,6 +1,7 @@
 """Input validation and sanitization module."""
 
 import re
+import ipaddress
 from typing import Tuple
 from urllib.parse import urlparse
 import logging
@@ -43,10 +44,31 @@ def validate_url(url: str) -> Tuple[bool, str]:
         if not parsed.scheme in ('http', 'https'):
             raise InvalidURLError(f"Invalid URL: unsupported scheme '{parsed.scheme}'")
         
-        # Check for valid domain format
-        domain = parsed.netloc.lower()
-        if not re.match(r'^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$', domain):
-            raise InvalidURLError(f"Invalid URL: malformed domain '{domain}'")
+        # SSRF protection: block private and reserved IPs and localhost
+        hostname = parsed.hostname
+        if not hostname:
+             raise InvalidURLError("Invalid URL: missing hostname")
+
+        hostname = hostname.lower()
+
+        # Check if it's an IP address
+        is_ip = False
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or \
+               ip.is_multicast or ip.is_reserved or ip.is_unspecified:
+                raise InvalidURLError(f"Invalid URL: host '{hostname}' is not allowed for security reasons")
+            # If we are here, it's a valid public IP
+            is_ip = True
+        except ValueError:
+            # Not an IP address, check for localhost
+            if hostname in ('localhost', 'localhost.localdomain'):
+                raise InvalidURLError(f"Invalid URL: host '{hostname}' is not allowed")
+
+        # Check for valid domain format if not a public IP
+        if not is_ip:
+            if not re.match(r'^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$', hostname):
+                raise InvalidURLError(f"Invalid URL: malformed domain '{hostname}'")
         
         logger.info(f"Validated URL: {url}")
         return True, url
