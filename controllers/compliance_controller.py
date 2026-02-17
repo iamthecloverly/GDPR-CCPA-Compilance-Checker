@@ -57,6 +57,9 @@ class ComplianceController:
         self.model = ComplianceModel()
         self.openai_service = OpenAIService()
         self._cache_lock = threading.Lock()
+        self._cache = {}
+
+    def scan_website(self, url):
         """
         Perform a comprehensive compliance scan on a website.
         
