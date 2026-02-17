@@ -29,8 +29,6 @@ from typing import Dict, Any, Optional
 import logging
 from openai import OpenAI
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import trafilatura
@@ -38,6 +36,8 @@ import trafilatura
 from config import Config
 from exceptions import AIServiceError, NetworkError, InvalidURLError
 from validators import validate_url
+from utils import create_session
+from exceptions import AIServiceError, NetworkError
 
 logger = logging.getLogger(__name__)
 
@@ -62,25 +62,7 @@ class OpenAIService:
         """Initialize the OpenAI service with API key and HTTP session."""
         self.api_key = Config.OPENAI_API_KEY
         self.client = OpenAI(api_key=self.api_key) if self.api_key else None
-        self.session = self._create_session()
-
-    def _create_session(self) -> requests.Session:
-        """
-        Create a requests session with retry logic.
-
-        Returns:
-            Configured requests.Session instance.
-        """
-        session = requests.Session()
-        retries = Retry(
-            total=Config.MAX_RETRIES,
-            backoff_factor=Config.BACKOFF_FACTOR,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET", "HEAD"],
-        )
-        session.mount("http://", HTTPAdapter(max_retries=retries))
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-        return session
+        self.session = create_session()
 
     def analyze_privacy_policy(
         self, url: str, scan_results: Dict[str, Any]
