@@ -15,10 +15,6 @@ from exceptions import (
     ComplianceCheckerError, ScanError, NetworkError, 
     DatabaseError, AIServiceError, ConfigurationError
 )
-try:
-    from utils.report_generator import generate_pdf_report
-except ImportError:
-    generate_pdf_report = None
 
 # Page config
 st.set_page_config(
@@ -395,7 +391,7 @@ with st.sidebar.expander("How it works"):
     st.write("1) Enter a URL\n2) Run a scan\n3) Review score and details\n4) Export CSV")
 
 # Main tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Single Scan", "Scan History", "Batch Scan", "Compare"])
+tab1, tab2, tab3 = st.tabs(["Single Scan", "Scan History", "Batch Scan"])
 
 # Tab 1: Single Scan
 with tab1:
@@ -549,7 +545,6 @@ with tab1:
         with details_col1:
             st.write("**Cookie Consent:**", results["cookie_consent"])
             st.write("**Privacy Policy:**", results["privacy_policy"])
-            st.write("**CCPA Compliance:**", results.get("ccpa_compliance", "Not checked"))
 
         with details_col2:
             st.write("**Contact Info:**", results["contact_info"])
@@ -610,19 +605,6 @@ with tab1:
             f"compliance_report_{safe_filename_from_url(url)}.csv",
             "text/csv"
         )
-
-        if generate_pdf_report:
-            try:
-                pdf_bytes = generate_pdf_report(url, results, ai_analysis)
-                st.download_button(
-                    "Download Report (PDF)",
-                    pdf_bytes,
-                    f"compliance_report_{safe_filename_from_url(url)}.pdf",
-                    "application/pdf"
-                )
-            except Exception as e:
-                logger.error(f"Failed to generate PDF: {e}")
-                st.warning("PDF generation unavailable")
 
 # Tab 2: Scan History
 with tab2:
@@ -791,81 +773,6 @@ with tab3:
                     f"batch_compliance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     "text/csv"
                 )
-
-# Tab 4: Compare
-with tab4:
-    st.header("Competitor Comparison")
-    st.caption("Compare privacy compliance between two websites side-by-side.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        url_a = st.text_input("Website A URL", placeholder="https://example.com")
-    with col2:
-        url_b = st.text_input("Website B URL", placeholder="https://competitor.com")
-
-    if st.button("Compare Sites", type="primary"):
-        if not url_a or not url_b:
-            st.error("Please enter both URLs")
-        else:
-            try:
-                # Validate URLs
-                _, valid_url_a = validate_url(url_a)
-                _, valid_url_b = validate_url(url_b)
-
-                with st.spinner("Analyzing both sites..."):
-                    results_a = controller.scan_website(valid_url_a)
-                    results_b = controller.scan_website(valid_url_b)
-
-                st.subheader("Comparison Results")
-
-                # Main metrics comparison
-                comp_data = {
-                    "Metric": ["Score", "Grade", "Status", "Cookie Consent", "Privacy Policy", "CCPA Compliance", "Contact Info", "Trackers"],
-                    f"{valid_url_a}": [
-                        f"{results_a['score']}/100",
-                        results_a['grade'],
-                        results_a['status'],
-                        "✅" if "Found" in results_a['cookie_consent'] else "❌",
-                        "✅" if "Found" in results_a['privacy_policy'] else "❌",
-                        "✅" if "Found" in results_a.get('ccpa_compliance', '') else "❌",
-                        "✅" if "Found" in results_a['contact_info'] else "❌",
-                        len(results_a.get('trackers', []))
-                    ],
-                    f"{valid_url_b}": [
-                        f"{results_b['score']}/100",
-                        results_b['grade'],
-                        results_b['status'],
-                        "✅" if "Found" in results_b['cookie_consent'] else "❌",
-                        "✅" if "Found" in results_b['privacy_policy'] else "❌",
-                        "✅" if "Found" in results_b.get('ccpa_compliance', '') else "❌",
-                        "✅" if "Found" in results_b['contact_info'] else "❌",
-                        len(results_b.get('trackers', []))
-                    ]
-                }
-
-                st.table(pd.DataFrame(comp_data))
-
-                # Detailed Breakdown
-                st.subheader("Detailed Breakdown")
-                col_a, col_b = st.columns(2)
-
-                with col_a:
-                    st.markdown(f"**{valid_url_a}**")
-                    if results_a.get('trackers'):
-                        with st.expander("Trackers Found"):
-                            for t in results_a['trackers']:
-                                st.write(f"- {t}")
-
-                with col_b:
-                    st.markdown(f"**{valid_url_b}**")
-                    if results_b.get('trackers'):
-                        with st.expander("Trackers Found"):
-                            for t in results_b['trackers']:
-                                st.write(f"- {t}")
-
-            except Exception as e:
-                st.error(f"Comparison failed: {str(e)}")
-                logger.error(f"Comparison error: {e}")
 
 # Footer
 st.markdown("---")
