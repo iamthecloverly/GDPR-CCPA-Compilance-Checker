@@ -16,7 +16,8 @@ def _create_engine(db_url: str):
         )
 
     connect_args = {}
-    if "sslmode=" not in db_url:
+    # Only enforce SSL for postgresql if not explicit
+    if db_url.startswith("postgresql") and "sslmode=" not in db_url:
         connect_args["sslmode"] = "require"
 
     return create_engine(

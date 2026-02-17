@@ -43,9 +43,37 @@ def validate_url(url: str) -> Tuple[bool, str]:
         if not parsed.scheme in ('http', 'https'):
             raise InvalidURLError(f"Invalid URL: unsupported scheme '{parsed.scheme}'")
         
-        # Check for valid domain format
+        # Check for valid domain format (supporting ports and localhost for dev)
         domain = parsed.netloc.lower()
-        if not re.match(r'^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$', domain):
+        # Regex explanation:
+        # ^ - start
+        # (?: ... ) - non-capturing group for domain parts
+        # [a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])? - label
+        # \. - dot
+        # )+ - one or more labels
+        # [a-z]{2,} - TLD
+        # OR localhost
+        # (?::\d{1,5})? - optional port
+        # $ - end
+
+        # Simplified regex to allow standard domains + localhost + optional port
+        # Note: Previous regex was too strict for ports.
+
+        # Extract hostname and port
+        if ':' in domain:
+            try:
+                hostname, port = domain.split(':', 1)
+                if not port.isdigit() or not (0 < int(port) <= 65535):
+                     raise InvalidURLError(f"Invalid URL: invalid port '{port}'")
+            except ValueError:
+                raise InvalidURLError(f"Invalid URL: malformed domain '{domain}'")
+        else:
+            hostname = domain
+
+        is_localhost = hostname == 'localhost' or hostname == '127.0.0.1'
+        is_valid_domain = re.match(r'^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$', hostname)
+
+        if not (is_localhost or is_valid_domain):
             raise InvalidURLError(f"Invalid URL: malformed domain '{domain}'")
         
         logger.info(f"Validated URL: {url}")

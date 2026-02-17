@@ -26,6 +26,7 @@ Example:
 
 from typing import Dict, List, Any
 import logging
+import threading
 
 from models.compliance_model import ComplianceModel
 from services.openai_service import OpenAIService
@@ -55,8 +56,7 @@ class ComplianceController:
         """Initialize the controller with model and AI service."""
         self.model = ComplianceModel()
         self.openai_service = OpenAIService()
-    
-    def scan_website(self, url: str) -> Dict[str, Any]:
+        self._cache_lock = threading.Lock()
         """
         Perform a comprehensive compliance scan on a website.
         
