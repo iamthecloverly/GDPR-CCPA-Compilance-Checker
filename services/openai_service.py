@@ -36,7 +36,8 @@ from bs4 import BeautifulSoup
 import trafilatura
 
 from config import Config
-from exceptions import AIServiceError, NetworkError
+from exceptions import AIServiceError, NetworkError, InvalidURLError
+from validators import validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +237,13 @@ class OpenAIService:
                         continue
 
             if not policy_url:
+                return None
+
+            # Validate the policy URL to prevent SSRF
+            try:
+                validate_url(policy_url)
+            except InvalidURLError as e:
+                logger.warning(f"Skipping invalid or unsafe privacy policy URL {policy_url}: {e}")
                 return None
 
             # Fetch privacy policy content
