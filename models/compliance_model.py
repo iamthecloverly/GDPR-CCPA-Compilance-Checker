@@ -148,19 +148,26 @@ class ComplianceModel:
         Returns:
             Status string indicating whether cookie consent was found
         """
-        # Check for common cookie banner elements
-        for keyword in COOKIE_KEYWORDS:
-            # Check in text content
-            if soup.find(string=re.compile(keyword, re.IGNORECASE)):
-                return "Found - Cookie consent detected"
-            
-            # Check in div IDs and classes
-            if soup.find(["div", "section"], {"id": re.compile(keyword, re.IGNORECASE)}):
-                return "Found - Cookie consent banner detected"
-            
-            if soup.find(["div", "section"], {"class": re.compile(keyword, re.IGNORECASE)}):
-                return "Found - Cookie consent banner detected"
-        
+        if not COOKIE_KEYWORDS:
+            return "Not Found - No cookie consent banner detected"
+
+        # Pre-compile combined regex for better performance
+        cookie_pattern = re.compile(
+            "|".join(re.escape(k) for k in COOKIE_KEYWORDS), re.IGNORECASE
+        )
+
+        # Check in text content (single traversal)
+        if soup.find(string=cookie_pattern):
+            return "Found - Cookie consent detected"
+
+        # Check in div/section IDs (single traversal)
+        if soup.find(["div", "section"], id=cookie_pattern):
+            return "Found - Cookie consent banner detected"
+
+        # Check in div/section classes (single traversal)
+        if soup.find(["div", "section"], class_=cookie_pattern):
+            return "Found - Cookie consent banner detected"
+
         return "Not Found - No cookie consent banner detected"
     
     def _check_privacy_policy(self, soup: BeautifulSoup, base_url: str) -> str:
