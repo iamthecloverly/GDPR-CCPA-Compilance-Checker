@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from urllib.parse import urlparse
 import pandas as pd
+import plotly.express as px
 
 # Import configuration and validation
 from config import Config
@@ -518,6 +519,25 @@ with tab1:
                 "Non-Compliant": "❌"
             }
             st.metric("Status", f"{status_emoji.get(results['status'], '❓')} {results['status']}")
+
+        # Score Breakdown Chart
+        st.subheader("Score Breakdown")
+
+        # Get score breakdown from controller
+        breakdown_data = controller.get_score_breakdown(results)
+        chart_df = pd.DataFrame(breakdown_data)
+
+        # Create donut chart
+        fig = px.pie(
+            chart_df,
+            values="Points",
+            names="Category",
+            hole=0.5,
+            color_discrete_sequence=["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"]
+        )
+        fig.update_traces(textposition='inside', textinfo='percent+label')
+        fig.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0))
+        st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Compliance Details")
         details_col1, details_col2 = st.columns(2)

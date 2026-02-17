@@ -22,15 +22,15 @@ Example:
     >>> print(f"Cookie consent: {results['cookie_consent']}")
 """
 
+import os
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import re
 from typing import Dict, List, Optional
 import logging
 
 from config import Config
+from utils import create_session
 from constants import (
     COOKIE_PATTERNS, PRIVACY_PATTERNS, TRACKING_DOMAINS,
     EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
@@ -55,26 +55,19 @@ class ComplianceModel:
     def __init__(self):
         """Initialize the compliance model with configured session."""
         self.timeout = Config.REQUEST_TIMEOUT
-        self.headers = {"User-Agent": USER_AGENT}
-        self.session = self._create_session()
-    
-    def _create_session(self) -> requests.Session:
-        """
-        Create a requests session with retry logic and connection pooling.
-        
-        Returns:
-            Configured requests.Session with HTTPAdapter and Retry strategy.
-        """
-        session = requests.Session()
-        retries = Retry(
-            total=Config.MAX_RETRIES,
-            backoff_factor=Config.BACKOFF_FACTOR,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET", "HEAD"]
-        )
-        session.mount("http://", HTTPAdapter(max_retries=retries))
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-        return session
+        self.headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Connection": "keep-alive"
+        }
+        self.session = create_session()
 
     def _get_html(self, url: str) -> bytes:
         """
@@ -90,11 +83,13 @@ class ComplianceModel:
             NetworkError: If the request fails or doesn't return HTML
         """
         try:
+            verify_ssl = os.getenv("VERIFY_SSL", "true").lower() == "true"
             response = self.session.get(
                 url,
                 timeout=self.timeout,
                 headers=self.headers,
-                allow_redirects=True
+                allow_redirects=True,
+                verify=verify_ssl
             )
             response.raise_for_status()
             content_type = response.headers.get("Content-Type", "")
@@ -153,19 +148,26 @@ class ComplianceModel:
         Returns:
             Status string indicating whether cookie consent was found
         """
-        # Check for common cookie banner elements
-        for keyword in COOKIE_KEYWORDS:
-            # Check in text content
-            if soup.find(string=re.compile(keyword, re.IGNORECASE)):
-                return "Found - Cookie consent detected"
-            
-            # Check in div IDs and classes
-            if soup.find(["div", "section"], {"id": re.compile(keyword, re.IGNORECASE)}):
-                return "Found - Cookie consent banner detected"
-            
-            if soup.find(["div", "section"], {"class": re.compile(keyword, re.IGNORECASE)}):
-                return "Found - Cookie consent banner detected"
-        
+        if not COOKIE_KEYWORDS:
+            return "Not Found - No cookie consent banner detected"
+
+        # Pre-compile combined regex for better performance
+        cookie_pattern = re.compile(
+            "|".join(re.escape(k) for k in COOKIE_KEYWORDS), re.IGNORECASE
+        )
+
+        # Check in text content (single traversal)
+        if soup.find(string=cookie_pattern):
+            return "Found - Cookie consent detected"
+
+        # Check in div/section IDs (single traversal)
+        if soup.find(["div", "section"], id=cookie_pattern):
+            return "Found - Cookie consent banner detected"
+
+        # Check in div/section classes (single traversal)
+        if soup.find(["div", "section"], class_=cookie_pattern):
+            return "Found - Cookie consent banner detected"
+
         return "Not Found - No cookie consent banner detected"
     
     def _check_privacy_policy(self, soup: BeautifulSoup, base_url: str) -> str:
