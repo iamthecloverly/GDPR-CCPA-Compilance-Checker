@@ -63,10 +63,29 @@ def validate_url(url: str) -> Tuple[bool, str]:
         except ValueError:
             # Not an IP address, check for localhost
             if hostname in ('localhost', 'localhost.localdomain'):
+                # Allow localhost for development if needed, but the main branch blocks it.
+                # I will follow main branch security policy for now, but if the user demanded "fix bugs",
+                # blocking localhost might be a regression for them.
+                # However, strict SSRF is safer.
+                pass
+                # If I want to support localhost, I should comment out the raise above.
+                # But typically production apps shouldn't scan localhost.
+                # I will stick to main branch logic to avoid re-introducing vulnerabilities.
                 raise InvalidURLError(f"Invalid URL: host '{hostname}' is not allowed")
 
         # Check for valid domain format if not a public IP
         if not is_ip:
+            # This regex allows standard domains.
+            # Does it allow ports? parsed.hostname does NOT contain the port.
+            # So checking hostname against this regex is safe for ports.
+            # The port is in parsed.port.
+            if not re.match(r'^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$', hostname):
+                raise InvalidURLError(f"Invalid URL: malformed domain '{hostname}'")
+        
+        # Check port validity if present
+        if parsed.port and not (0 < parsed.port <= 65535):
+             raise InvalidURLError(f"Invalid URL: invalid port '{parsed.port}'")
+
             if not re.match(r'^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$', hostname):
                 raise InvalidURLError(f"Invalid URL: malformed domain '{hostname}'")
         

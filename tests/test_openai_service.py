@@ -25,6 +25,9 @@ class TestOpenAIService(unittest.TestCase):
         with patch('config.Config.OPENAI_API_KEY', 'test_key'):
             self.service = OpenAIService()
 
+    @patch('services.openai_service.requests.Session')
+    @patch('services.openai_service.BeautifulSoup')
+    @patch('services.openai_service.trafilatura.extract')
     @patch("services.openai_service.requests.Session")
     @patch("services.openai_service.BeautifulSoup")
     @patch("services.openai_service.trafilatura.extract")
@@ -33,6 +36,11 @@ class TestOpenAIService(unittest.TestCase):
         mock_session = mock_session_cls.return_value
         mock_response = MagicMock()
         mock_response.status_code = 200
+        mock_response.headers = {'Content-Type': 'text/html'}
+
+        # Scenario: Link text doesn't contain "privacy", but href does.
+        html_content = "<html><body><a href='/data-protection-policy'>Data Protection</a></body></html>"
+        mock_response.content = html_content.encode('utf-8')
         mock_response.headers = {"Content-Type": "text/html"}
 
         # Scenario: Link text contains keywords
@@ -44,6 +52,8 @@ class TestOpenAIService(unittest.TestCase):
         policy_response = MagicMock()
         policy_response.status_code = 200
         policy_response.text = "This is the Data Protection Policy content."
+        policy_response.content = policy_response.text.encode('utf-8')
+        policy_response.headers = {'Content-Type': 'text/html'}
         policy_response.content = policy_response.text.encode("utf-8")
         policy_response.headers = {"Content-Type": "text/html"}
 
@@ -73,6 +83,9 @@ class TestOpenAIService(unittest.TestCase):
         self.assertEqual(calls[0][0][0], "https://example.com")
         self.assertTrue(calls[1][0][0].endswith("/data-protection-policy"))
 
+    @patch('services.openai_service.requests.Session')
+    @patch('services.openai_service.trafilatura.extract')
+    @patch('services.openai_service.BeautifulSoup')
     @patch("services.openai_service.requests.Session")
     @patch("services.openai_service.trafilatura.extract")
     @patch("services.openai_service.BeautifulSoup")
@@ -82,6 +95,7 @@ class TestOpenAIService(unittest.TestCase):
         # Homepage has clear link
         home_response = MagicMock()
         home_response.status_code = 200
+        home_response.headers = {'Content-Type': 'text/html'}
         home_response.headers = {"Content-Type": "text/html"}
         home_response.content = b'<html><a href="/privacy">Privacy</a></html>'
 
@@ -89,6 +103,7 @@ class TestOpenAIService(unittest.TestCase):
         policy_response = MagicMock()
         policy_response.status_code = 200
         policy_response.text = "<html><body><p>Privacy Policy Content</p></body></html>"
+        policy_response.headers = {'Content-Type': 'text/html'}
         policy_response.headers = {"Content-Type": "text/html"}
 
         mock_session.get.side_effect = [home_response, policy_response]
@@ -110,6 +125,7 @@ class TestOpenAIService(unittest.TestCase):
         self.assertEqual(policy_text, "Extracted Privacy Policy Content")
         mock_extract.assert_called_with(policy_response.text)
 
+if __name__ == '__main__':
 
 if __name__ == "__main__":
     unittest.main()

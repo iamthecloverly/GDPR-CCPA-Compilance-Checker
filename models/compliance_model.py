@@ -32,7 +32,7 @@ import logging
 from config import Config
 from utils import create_session
 from constants import (
-    COOKIE_KEYWORDS, PRIVACY_KEYWORDS, TRACKING_DOMAINS,
+    COOKIE_PATTERNS, PRIVACY_PATTERNS, TRACKING_DOMAINS,
     EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
 )
 from exceptions import NetworkError, ScanError
@@ -181,15 +181,15 @@ class ComplianceModel:
         Returns:
             Status string indicating whether privacy policy was found
         """
-        # Look for links containing privacy keywords
+        # Look for links containing privacy keywords using pre-compiled patterns
         all_links = soup.find_all("a", href=True)
         
         for link in all_links:
-            link_text = link.get_text().lower()
-            href = link.get("href", "").lower()
+            link_text = link.get_text()
+            href = link.get("href", "")
             
-            for keyword in PRIVACY_KEYWORDS:
-                if keyword in link_text or keyword in href:
+            for pattern in PRIVACY_PATTERNS:
+                if pattern.search(link_text) or pattern.search(href):
                     return "Found - Privacy policy link detected"
         
         return "Not Found - No privacy policy link detected"
