@@ -100,7 +100,7 @@ class ComplianceModel:
             logger.error(f"Failed to fetch URL {url}: {e}")
             raise NetworkError(f"Failed to fetch URL: {str(e)}") from e
     
-    def analyze_compliance(self, url: str) -> Dict[str, any]:
+    def analyze_compliance(self, url: str) -> Dict[str, Any]:
         """
         Analyze a website for compliance indicators.
         

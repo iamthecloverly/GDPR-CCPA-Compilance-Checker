@@ -63,14 +63,7 @@ def validate_url(url: str) -> Tuple[bool, str]:
         except ValueError:
             # Not an IP address, check for localhost
             if hostname in ('localhost', 'localhost.localdomain'):
-                # Allow localhost for development if needed, but the main branch blocks it.
-                # I will follow main branch security policy for now, but if the user demanded "fix bugs",
-                # blocking localhost might be a regression for them.
-                # However, strict SSRF is safer.
-                pass
-                # If I want to support localhost, I should comment out the raise above.
-                # But typically production apps shouldn't scan localhost.
-                # I will stick to main branch logic to avoid re-introducing vulnerabilities.
+                # Block localhost for security - SSRF protection
                 raise InvalidURLError(f"Invalid URL: host '{hostname}' is not allowed")
 
         # Check for valid domain format if not a public IP
