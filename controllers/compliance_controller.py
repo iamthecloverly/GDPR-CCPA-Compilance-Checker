@@ -166,6 +166,54 @@ class ComplianceController:
         
         return min(100, max(0, score))
     
+    def get_score_breakdown(self, results: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Get detailed score breakdown by category.
+        
+        Args:
+            results: Scan results dictionary
+            
+        Returns:
+            List of dictionaries with 'Category' and 'Points' keys
+        """
+        breakdown = []
+        
+        # Cookie consent points
+        cookie_points = 0
+        if results.get("cookie_consent", "").startswith("Found"):
+            cookie_points = Config.SCORING_WEIGHTS["cookie_consent"]
+        breakdown.append({"Category": "Cookie Consent", "Points": cookie_points})
+        
+        # Privacy policy points
+        privacy_points = 0
+        if results.get("privacy_policy", "").startswith("Found"):
+            privacy_points = Config.SCORING_WEIGHTS["privacy_policy"]
+        breakdown.append({"Category": "Privacy Policy", "Points": privacy_points})
+        
+        # Contact information points
+        contact_points = 0
+        if results.get("contact_info", "").startswith("Found"):
+            contact_points = Config.SCORING_WEIGHTS["contact_info"]
+        breakdown.append({"Category": "Contact Info", "Points": contact_points})
+        
+        # Tracker points
+        trackers = results.get("trackers", [])
+        tracker_weight = Config.SCORING_WEIGHTS["trackers"]
+        tracker_points = 0
+        
+        if len(trackers) == 0:
+            tracker_points = tracker_weight
+        elif len(trackers) <= 3:
+            tracker_points = int(tracker_weight * 0.75)
+        elif len(trackers) <= 5:
+            tracker_points = int(tracker_weight * 0.5)
+        elif len(trackers) <= 10:
+            tracker_points = int(tracker_weight * 0.25)
+        
+        breakdown.append({"Category": f"Trackers ({len(trackers)} found)", "Points": tracker_points})
+        
+        return breakdown
+    
     def _calculate_grade(self, score: int) -> str:
         """
         Convert score to letter grade.
