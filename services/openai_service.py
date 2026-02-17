@@ -37,6 +37,7 @@ from config import Config
 from exceptions import AIServiceError, NetworkError, InvalidURLError
 from validators import validate_url
 from utils import create_session
+from exceptions import AIServiceError, NetworkError
 
 logger = logging.getLogger(__name__)
 

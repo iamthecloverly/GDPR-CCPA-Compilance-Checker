@@ -19,6 +19,7 @@ if 'bs4' not in sys.modules:
 import unittest
 from services.openai_service import OpenAIService
 
+
 class TestOpenAIService(unittest.TestCase):
     def setUp(self):
         with patch('config.Config.OPENAI_API_KEY', 'test_key'):
@@ -27,6 +28,9 @@ class TestOpenAIService(unittest.TestCase):
     @patch('services.openai_service.requests.Session')
     @patch('services.openai_service.BeautifulSoup')
     @patch('services.openai_service.trafilatura.extract')
+    @patch("services.openai_service.requests.Session")
+    @patch("services.openai_service.BeautifulSoup")
+    @patch("services.openai_service.trafilatura.extract")
     def test_fetch_privacy_policy_link_finding(self, mock_extract, mock_soup_cls, mock_session_cls):
         # Mock session and response
         mock_session = mock_session_cls.return_value
@@ -37,6 +41,11 @@ class TestOpenAIService(unittest.TestCase):
         # Scenario: Link text doesn't contain "privacy", but href does.
         html_content = "<html><body><a href='/data-protection-policy'>Data Protection</a></body></html>"
         mock_response.content = html_content.encode('utf-8')
+        mock_response.headers = {"Content-Type": "text/html"}
+
+        # Scenario: Link text contains keywords
+        html_content = "<html><body><a href='/data-protection-policy'>Data Protection</a></body></html>"
+        mock_response.content = html_content.encode("utf-8")
         mock_response.text = html_content
 
         # Setup get calls: first for homepage, second for policy page
@@ -45,6 +54,8 @@ class TestOpenAIService(unittest.TestCase):
         policy_response.text = "This is the Data Protection Policy content."
         policy_response.content = policy_response.text.encode('utf-8')
         policy_response.headers = {'Content-Type': 'text/html'}
+        policy_response.content = policy_response.text.encode("utf-8")
+        policy_response.headers = {"Content-Type": "text/html"}
 
         mock_session.get.side_effect = [mock_response, policy_response]
         mock_session.head.return_value = MagicMock(status_code=404)
@@ -75,6 +86,9 @@ class TestOpenAIService(unittest.TestCase):
     @patch('services.openai_service.requests.Session')
     @patch('services.openai_service.trafilatura.extract')
     @patch('services.openai_service.BeautifulSoup')
+    @patch("services.openai_service.requests.Session")
+    @patch("services.openai_service.trafilatura.extract")
+    @patch("services.openai_service.BeautifulSoup")
     def test_fetch_privacy_policy_trafilatura(self, mock_soup_cls, mock_extract, mock_session_cls):
         mock_session = mock_session_cls.return_value
 
@@ -82,6 +96,7 @@ class TestOpenAIService(unittest.TestCase):
         home_response = MagicMock()
         home_response.status_code = 200
         home_response.headers = {'Content-Type': 'text/html'}
+        home_response.headers = {"Content-Type": "text/html"}
         home_response.content = b'<html><a href="/privacy">Privacy</a></html>'
 
         # Policy page
@@ -89,6 +104,7 @@ class TestOpenAIService(unittest.TestCase):
         policy_response.status_code = 200
         policy_response.text = "<html><body><p>Privacy Policy Content</p></body></html>"
         policy_response.headers = {'Content-Type': 'text/html'}
+        policy_response.headers = {"Content-Type": "text/html"}
 
         mock_session.get.side_effect = [home_response, policy_response]
 
@@ -110,4 +126,6 @@ class TestOpenAIService(unittest.TestCase):
         mock_extract.assert_called_with(policy_response.text)
 
 if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

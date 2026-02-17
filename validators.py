@@ -86,6 +86,9 @@ def validate_url(url: str) -> Tuple[bool, str]:
         if parsed.port and not (0 < parsed.port <= 65535):
              raise InvalidURLError(f"Invalid URL: invalid port '{parsed.port}'")
 
+            if not re.match(r'^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$', hostname):
+                raise InvalidURLError(f"Invalid URL: malformed domain '{hostname}'")
+        
         logger.info(f"Validated URL: {url}")
         return True, url
         
