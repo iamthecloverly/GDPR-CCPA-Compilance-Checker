@@ -22,6 +22,7 @@ Example:
     >>> print(f"Cookie consent: {results['cookie_consent']}")
 """
 
+import os
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -55,7 +56,18 @@ class ComplianceModel:
     def __init__(self):
         """Initialize the compliance model with configured session."""
         self.timeout = Config.REQUEST_TIMEOUT
-        self.headers = {"User-Agent": USER_AGENT}
+        self.headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Connection": "keep-alive"
+        }
         self.session = self._create_session()
     
     def _create_session(self) -> requests.Session:
@@ -90,11 +102,13 @@ class ComplianceModel:
             NetworkError: If the request fails or doesn't return HTML
         """
         try:
+            verify_ssl = os.getenv("VERIFY_SSL", "true").lower() == "true"
             response = self.session.get(
                 url,
                 timeout=self.timeout,
                 headers=self.headers,
-                allow_redirects=True
+                allow_redirects=True,
+                verify=verify_ssl
             )
             response.raise_for_status()
             content_type = response.headers.get("Content-Type", "")

@@ -77,18 +77,25 @@ class ComplianceController:
         Raises:
             ScanError: If the scan fails
         """
+        # Check cache first
+        with self._cache_lock:
+            if url in self._cache:
+                logger.info(f"Returning cached scan results for {url}")
+                return self._cache[url]
+
         try:
-            # Fetch and analyze the webpage
+            logger.info(f"Starting compliance scan for {url}")
+
+            # Perform web scraping and analysis
             results = self.model.analyze_compliance(url)
             
-            # Calculate compliance score
+            # Calculate score and metrics
             score = self._calculate_score(results)
             grade = self._calculate_grade(score)
             status = self._determine_status(score)
             
-            logger.info(f"Scanned {url}: score={score}, grade={grade}")
-            
-            return {
+            # Construct response
+            response = {
                 "score": score,
                 "grade": grade,
                 "status": status,
@@ -99,9 +106,16 @@ class ComplianceController:
                 "details": results
             }
             
+            # Cache the result
+            with self._cache_lock:
+                self._cache[url] = response
+
+            return response
+
         except Exception as e:
             logger.error(f"Scan failed for {url}: {e}")
             raise ScanError(f"Scan failed: {str(e)}") from e
+
     
     def _calculate_score(self, results: Dict[str, Any]) -> int:
         """
