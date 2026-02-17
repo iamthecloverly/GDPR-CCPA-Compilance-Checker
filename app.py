@@ -537,7 +537,7 @@ with tab1:
         )
         fig.update_traces(textposition='inside', textinfo='percent+label')
         fig.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)  # TODO: Replace with width='stretch' after Streamlit update
 
         st.subheader("Compliance Details")
         details_col1, details_col2 = st.columns(2)
@@ -641,7 +641,7 @@ with tab2:
                             })
                         
                         df = pd.DataFrame(history_data)
-                        st.dataframe(df, use_container_width=True)
+                        st.dataframe(df, use_container_width=True)  # TODO: Replace with width='stretch' after Streamlit update
                         
                         # Score trend chart
                         st.subheader("Compliance Score Trend")

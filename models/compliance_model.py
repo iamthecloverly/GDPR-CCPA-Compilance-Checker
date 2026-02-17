@@ -32,7 +32,7 @@ import logging
 from config import Config
 from utils import create_session
 from constants import (
-    COOKIE_PATTERNS, PRIVACY_PATTERNS, TRACKING_DOMAINS,
+    COOKIE_KEYWORDS, COOKIE_PATTERNS, PRIVACY_PATTERNS, TRACKING_DOMAINS,
     EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
 )
 from exceptions import NetworkError, ScanError
