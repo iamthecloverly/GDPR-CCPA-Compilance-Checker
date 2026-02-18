@@ -32,7 +32,7 @@ st.set_page_config(
     page_title="Privacy Compliance Scanner",
     page_icon="🔒",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ============================================================================
@@ -96,28 +96,30 @@ st.markdown(
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
     
-    /* ===== Sidebar ===== */
+    /* ===== Sidebar (Hidden) ===== */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #120a2a 0%, #1a0f3a 100%) !important;
-        border-right: 1px solid var(--border-color);
+        display: none !important;
     }
     
-    [data-testid="stSidebar"] > div:first-child {
-        background: transparent !important;
-    }
-    
-    [data-testid="stSidebar"] .stMarkdown, 
-    [data-testid="stSidebar"] label, 
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] p {
-        color: var(--text-secondary) !important;
+    /* Hide sidebar toggle button */
+    [data-testid="collapsedControl"] {
+        display: none !important;
     }
     
     /* ===== Main Content ===== */
     .stMainBlockContainer {
         background: transparent !important;
-        padding: 32px 24px;
-        max-width: 1400px;
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+    
+    /* Container for pages */
+    .main .block-container {
+        padding-top: 2rem !important;
+        padding-left: 3rem !important;
+        padding-right: 3rem !important;
+        max-width: 100% !important;
+    }
     }
     
     /* ===== Typography ===== */
@@ -459,66 +461,68 @@ if "page" not in st.session_state or st.session_state.page not in [
     st.session_state.page = "dashboard"
 
 
-def render_sidebar():
-    """Render modern navigation sidebar."""
-    with st.sidebar:
-        # Logo & Branding
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            st.markdown("🔒")
-        with col2:
-            st.markdown("### Privacy Scanner")
-        
-        st.markdown("*Compliance made simple*")
-        st.markdown("---")
-        
-        # Navigation Menu
-        st.markdown("### Navigation")
-        
-        pages = {
-            "dashboard": ("📊", "Dashboard", "Overview and statistics"),
-            "quick_scan": ("⚡", "Quick Scan", "Scan single website"),
-            "batch_scan": ("📦", "Batch Scan", "Scan multiple URLs"),
-            "history": ("📜", "Scan History", "View past scans"),
-        }
-        
-        for page_id, (icon, title, subtitle) in pages.items():
-            is_active = st.session_state.page == page_id
-            
-            if st.button(
-                f"{icon} {title}",
-                key=f"nav_{page_id}",
-                use_container_width=True,
-                type="primary" if is_active else "secondary"
-            ):
-                st.session_state.page = page_id
-                st.rerun()
-            
-            if is_active:
-                st.caption(subtitle)
-        
-        # Footer Info
-        st.markdown("---")
-        st.markdown("### About")
-        st.caption(
+def render_top_navigation():
+    """Render modern top navigation bar."""
+    # Navigation container
+    nav_col1, nav_col2 = st.columns([2, 8])
+    
+    with nav_col1:
+        st.markdown(
             """
-            **Version:** 2.0.0
-            
-            **Features:**
-            - AI-powered scanning
-            - Real-time analysis
-            - Batch processing
-            - Compliance scoring
-            - Detailed reports
-            """
+            <div style="padding: 16px 0;">
+                <h2 style="margin: 0; color: var(--primary); font-weight: 700; font-size: 24px;">
+                    Privacy Compliance Scanner
+                </h2>
+                <p style="margin: 0; color: var(--text-tertiary); font-size: 13px;">GDPR & CCPA Analysis</p>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
+    
+    with nav_col2:
+        # Navigation tabs
+        pages = [
+            ("dashboard", "Dashboard"),
+            ("quick_scan", "Quick Scan"),
+            ("batch_scan", "Batch Scan"),
+            ("history", "History"),
+        ]
+        
+        nav_cols = st.columns(len(pages))
+        
+        for idx, (page_id, title) in enumerate(pages):
+            with nav_cols[idx]:
+                is_active = st.session_state.page == page_id
+                
+                if is_active:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            text-align: center; 
+                            padding: 16px 12px; 
+                            background: linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(0, 217, 255, 0.05));
+                            border-bottom: 3px solid var(--primary);
+                            border-radius: 8px 8px 0 0;
+                            cursor: pointer;
+                        ">
+                            <span style="color: var(--primary); font-weight: 600; font-size: 14px;">{title}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    if st.button(title, key=f"nav_{page_id}", use_container_width=True, type="secondary"):
+                        st.session_state.page = page_id
+                        st.rerun()
+    
+    st.markdown("<hr style='margin: 0 0 24px 0; border-color: var(--border-color);' />", unsafe_allow_html=True)
 
 
 def main():
     """Main application router with error handling."""
     try:
-        # Render sidebar
-        render_sidebar()
+        # Render top navigation
+        render_top_navigation()
         
         # Render appropriate page
         if st.session_state.page == "dashboard":

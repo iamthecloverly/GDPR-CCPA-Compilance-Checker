@@ -23,7 +23,7 @@ def render_history_page():
     """Render the scan history page."""
     render_header()
     
-    st.markdown("# 📜 Scan History")
+    st.markdown("# Scan History")
     st.markdown("Browse, filter, and compare your compliance scanning history")
     st.divider()
     
@@ -45,7 +45,7 @@ def render_history_page():
 
 def render_all_scans_view():
     """Render all scans with filters."""
-    st.markdown("### 📋 All Scans")
+    st.markdown("### All Scans")
     
     # Filters
     col1, col2, col3 = st.columns(3)

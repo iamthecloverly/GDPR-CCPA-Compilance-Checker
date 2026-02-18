@@ -26,13 +26,13 @@ def render_quick_results(results: Dict[str, Any]):
         # Color based on score
         if score >= 80:
             color = "#22c55e"
-            status_emoji = "✓"
+            status_text = "PASS"
         elif score >= 60:
             color = "#f59e0b"
-            status_emoji = "~"
+            status_text = "REVIEW"
         else:
             color = "#ef4444"
-            status_emoji = "✗"
+            status_text = "FAIL"
         
         st.markdown(f"""
         <div style="text-align: center; padding: 20px; background: rgba(30, 33, 46, 0.5); border-radius: 12px;">
@@ -44,7 +44,7 @@ def render_quick_results(results: Dict[str, Any]):
                 Grade: {grade}
             </div>
             <div style="font-size: 12px; color: #e6edf3; margin-top: 10px;">
-                {status_emoji} {results.get('status', 'Unknown')}
+                {status_text} - {results.get('status', 'Unknown')}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -101,14 +101,14 @@ def render_findings(findings: Dict[str, List[str]]):
                   - contact_info: list of issues
                   - trackers: list of detected trackers
     """
-    st.markdown("### 📋 Detailed Findings")
+    st.markdown("### Detailed Findings")
     
     categories = {
-        "cookie_consent": ("🍪 Cookie Consent", "#f59e0b"),
-        "privacy_policy": ("📄 Privacy Policy", "#3b82f6"),
-        "contact_info": ("📧 Contact Information", "#10b981"),
-        "trackers": ("🔍 Trackers Detected", "#ef4444"),
-        "other": ("⚙️ Other Issues", "#8b5cf6"),
+        "cookie_consent": ("Cookie Consent", "#f59e0b"),
+        "privacy_policy": ("Privacy Policy", "#3b82f6"),
+        "contact_info": ("Contact Information", "#10b981"),
+        "trackers": ("Trackers Detected", "#ef4444"),
+        "other": ("Other Issues", "#8b5cf6"),
     }
     
     for key, (title, color) in categories.items():
@@ -118,7 +118,7 @@ def render_findings(findings: Dict[str, List[str]]):
                 for i, item in enumerate(items, 1):
                     st.markdown(f"**{i}.** {item}")
         else:
-            st.success(f"{title} - No issues found ✓")
+            st.success(f"{title} - No issues found")
 
 
 def render_detailed_findings_table(findings: List[Dict[str, Any]]):

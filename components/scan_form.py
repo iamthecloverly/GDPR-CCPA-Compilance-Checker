@@ -12,7 +12,7 @@ def render_scan_form() -> Tuple[str, bool]:
     Returns:
         Tuple of (url: str, submitted: bool)
     """
-    st.subheader("🔍 Enter URL to Scan")
+    st.subheader("Enter URL to Scan")
     st.caption("Paste the domain you want to analyze for compliance issues")
     
     with st.form("scan_form", clear_on_submit=False):
@@ -28,7 +28,7 @@ def render_scan_form() -> Tuple[str, bool]:
         
         with col2:
             submitted = st.form_submit_button(
-                "🔍 Scan",
+                "Scan",
                 use_container_width=True,
                 type="primary"
             )
@@ -43,7 +43,7 @@ def render_batch_upload_form() -> Tuple[str, bool]:
     Returns:
         Tuple of (csv_content: str, submitted: bool)
     """
-    st.subheader("📦 Upload Multiple URLs")
+    st.subheader("Upload Multiple URLs")
     st.caption("Paste URLs separated by commas or newlines, or upload a CSV file")
     
     # Tab interface for different input methods
@@ -56,7 +56,7 @@ def render_batch_upload_form() -> Tuple[str, bool]:
             height=150,
             label_visibility="collapsed"
         )
-        submitted = st.button("🚀 Start Batch Scan", key="batch_paste")
+        submitted = st.button("Start Batch Scan", key="batch_paste")
     
     with tab2:
         uploaded_file = st.file_uploader(
@@ -70,7 +70,7 @@ def render_batch_upload_form() -> Tuple[str, bool]:
         else:
             csv_content = ""
         
-        submitted = st.button("🚀 Start Batch Scan", key="batch_upload")
+        submitted = st.button("Start Batch Scan", key="batch_upload")
     
     return csv_content, submitted
 
@@ -86,19 +86,19 @@ def validate_and_prepare_url(raw_url: str) -> Tuple[bool, str, str]:
         Tuple of (is_valid, prepared_url, error_message)
     """
     if not raw_url or not raw_url.strip():
-        return False, "", "⚠️ Please enter a website URL"
+        return False, "", "Please enter a website URL"
     
     try:
         is_valid, url = validate_url(raw_url)
         if not is_valid:
-            return False, "", f"⚠️ Invalid URL format: {raw_url}"
+            return False, "", f"Invalid URL format: {raw_url}"
         return True, url, ""
     except InvalidURLError as e:
-        return False, "", f"⚠️ URL validation failed: {str(e)}"
+        return False, "", f"URL validation failed: {str(e)}"
     except ValidationError as e:
-        return False, "", f"⚠️ Validation error: {str(e)}"
+        return False, "", f"Validation error: {str(e)}"
     except Exception as e:
-        return False, "", f"⚠️ Error processing URL: {str(e)}"
+        return False, "", f"Error processing URL: {str(e)}"
 
 
 def show_validation_error(message: str):
@@ -117,7 +117,7 @@ def validate_and_prepare_batch_urls(csv_content: str) -> Tuple[bool, list, str]:
         Tuple of (is_valid, urls_list, error_message)
     """
     if not csv_content or not csv_content.strip():
-        return False, [], "⚠️ Please enter or upload URLs"
+        return False, [], "Please enter or upload URLs"
     
     urls = []
     errors = []
@@ -144,12 +144,12 @@ def validate_and_prepare_batch_urls(csv_content: str) -> Tuple[bool, list, str]:
                     errors.append(f"Line {i}: {str(e)}")
     
     if not urls:
-        error_msg = "⚠️ No valid URLs found"
+        error_msg = "No valid URLs found"
         if errors:
             error_msg += "\n" + "\n".join(errors[:5])
         return False, [], error_msg
     
     if errors:
-        st.warning(f"⚠️ Skipped {len(errors)} invalid URLs\n" + "\n".join(errors[:3]))
+        st.warning(f"Skipped {len(errors)} invalid URLs\n" + "\n".join(errors[:3]))
     
     return True, urls, ""

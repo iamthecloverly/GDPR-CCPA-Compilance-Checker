@@ -27,7 +27,7 @@ def render_quick_scan_page():
     """Render the quick scan page."""
     render_header()
     
-    st.markdown("# ⚡ Quick Scan")
+    st.markdown("# Quick Scan")
     st.markdown("Analyze a single website for GDPR and CCPA compliance violations")
     st.divider()
     
@@ -46,7 +46,7 @@ def render_quick_scan_page():
         cached_result = scan_cache.get(prepared_url)
         
         if cached_result:
-            st.success("✓ Using cached result (scan from today)")
+            st.success("Using cached result (scan from today)")
             render_scan_results(cached_result)
         else:
             # Perform scan
@@ -69,17 +69,17 @@ def render_quick_scan_page():
                     except Exception as db_error:
                         logger.warning(f"Could not save to database: {db_error}")
                     
-                    st.success("✓ Scan completed successfully!")
+                    st.success("Scan completed successfully!")
                     render_scan_results(result)
                 
                 except (ScanError, NetworkError) as e:
                     logger.error(f"Scan error: {e}")
-                    st.error(f"⚠️ Scanning failed: {str(e)}")
+                    st.error(f"Scanning failed: {str(e)}")
                     st.info("This might be a temporary connection issue. Please try again.")
                 
                 except Exception as e:
                     logger.error(f"Unexpected error during scan: {e}\n{traceback.format_exc()}")
-                    st.error(f"⚠️ An unexpected error occurred: {str(e)}")
+                    st.error(f"An unexpected error occurred: {str(e)}")
 
 
 def render_scan_results(result: dict):

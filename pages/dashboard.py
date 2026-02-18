@@ -13,12 +13,12 @@ def render_dashboard_page():
     """Render the dashboard landing page."""
     render_header()
     
-    st.markdown("# 📊 Dashboard")
+    st.markdown("# Dashboard")
     st.markdown("Your compliance scanning hub - View stats, recent scans, and quick actions")
     st.divider()
     
     # Statistics section with error handling
-    st.markdown("### 📈 Compliance Overview")
+    st.markdown("### Compliance Overview")
     
     try:
         stats = get_scan_statistics()
@@ -38,28 +38,28 @@ def render_dashboard_page():
     st.divider()
     
     # Quick start actions
-    st.markdown("### 🚀 Quick Start")
+    st.markdown("### Quick Start")
     st.markdown("Choose how you want to scan for compliance:")
     
     col1, col2, col3 = st.columns(3, gap="medium")
     
     with col1:
         st.markdown("\n")
-        if st.button("⚡ Quick Scan", key="dash_quick", use_container_width=True, type="primary"):
+        if st.button("Quick Scan", key="dash_quick", use_container_width=True, type="primary"):
             st.session_state.page = "quick_scan"
             st.rerun()
         st.caption("Scan a single website")
     
     with col2:
         st.markdown("\n")
-        if st.button("📦 Batch Scan", key="dash_batch", use_container_width=True, type="primary"):
+        if st.button("Batch Scan", key="dash_batch", use_container_width=True, type="primary"):
             st.session_state.page = "batch_scan"
             st.rerun()
         st.caption("Scan multiple websites")
     
     with col3:
         st.markdown("\n")
-        if st.button("📜 View History", key="dash_history", use_container_width=True, type="primary"):
+        if st.button("View History", key="dash_history", use_container_width=True, type="primary"):
             st.session_state.page = "history"
             st.rerun()
         st.caption("View past scans")
@@ -67,7 +67,7 @@ def render_dashboard_page():
     st.divider()
     
     # Recent scans list
-    st.markdown("### 📋 Recent Scans")
+    st.markdown("### Recent Scans")
     
     try:
         recent_scans = get_recent_scans(limit=5)
@@ -87,24 +87,29 @@ def render_dashboard_page():
                     
                     with col3:
                         grade = scan.get('grade', 'N/A')
-                        status_color = '🟢' if grade == 'A' else '🟡' if grade in ['B', 'C'] else '🔴'
-                        st.markdown(f"{status_color} **{grade}**")
+                        if grade == 'A':
+                            grade_color = '#10b981'
+                        elif grade in ['B', 'C']:
+                            grade_color = '#f59e0b'
+                        else:
+                            grade_color = '#ef4444'
+                        st.markdown(f"<span style='color: {grade_color}; font-weight: bold; font-size: 18px;'>Grade {grade}</span>", unsafe_allow_html=True)
                     
                     with col4:
-                        if st.button("📖 Details", key=f"details_{idx}", use_container_width=True, type="secondary"):
+                        if st.button("View Details", key=f"details_{idx}", use_container_width=True, type="secondary"):
                             st.session_state.selected_scan_id = scan.get('id')
                             st.session_state.page = "history"
                             st.rerun()
         else:
-            st.info("💡 No scans yet. Start with a quick scan above!")
+            st.info("No scans yet. Start with a quick scan above!")
     except Exception as e:
         logger.warning(f"Error fetching recent scans: {e}")
-        st.info("📊 Recent scans will appear after your first scan")
+        st.info("Recent scans will appear after your first scan")
     
     st.divider()
     
     # Help section
-    with st.expander("❓ Help & Getting Started"):
+    with st.expander("Help & Getting Started"):
         st.markdown("""
         **How to use this tool:**
         
@@ -113,15 +118,15 @@ def render_dashboard_page():
         3. **Scan History** - View, filter, and analyze all previous scans
         
         **What we check for:**
-        - 🍪 Cookie consent mechanisms
-        - 📄 Privacy policy presence and quality
-        - 📧 Contact information (email, postal address)
-        - 🔍 Third-party tracker detection
+        - Cookie consent mechanisms
+        - Privacy policy presence and quality
+        - Contact information (email, postal address)
+        - Third-party tracker detection
         
         **Compliance Grades:**
-        - 🟢 **A** - Excellent compliance
-        - 🟡 **B/C** - Moderate issues, needs review
-        - 🔴 **D/F** - Critical issues, urgent action needed
+        - **Grade A** - Excellent compliance (80-100 points)
+        - **Grade B/C** - Moderate issues, needs review (60-79 points)
+        - **Grade D/F** - Critical issues, urgent action needed (0-59 points)
         """)
 
 

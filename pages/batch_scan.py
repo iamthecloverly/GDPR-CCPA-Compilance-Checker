@@ -28,7 +28,7 @@ def render_batch_scan_page():
     """Render the batch scan page."""
     render_header()
     
-    st.markdown("# 📦 Batch Scan")
+    st.markdown("# Batch Scan")
     st.markdown("Upload a CSV file and scan multiple websites at once")
     st.divider()
     
@@ -43,9 +43,9 @@ def render_batch_scan_page():
             st.error(error_msg)
             return
         
-        st.info(f"📋 Ready to scan {len(urls)} website(s)")
+        st.info(f"Ready to scan {len(urls)} website(s)")
         
-        if st.button("🚀 Start Batch Scanning", type="primary", use_container_width=True):
+        if st.button("Start Batch Scanning", type="primary", use_container_width=True):
             perform_batch_scan(urls)
 
 
