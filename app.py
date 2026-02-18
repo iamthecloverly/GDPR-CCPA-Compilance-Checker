@@ -36,11 +36,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Modern dark theme styling - COMPLETE
+# Minimal Clean Theme
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
     * {
         margin: 0;
@@ -49,24 +49,24 @@ st.markdown(
     }
     
     html, body, [data-testid="stApp"] {
-        background: linear-gradient(135deg, #0f172a 0%, #1a1f35 50%, #16213e 100%) !important;
-        background-attachment: fixed;
-        min-height: 100vh;
+        background: #f8f9fa !important;
+        color: #2c3e50;
+        font-family: 'Inter', sans-serif;
     }
     
     [data-testid="stAppViewContainer"] {
-        background: transparent;
+        background: #f8f9fa;
     }
     
     [data-testid="stHeader"] {
-        background: rgba(20, 23, 36, 0.7);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
-        backdrop-filter: blur(10px);
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(20, 23, 36, 0.95) 100%) !important;
-        border-right: 1px solid rgba(139, 92, 246, 0.2);
+        background: #ffffff !important;
+        border-right: 1px solid #e5e7eb;
     }
     
     [data-testid="stSidebar"] > div:first-child {
@@ -77,130 +77,182 @@ st.markdown(
     [data-testid="stSidebar"] label, 
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] p {
-        color: #e0e7ff !important;
+        color: #374151 !important;
     }
     
     .stMainBlockContainer {
         background: transparent;
-        padding: 2rem 1rem;
+        padding: 2rem 2rem;
     }
     
     h1 { 
-        color: #e0e7ff !important;
+        color: #1f2937 !important;
         font-weight: 700;
-        letter-spacing: -0.02em;
         margin-bottom: 0.5rem;
+        letter-spacing: -0.01em;
     }
     
-    h2, h3, h4, h5, h6 { 
-        color: #e0e7ff !important;
+    h2 { 
+        color: #2c3e50 !important;
+        font-weight: 600;
+        margin-top: 1.5rem;
+    }
+    
+    h3, h4, h5, h6 { 
+        color: #374151 !important;
         font-weight: 600;
     }
     
     p, div, span, label { 
-        color: #c7d2fe !important;
+        color: #4b5563 !important;
+        line-height: 1.5;
     }
     
     .stButton > button {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.2)) !important;
-        border: 1px solid rgba(139, 92, 246, 0.4) !important;
-        color: #e0e7ff !important;
+        background: #3b82f6 !important;
+        color: white !important;
+        border: none !important;
         font-weight: 500;
-        transition: all 0.3s ease;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
     }
     
     .stButton > button:hover {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(139, 92, 246, 0.3)) !important;
-        border-color: rgba(139, 92, 246, 0.6) !important;
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        background: #2563eb !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .stButton > button[kind="secondary"] {
+        background: #e5e7eb !important;
+        color: #374151 !important;
+        box-shadow: none;
+    }
+    
+    .stButton > button[kind="secondary"]:hover {
+        background: #d1d5db !important;
     }
     
     .stTabs [data-baseweb="tab-list"] {
-        background: rgba(30, 33, 46, 0.5);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
-        border-radius: 8px;
-        padding: 0 1rem;
+        background: transparent;
+        border-bottom: 2px solid #e5e7eb;
     }
     
     .stTabs [data-baseweb="tab"] {
         background: transparent;
         border: none;
-        color: #a1aec0 !important;
-        border-radius: 6px 6px 0 0;
+        color: #6b7280 !important;
+        border-radius: 0;
+        font-weight: 500;
         transition: all 0.2s ease;
     }
     
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background: rgba(99, 102, 241, 0.2);
-        color: #e0e7ff !important;
-        border-bottom: 2px solid rgba(99, 102, 241, 0.6);
+        background: transparent;
+        color: #3b82f6 !important;
+        border-bottom: 3px solid #3b82f6;
     }
     
-    .stInfo, .stSuccess, .stWarning, .stError {
-        border-radius: 8px;
-        border: 1px solid rgba(139, 92, 246, 0.3);
-        background: rgba(30, 33, 46, 0.6) !important;
+    .stInfo {
+        background: #f0f7ff !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 6px;
+    }
+    
+    .stSuccess {
+        background: #f0fdf4 !important;
+        border: 1px solid #b7e4c7 !important;
+        border-radius: 6px;
+    }
+    
+    .stWarning {
+        background: #fffbeb !important;
+        border: 1px solid #fde68a !important;
+        border-radius: 6px;
+    }
+    
+    .stError {
+        background: #fef2f2 !important;
+        border: 1px solid #fecaca !important;
+        border-radius: 6px;
     }
     
     .stExpanderDetails {
-        background: rgba(30, 33, 46, 0.4);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
         border-top: none;
-        border-radius: 0 0 8px 8px;
+        border-radius: 0 0 6px 6px;
+        padding: 1rem;
     }
     
     .metric-value {
-        color: #60a5fa !important;
-        font-weight: 600;
+        color: #3b82f6 !important;
+        font-weight: 700;
+        font-size: 1.5em;
     }
     
     input, textarea, select {
-        background: rgba(30, 33, 46, 0.8) !important;
-        color: #e0e7ff !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        background: #ffffff !important;
+        color: #1f2937 !important;
+        border: 1px solid #d1d5db !important;
         border-radius: 6px;
-        padding: 0.5rem 0.75rem;
+        padding: 0.5rem 0.75rem !important;
     }
     
     input:focus, textarea:focus, select:focus {
-        border-color: rgba(99, 102, 241, 0.6) !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        outline: none;
     }
     
     [data-testid="stMetricValue"] {
-        color: #60a5fa !important;
+        color: #3b82f6 !important;
         font-weight: 700;
     }
     
     [data-testid="stMetricLabel"] {
-        color: #a1aec0 !important;
+        color: #6b7280 !important;
     }
     
     .dataframe {
-        background: rgba(20, 23, 36, 0.5) !important;
-        color: #e0e7ff;
+        background: #ffffff !important;
+        color: #1f2937;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        overflow: hidden;
     }
     
     .dataframe th {
-        background: rgba(30, 33, 46, 0.8) !important;
-        color: #e0e7ff !important;
-        border-bottom: 2px solid rgba(99, 102, 241, 0.3) !important;
+        background: #f9fafb !important;
+        color: #1f2937 !important;
+        border-bottom: 2px solid #e5e7eb !important;
+        font-weight: 600;
     }
     
     .dataframe td {
-        border-color: rgba(99, 102, 241, 0.1) !important;
-        color: #c7d2fe !important;
+        border-color: #e5e7eb !important;
+        color: #4b5563 !important;
+    }
+    
+    .dataframe tr:hover {
+        background: #f9fafb !important;
     }
     
     a {
-        color: #60a5fa !important;
+        color: #3b82f6 !important;
+        text-decoration: none;
         transition: color 0.2s ease;
     }
     
     a:hover {
-        color: #93c5fd !important;
+        color: #2563eb !important;
+        text-decoration: underline;
+    }
+    
+    hr {
+        border: none;
+        border-top: 1px solid #e5e7eb;
+        margin: 1.5rem 0;
     }
     </style>
     """,

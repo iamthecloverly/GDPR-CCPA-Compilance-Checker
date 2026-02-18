@@ -42,6 +42,12 @@ class Config:
         "trackers": int(os.getenv("SCORE_TRACKERS_MAX", "20")),
     }
     
+    # Individual weight properties for settings page
+    COOKIE_CONSENT_WEIGHT = int(os.getenv("SCORE_COOKIE_CONSENT", "30"))
+    PRIVACY_POLICY_WEIGHT = int(os.getenv("SCORE_PRIVACY_POLICY", "30"))
+    CONTACT_INFO_WEIGHT = int(os.getenv("SCORE_CONTACT_INFO", "20"))
+    TRACKER_DETECTION_WEIGHT = int(os.getenv("SCORE_TRACKERS_MAX", "20"))
+    
     # History
     DEFAULT_HISTORY_LIMIT = int(os.getenv("DEFAULT_HISTORY_LIMIT", "20"))
     
