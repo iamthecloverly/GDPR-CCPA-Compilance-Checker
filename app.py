@@ -88,12 +88,9 @@ st.markdown(
         background: transparent !important;
     }
     
-    /* ===== Header ===== */
+    /* ===== Hide Streamlit Default Header ===== */
     [data-testid="stHeader"] {
-        background: rgba(10, 14, 39, 0.8) !important;
-        border-bottom: 1px solid var(--border-color);
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        display: none !important;
     }
     
     /* ===== Sidebar (Hidden) ===== */
@@ -115,7 +112,7 @@ st.markdown(
     
     /* Container for pages */
     .main .block-container {
-        padding-top: 2rem !important;
+        padding-top: 1rem !important;
         padding-left: 3rem !important;
         padding-right: 3rem !important;
         max-width: 100% !important;
@@ -455,6 +452,14 @@ st.markdown(
 # APPLICATION STATE & NAVIGATION
 # ============================================================================
 
+# Navigation constants
+NAV_PAGES = [
+    ("dashboard", "Dashboard"),
+    ("quick_scan", "Quick Scan"),
+    ("batch_scan", "Batch Scan"),
+    ("history", "History"),
+]
+
 if "page" not in st.session_state or st.session_state.page not in [
     "dashboard", "quick_scan", "batch_scan", "history"
 ]:
@@ -481,16 +486,9 @@ def render_top_navigation():
     
     with nav_col2:
         # Navigation tabs
-        pages = [
-            ("dashboard", "Dashboard"),
-            ("quick_scan", "Quick Scan"),
-            ("batch_scan", "Batch Scan"),
-            ("history", "History"),
-        ]
+        nav_cols = st.columns(len(NAV_PAGES))
         
-        nav_cols = st.columns(len(pages))
-        
-        for idx, (page_id, title) in enumerate(pages):
+        for idx, (page_id, title) in enumerate(NAV_PAGES):
             with nav_cols[idx]:
                 is_active = st.session_state.page == page_id
                 

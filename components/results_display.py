@@ -4,6 +4,40 @@ import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
 
+# Score thresholds and colors
+SCORE_THRESHOLDS = {
+    'PASS': {'min': 80, 'color': '#22c55e', 'text': 'PASS'},
+    'REVIEW': {'min': 60, 'color': '#f59e0b', 'text': 'REVIEW'},
+    'FAIL': {'min': 0, 'color': '#ef4444', 'text': 'FAIL'}
+}
+
+# Finding categories with colors
+FINDING_CATEGORIES = {
+    "cookie_consent": ("Cookie Consent", "#f59e0b"),
+    "privacy_policy": ("Privacy Policy", "#3b82f6"),
+    "contact_info": ("Contact Information", "#10b981"),
+    "trackers": ("Trackers Detected", "#ef4444"),
+    "other": ("Other Issues", "#8b5cf6"),
+}
+
+
+def _get_score_status(score: int) -> tuple:
+    """
+    Get status and color based on score.
+    
+    Args:
+        score: Compliance score (0-100)
+        
+    Returns:
+        Tuple of (color, status_text)
+    """
+    if score >= SCORE_THRESHOLDS['PASS']['min']:
+        return SCORE_THRESHOLDS['PASS']['color'], SCORE_THRESHOLDS['PASS']['text']
+    elif score >= SCORE_THRESHOLDS['REVIEW']['min']:
+        return SCORE_THRESHOLDS['REVIEW']['color'], SCORE_THRESHOLDS['REVIEW']['text']
+    else:
+        return SCORE_THRESHOLDS['FAIL']['color'], SCORE_THRESHOLDS['FAIL']['text']
+
 
 def render_quick_results(results: Dict[str, Any]):
     """
@@ -23,16 +57,8 @@ def render_quick_results(results: Dict[str, Any]):
         score = results.get("score", 0)
         grade = results.get("grade", "F")
         
-        # Color based on score
-        if score >= 80:
-            color = "#22c55e"
-            status_text = "PASS"
-        elif score >= 60:
-            color = "#f59e0b"
-            status_text = "REVIEW"
-        else:
-            color = "#ef4444"
-            status_text = "FAIL"
+        # Get color and status based on score
+        color, status_text = _get_score_status(score)
         
         st.markdown(f"""
         <div style="text-align: center; padding: 20px; background: rgba(30, 33, 46, 0.5); border-radius: 12px;">
@@ -103,15 +129,7 @@ def render_findings(findings: Dict[str, List[str]]):
     """
     st.markdown("### Detailed Findings")
     
-    categories = {
-        "cookie_consent": ("Cookie Consent", "#f59e0b"),
-        "privacy_policy": ("Privacy Policy", "#3b82f6"),
-        "contact_info": ("Contact Information", "#10b981"),
-        "trackers": ("Trackers Detected", "#ef4444"),
-        "other": ("Other Issues", "#8b5cf6"),
-    }
-    
-    for key, (title, color) in categories.items():
+    for key, (title, color) in FINDING_CATEGORIES.items():
         items = findings.get(key, [])
         if items:
             with st.expander(f"{title} ({len(items)} items)", expanded=False):
