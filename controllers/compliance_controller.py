@@ -96,16 +96,20 @@ class ComplianceController:
             score = self._calculate_score(results)
             grade = self._calculate_grade(score)
             status = self._determine_status(score)
+            score_breakdown = self.get_score_breakdown(results)
             
             # Construct response
             response = {
                 "score": score,
                 "grade": grade,
                 "status": status,
+                "score_breakdown": {item["Category"]: item["Points"] for item in score_breakdown},
                 "cookie_consent": results.get("cookie_consent", "Not Found"),
                 "privacy_policy": results.get("privacy_policy", "Not Found"),
                 "contact_info": results.get("contact_info", "Not Found"),
                 "trackers": results.get("trackers", []),
+                "findings": results.get("findings", {}),
+                "recommendations": results.get("recommendations", []),
                 "details": results
             }
             

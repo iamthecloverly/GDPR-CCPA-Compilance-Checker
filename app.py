@@ -36,13 +36,13 @@ st.set_page_config(
 )
 
 # ============================================================================
-# MODERN DESIGN SYSTEM - GLASSMORPHISM + MINIMALIST
+# MODERN DARK THEME - SUPERMEMORY INSPIRED
 # ============================================================================
 
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400&display=swap');
     
     * {
         margin: 0;
@@ -50,43 +50,37 @@ st.markdown(
         box-sizing: border-box;
     }
     
-    /* ===== Colors - Vibrant Modern Palette ===== */
+    /* ===== Dark Theme Colors ===== */
     :root {
-        --color-primary: #8b5cf6;
-        --color-primary-dark: #7c3aed;
-        --color-primary-light: #a78bfa;
+        --primary: #00d9ff;
+        --primary-dark: #00b8d4;
+        --primary-light: #4df9ff;
         
-        --color-success: #10b981;
-        --color-warning: #f59e0b;
-        --color-error: #ef4444;
-        --color-info: #0ea5e9;
+        --bg-dark: #0a0e27;
+        --bg-darker: #050810;
+        --bg-surface: #1a1f3a;
+        --bg-surface-light: #252d4a;
         
-        --color-bg: #ffffff;
-        --color-bg-secondary: #f8fafc;
-        --color-bg-tertiary: #f1f5f9;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --error: #ef4444;
+        --info: #06b6d4;
         
-        --color-border: #e2e8f0;
-        --color-border-light: #f1f5f9;
+        --text-primary: #f5f7fa;
+        --text-secondary: #b4bcd4;
+        --text-tertiary: #7a849e;
         
-        --color-text-primary: #0f172a;
-        --color-text-secondary: #475569;
-        --color-text-tertiary: #64748b;
-        
-        --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-        --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.07), 0 2px 4px rgba(15, 23, 42, 0.05);
-        --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.1), 0 4px 6px rgba(15, 23, 42, 0.05);
-        --shadow-xl: 0 20px 25px rgba(15, 23, 42, 0.15), 0 10px 10px rgba(15, 23, 42, 0.05);
-        
-        --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.1);
-        --shadow-glass-inset: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3);
+        --border-color: #2a3250;
+        --border-light: #3a4260;
     }
     
     /* ===== Base Styles ===== */
     html, body, [data-testid="stApp"] {
-        background: linear-gradient(135deg, #fafffe 0%, #f5f3ff 50%, #ffe5f0 100%) !important;
-        background-attachment: fixed;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        color: var(--color-text-primary);
+        background: #0a0e27 !important;
+        background-image: radial-gradient(circle at 20% 50%, rgba(0, 217, 255, 0.03) 0%, transparent 50%),
+                          radial-gradient(circle at 80% 80%, rgba(0, 217, 255, 0.02) 0%, transparent 50%);
+        font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
         line-height: 1.6;
     }
     
@@ -96,17 +90,16 @@ st.markdown(
     
     /* ===== Header ===== */
     [data-testid="stHeader"] {
-        background: rgba(255, 255, 255, 0.95) !important;
-        border-bottom: 1px solid var(--color-border);
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+        background: rgba(10, 14, 39, 0.8) !important;
+        border-bottom: 1px solid var(--border-color);
         backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
     
     /* ===== Sidebar ===== */
     [data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.95) !important;
-        border-right: 1px solid var(--color-border);
-        backdrop-filter: blur(10px);
+        background: linear-gradient(180deg, #120a2a 0%, #1a0f3a 100%) !important;
+        border-right: 1px solid var(--border-color);
     }
     
     [data-testid="stSidebar"] > div:first-child {
@@ -117,7 +110,7 @@ st.markdown(
     [data-testid="stSidebar"] label, 
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] p {
-        color: var(--color-text-primary) !important;
+        color: var(--text-secondary) !important;
     }
     
     /* ===== Main Content ===== */
@@ -129,16 +122,20 @@ st.markdown(
     
     /* ===== Typography ===== */
     h1 {
-        color: var(--color-text-primary) !important;
+        color: var(--text-primary) !important;
         font-weight: 700;
         font-size: 42px;
         letter-spacing: -0.02em;
         margin-bottom: 8px;
         line-height: 1.2;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     
     h2 {
-        color: var(--color-text-primary) !important;
+        color: var(--text-primary) !important;
         font-weight: 700;
         font-size: 32px;
         letter-spacing: -0.015em;
@@ -148,7 +145,7 @@ st.markdown(
     }
     
     h3 {
-        color: var(--color-text-primary) !important;
+        color: var(--text-primary) !important;
         font-weight: 600;
         font-size: 24px;
         margin-top: 24px;
@@ -157,22 +154,22 @@ st.markdown(
     }
     
     h4, h5, h6 {
-        color: var(--color-text-primary) !important;
+        color: var(--text-primary) !important;
         font-weight: 600;
         margin-top: 16px;
         margin-bottom: 8px;
     }
     
     p, div, span, label {
-        color: var(--color-text-secondary) !important;
+        color: var(--text-secondary) !important;
         font-weight: 400;
         line-height: 1.5;
     }
     
     /* ===== Buttons ===== */
     .stButton > button {
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+        color: #000 !important;
         border: none !important;
         font-weight: 600;
         font-size: 14px;
@@ -180,71 +177,53 @@ st.markdown(
         border-radius: 8px !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
-        box-shadow: var(--shadow-md);
-        text-transform: none !important;
+        box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
     }
     
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-        background: linear-gradient(135deg, var(--color-primary-dark) 0%, #0a7ea4 100%) !important;
-    }
-    
-    .stButton > button:active {
-        transform: translateY(0);
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 8px 30px rgba(0, 217, 255, 0.5);
     }
     
     .stButton > button[kind="secondary"] {
-        background: var(--color-bg-secondary) !important;
-        color: var(--color-text-primary) !important;
-        border: 1px solid var(--color-border) !important;
+        background: var(--bg-surface) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-light) !important;
         box-shadow: none;
     }
     
     .stButton > button[kind="secondary"]:hover {
-        background: var(--color-bg-tertiary) !important;
-        border-color: var(--color-primary) !important;
-        color: var(--color-primary) !important;
+        background: var(--bg-surface-light) !important;
+        border-color: var(--primary) !important;
+        color: var(--primary) !important;
     }
     
     /* ===== Tabs ===== */
     .stTabs [data-baseweb="tab-list"] {
         background: transparent !important;
-        border-bottom: 2px solid var(--color-border) !important;
+        border-bottom: 2px solid var(--border-color) !important;
         gap: 0;
     }
     
     .stTabs [data-baseweb="tab"] {
         background: transparent !important;
         border: none !important;
-        color: var(--color-text-secondary) !important;
+        color: var(--text-tertiary) !important;
         border-radius: 0 !important;
         font-weight: 500;
         font-size: 14px;
         padding: 12px 16px !important;
         transition: all 0.2s ease;
-        position: relative;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        color: var(--color-primary) !important;
+        color: var(--primary) !important;
     }
     
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
         background: transparent !important;
-        color: var(--color-primary) !important;
+        color: var(--primary) !important;
         border: none !important;
-    }
-    
-    .stTabs [data-baseweb="tab"][aria-selected="true"]::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: var(--color-primary);
     }
     
     /* ===== Alerts & Messages ===== */
@@ -253,39 +232,35 @@ st.markdown(
         border: 1px solid transparent !important;
         padding: 16px !important;
         margin-bottom: 16px;
-        box-shadow: var(--shadow-sm);
+        background: var(--bg-surface) !important;
+        backdrop-filter: blur(10px);
     }
     
     .stInfo {
-        background: rgba(59, 130, 246, 0.05) !important;
-        border-color: rgba(59, 130, 246, 0.2) !important;
+        background: rgba(6, 182, 212, 0.1) !important;
+        border-color: rgba(0, 217, 255, 0.3) !important;
     }
     
     .stSuccess {
-        background: rgba(16, 185, 129, 0.05) !important;
-        border-color: rgba(16, 185, 129, 0.2) !important;
+        background: rgba(16, 185, 129, 0.1) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
     }
     
     .stWarning {
-        background: rgba(245, 158, 11, 0.05) !important;
-        border-color: rgba(245, 158, 11, 0.2) !important;
+        background: rgba(245, 158, 11, 0.1) !important;
+        border-color: rgba(245, 158, 11, 0.3) !important;
     }
     
     .stError {
-        background: rgba(239, 68, 68, 0.05) !important;
-        border-color: rgba(239, 68, 68, 0.2) !important;
-    }
-    
-    .stInfo > div, .stSuccess > div, .stWarning > div, .stError > div {
-        color: var(--color-text-primary) !important;
-        font-weight: 500;
+        background: rgba(239, 68, 68, 0.1) !important;
+        border-color: rgba(239, 68, 68, 0.3) !important;
     }
     
     /* ===== Forms & Inputs ===== */
     input, textarea, select {
-        background: var(--color-bg) !important;
-        color: var(--color-text-primary) !important;
-        border: 1px solid var(--color-border) !important;
+        background: var(--bg-surface) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-color) !important;
         border-radius: 8px !important;
         padding: 12px 14px !important;
         font-size: 14px !important;
@@ -294,85 +269,55 @@ st.markdown(
     }
     
     input:hover, textarea:hover, select:hover {
-        border-color: var(--color-primary) !important;
+        border-color: var(--primary) !important;
     }
     
     input:focus, textarea:focus, select:focus {
-        border-color: var(--color-primary) !important;
+        border-color: var(--primary) !important;
         outline: none !important;
-        box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1) !important;
+        box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15) !important;
+        background: var(--bg-surface-light) !important;
     }
     
     input::placeholder {
-        color: var(--color-text-tertiary) !important;
+        color: var(--text-tertiary) !important;
     }
     
-    /* ===== Sliders ===== */
-    .stSlider > div {
-        padding: 16px 0;
-    }
-    
-    .stSlider [data-testid="stTickBar"] {
-        background-color: var(--color-border) !important;
-    }
-    
-    /* ===== Expandable Sections ===== */
-    .stExpander {
-        border: 1px solid var(--color-border) !important;
-        border-radius: 8px !important;
-        overflow: hidden;
-    }
-    
-    .stExpander > div:first-child {
-        background: var(--color-bg-secondary) !important;
-        padding: 16px !important;
-    }
-    
-    .stExpanderDetails {
-        background: var(--color-bg) !important;
-        border-top: 1px solid var(--color-border) !important;
-        padding: 16px !important;
-    }
-    
-    /* ===== Metrics ===== */
+    /* ===== Cards & Containers ===== */
     [data-testid="metric-container"] {
-        background: rgba(255, 255, 255, 0.7) !important;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: linear-gradient(135deg, rgba(37, 45, 74, 0.5), rgba(26, 31, 58, 0.5)) !important;
+        border: 1px solid var(--border-color) !important;
         border-radius: 12px !important;
         padding: 20px !important;
-        box-shadow: var(--shadow-glass);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     }
     
     [data-testid="stMetricValue"] {
-        color: var(--color-primary) !important;
+        color: var(--primary) !important;
         font-weight: 700;
         font-size: 28px !important;
     }
     
     [data-testid="stMetricLabel"] {
-        color: var(--color-text-secondary) !important;
+        color: var(--text-secondary) !important;
         font-size: 14px !important;
         font-weight: 500;
     }
     
-    [data-testid="stMetricDelta"] {
-        color: var(--color-text-secondary) !important;
-    }
-    
     /* ===== Data Tables ===== */
     .dataframe {
-        background: var(--color-bg) !important;
-        border: 1px solid var(--color-border) !important;
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-color) !important;
         border-radius: 8px !important;
         overflow: hidden;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
     
     .dataframe th {
-        background: var(--color-bg-secondary) !important;
-        color: var(--color-text-primary) !important;
-        border-bottom: 2px solid var(--color-border) !important;
+        background: rgba(0, 217, 255, 0.1) !important;
+        color: var(--text-primary) !important;
+        border-bottom: 2px solid var(--border-light) !important;
         font-weight: 600;
         font-size: 13px;
         padding: 12px !important;
@@ -380,135 +325,124 @@ st.markdown(
     }
     
     .dataframe td {
-        border-color: var(--color-border-light) !important;
-        color: var(--color-text-secondary) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-secondary) !important;
         padding: 12px !important;
         font-size: 14px;
     }
     
     .dataframe tbody tr:hover {
-        background: var(--color-bg-secondary) !important;
+        background: rgba(0, 217, 255, 0.05) !important;
     }
     
     /* ===== Links ===== */
     a {
-        color: var(--color-primary) !important;
+        color: var(--primary) !important;
         text-decoration: none;
         font-weight: 500;
         transition: color 0.2s ease;
     }
     
     a:hover {
-        color: var(--color-primary-dark) !important;
+        color: var(--primary-light) !important;
         text-decoration: underline;
     }
     
-    /* ===== Code & Preformatted Text ===== */
+    /* ===== Code ===== */
     code {
-        background: var(--color-bg-secondary) !important;
-        color: var(--color-text-primary) !important;
+        background: var(--bg-surface) !important;
+        color: var(--primary) !important;
         border-radius: 4px;
+        border: 1px solid var(--border-color);
         padding: 2px 6px;
-        font-family: 'Courier New', monospace;
+        font-family: 'Geist Mono', monospace;
         font-size: 13px;
     }
     
-    /* ===== Horizontal Line ===== */
+    /* ===== Expander ===== */
+    .stExpander {
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        overflow: hidden;
+        background: var(--bg-surface) !important;
+    }
+    
+    .stExpander > div:first-child {
+        background: var(--bg-surface-light) !important;
+        padding: 16px !important;
+    }
+    
+    .stExpanderDetails {
+        background: var(--bg-surface) !important;
+        border-top: 1px solid var(--border-color) !important;
+        padding: 16px !important;
+    }
+    
+    /* ===== Divider ===== */
     hr {
         border: none;
-        border-top: 1px solid var(--color-border);
+        border-top: 1px solid var(--border-color);
         margin: 24px 0;
     }
     
-    /* ===== Captions & Small Text ===== */
-    .caption {
-        color: var(--color-text-tertiary) !important;
-        font-size: 13px;
-        margin-top: 4px;
-    }
-    
-    /* ===== Animations ===== */
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-    
-    @keyframes fade-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
-    @keyframes slide-up {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    /* ===== Responsive Design ===== */
-    @media (max-width: 768px) {
-        h1 {
-            font-size: 28px;
-        }
-        
-        h2 {
-            font-size: 24px;
-        }
-        
-        .stMainBlockContainer {
-            padding: 24px 16px;
-        }
-        
-        [data-testid="metric-container"] {
-            padding: 16px !important;
-        }
-    }
-    
-    /* ===== Custom Utilities ===== */
+    /* ===== Helper Classes ===== */
     .glass-card {
-        background: rgba(255, 255, 255, 0.7);
+        background: rgba(37, 45, 74, 0.3);
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid var(--border-color);
         border-radius: 12px;
         padding: 24px;
-        box-shadow: var(--shadow-glass);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     }
     
     .glass-card:hover {
-        box-shadow: var(--shadow-lg);
-        transition: box-shadow 0.3s ease;
+        background: rgba(37, 45, 74, 0.5);
+        box-shadow: 0 12px 48px rgba(0, 217, 255, 0.15);
+        transition: all 0.3s ease;
     }
     
     .badge {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 9999px;
+        padding: 4px 12px;
+        border-radius: 20px;
         font-size: 12px;
         font-weight: 600;
         line-height: 1;
     }
     
     .badge-success {
-        background: rgba(16, 185, 129, 0.1);
-        color: #047857;
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.4);
     }
     
     .badge-warning {
-        background: rgba(245, 158, 11, 0.1);
-        color: #d97706;
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.4);
     }
     
     .badge-error {
-        background: rgba(239, 68, 68, 0.1);
-        color: #dc2626;
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.4);
     }
     
     .badge-info {
-        background: rgba(59, 130, 246, 0.1);
-        color: #0284c7;
+        background: rgba(0, 217, 255, 0.2);
+        color: var(--primary);
+        border: 1px solid rgba(0, 217, 255, 0.4);
+    }
+    
+    /* ===== Animations ===== */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
     }
     </style>
     """,
