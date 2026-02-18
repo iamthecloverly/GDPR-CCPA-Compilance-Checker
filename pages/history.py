@@ -24,9 +24,8 @@ def render_history_page():
     render_header()
     
     st.markdown("# 📜 Scan History")
-    st.markdown("*View, filter, and manage past compliance scans*")
-    
-    st.markdown("---")
+    st.markdown("Browse, filter, and compare your compliance scanning history")
+    st.divider()
     
     # Tabs for different views
     tab1, tab2, tab3, tab4 = st.tabs(["All Scans", "Compare", "Statistics", "Export"])

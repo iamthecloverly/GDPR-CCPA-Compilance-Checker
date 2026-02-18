@@ -27,10 +27,9 @@ def render_quick_scan_page():
     """Render the quick scan page."""
     render_header()
     
-    st.markdown("# 📱 Quick Scan")
-    st.markdown("*Scan a single website for GDPR/CCPA compliance*")
-    
-    st.markdown("---")
+    st.markdown("# ⚡ Quick Scan")
+    st.markdown("Analyze a single website for GDPR and CCPA compliance violations")
+    st.divider()
     
     # Get URL from form
     url, submitted = render_scan_form()

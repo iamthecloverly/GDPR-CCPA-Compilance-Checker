@@ -29,9 +29,8 @@ def render_batch_scan_page():
     render_header()
     
     st.markdown("# 📦 Batch Scan")
-    st.markdown("*Scan multiple websites efficiently*")
-    
-    st.markdown("---")
+    st.markdown("Upload a CSV file and scan multiple websites at once")
+    st.divider()
     
     # Get URLs from form
     csv_content, submitted = render_batch_upload_form()

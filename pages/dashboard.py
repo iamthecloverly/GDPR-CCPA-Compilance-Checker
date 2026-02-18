@@ -1,4 +1,4 @@
-"""Dashboard page - landing page with quick stats and recent scans."""
+"""Dashboard page - landing page with statistics and quick start."""
 
 import streamlit as st
 from typing import Dict, Any
@@ -14,80 +14,94 @@ def render_dashboard_page():
     render_header()
     
     st.markdown("# 📊 Dashboard")
-    st.markdown("*Quick overview of your compliance scanning activity*")
+    st.markdown("Your compliance scanning hub - View stats, recent scans, and quick actions")
+    st.divider()
     
-    # Get statistics from database
+    # Statistics section with error handling
+    st.markdown("### 📈 Compliance Overview")
+    
     try:
         stats = get_scan_statistics()
-        render_stats_row({
-            "total_scans": stats.get("total_scans", 0),
-            "avg_score": stats.get("avg_score", 0),
-            "compliant_count": stats.get("compliant_count", 0),
-            "at_risk_count": stats.get("at_risk_count", 0),
-        })
+        if stats:
+            render_stats_row({
+                "total_scans": stats.get("total_scans", 0),
+                "avg_score": stats.get("avg_score", 0),
+                "compliant_count": stats.get("compliant_count", 0),
+                "at_risk_count": stats.get("at_risk_count", 0),
+            })
+        else:
+            st.info("💡 No scans yet. Start by running a quick scan to see your first compliance report.")
     except Exception as e:
         logger.warning(f"Could not fetch statistics: {e}")
-        st.info("📊 Statistics will be available after your first scan")
+        st.info("💡 Statistics will appear after your first compliance scan")
     
-    st.markdown("---")
+    st.divider()
     
-    # Quick actions
+    # Quick start actions
     st.markdown("### 🚀 Quick Start")
+    st.markdown("Choose how you want to scan for compliance:")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3, gap="medium")
     
     with col1:
-        if st.button("📱 Quick Scan", key="dashboard_quick", use_container_width=True):
+        st.markdown("\n")
+        if st.button("⚡ Quick Scan", key="dash_quick", use_container_width=True, type="primary"):
             st.session_state.page = "quick_scan"
             st.rerun()
+        st.caption("Scan a single website")
     
     with col2:
-        if st.button("📦 Batch Scan", key="dashboard_batch", use_container_width=True):
+        st.markdown("\n")
+        if st.button("📦 Batch Scan", key="dash_batch", use_container_width=True, type="primary"):
             st.session_state.page = "batch_scan"
             st.rerun()
+        st.caption("Scan multiple websites")
     
     with col3:
-        if st.button("📜 Scan History", key="dashboard_history", use_container_width=True):
+        st.markdown("\n")
+        if st.button("📜 View History", key="dash_history", use_container_width=True, type="primary"):
             st.session_state.page = "history"
             st.rerun()
+        st.caption("View past scans")
     
-    st.markdown("---")
+    st.divider()
     
-    # Recent scans
+    # Recent scans list
     st.markdown("### 📋 Recent Scans")
     
     try:
         recent_scans = get_recent_scans(limit=5)
         
         if recent_scans:
-            for scan in recent_scans:
-                with st.container():
-                    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+            for idx, scan in enumerate(recent_scans):
+                with st.container(border=True):
+                    col1, col2, col3, col4 = st.columns([3, 1.5, 1.5, 1.5])
                     
                     with col1:
-                        st.markdown(f"**{scan.get('url', 'Unknown')}**")
+                        st.markdown(f"**{scan.get('url', 'Unknown URL')}**")
+                        st.caption(f"Scanned: {scan.get('scan_date', 'N/A')}")
                     
                     with col2:
                         score = scan.get('score', 0)
-                        st.markdown(f"`{score}` / 100")
+                        st.metric("Score", f"{score}/100")
                     
                     with col3:
                         grade = scan.get('grade', 'N/A')
-                        st.markdown(f"Grade: **{grade}**")
+                        status_color = '🟢' if grade == 'A' else '🟡' if grade in ['B', 'C'] else '🔴'
+                        st.markdown(f"{status_color} **{grade}**")
                     
                     with col4:
-                        if st.button("View", key=f"view_{scan.get('id', 'unknown')}", use_container_width=True):
+                        if st.button("📖 Details", key=f"details_{idx}", use_container_width=True, type="secondary"):
                             st.session_state.selected_scan_id = scan.get('id')
-                            st.session_state.page = "view_scan"
+                            st.session_state.page = "history"
                             st.rerun()
-                    
-                    st.markdown("---")
         else:
-            st.info("No scans yet. Start by performing a quick scan!")
-    
+            st.info("💡 No scans yet. Start with a quick scan above!")
     except Exception as e:
-        logger.error(f"Error loading recent scans: {e}")
-        st.warning("Could not load recent scans. Try refreshing the page.")
+        logger.warning(f"Error fetching recent scans: {e}")
+        st.info("📊 Recent scans will appear after your first scan")
+    
+    st.divider()
     
     # Help section
     with st.expander("❓ Help & Getting Started"):
@@ -97,7 +111,6 @@ def render_dashboard_page():
         1. **Quick Scan** - Enter a single URL to check its GDPR/CCPA compliance
         2. **Batch Scan** - Upload multiple URLs at once for bulk scanning
         3. **Scan History** - View, filter, and analyze all previous scans
-        4. **Settings** - Configure API keys and scanning preferences
         
         **What we check for:**
         - 🍪 Cookie consent mechanisms
@@ -105,7 +118,10 @@ def render_dashboard_page():
         - 📧 Contact information (email, postal address)
         - 🔍 Third-party tracker detection
         
-        **Need help?** Visit our documentation or contact support.
+        **Compliance Grades:**
+        - 🟢 **A** - Excellent compliance
+        - 🟡 **B/C** - Moderate issues, needs review
+        - 🔴 **D/F** - Critical issues, urgent action needed
         """)
 
 

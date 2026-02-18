@@ -18,11 +18,10 @@ from config import Config
 from logger_config import setup_logging, get_logger
 
 # Import page modules
-from pages.dashboard import render_dashboard_page as dashboard_page
-from pages.quick_scan import render_quick_scan_page as quick_scan_page
-from pages.batch_scan import render_batch_scan_page as batch_scan_page
-from pages.history import render_history_page as history_page
-from pages.settings import render_settings_page as settings_page
+from pages.dashboard import render_dashboard_page as render_dashboard
+from pages.quick_scan import render_quick_scan_page as render_scan_single
+from pages.batch_scan import render_batch_scan_page as render_scan_batch
+from pages.history import render_history_page as render_scan_history
 
 # Setup logging
 setup_logging()
@@ -51,16 +50,16 @@ st.markdown(
         box-sizing: border-box;
     }
     
-    /* ===== Colors ===== */
+    /* ===== Colors - Vibrant Modern Palette ===== */
     :root {
-        --color-primary: #06b6d4;
-        --color-primary-dark: #0891b2;
-        --color-primary-light: #67e8f9;
+        --color-primary: #8b5cf6;
+        --color-primary-dark: #7c3aed;
+        --color-primary-light: #a78bfa;
         
         --color-success: #10b981;
         --color-warning: #f59e0b;
         --color-error: #ef4444;
-        --color-info: #3b82f6;
+        --color-info: #0ea5e9;
         
         --color-bg: #ffffff;
         --color-bg-secondary: #f8fafc;
@@ -84,7 +83,7 @@ st.markdown(
     
     /* ===== Base Styles ===== */
     html, body, [data-testid="stApp"] {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+        background: linear-gradient(135deg, #fafffe 0%, #f5f3ff 50%, #ffe5f0 100%) !important;
         background-attachment: fixed;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         color: var(--color-text-primary);
@@ -521,7 +520,7 @@ st.markdown(
 # ============================================================================
 
 if "page" not in st.session_state or st.session_state.page not in [
-    "dashboard", "quick_scan", "batch_scan", "history", "settings"
+    "dashboard", "quick_scan", "batch_scan", "history"
 ]:
     st.session_state.page = "dashboard"
 
@@ -543,11 +542,10 @@ def render_sidebar():
         st.markdown("### Navigation")
         
         pages = {
-            "dashboard": ("📊", "Dashboard", "Overview & stats"),
-            "quick_scan": ("⚡", "Quick Scan", "Single website"),
-            "batch_scan": ("📦", "Batch Scan", "Multiple URLs"),
-            "history": ("📜", "History", "Past scans"),
-            "settings": ("⚙️", "Settings", "Configuration"),
+            "dashboard": ("📊", "Dashboard", "Overview and statistics"),
+            "quick_scan": ("⚡", "Quick Scan", "Scan single website"),
+            "batch_scan": ("📦", "Batch Scan", "Scan multiple URLs"),
+            "history": ("📜", "Scan History", "View past scans"),
         }
         
         for page_id, (icon, title, subtitle) in pages.items():
@@ -590,15 +588,13 @@ def main():
         
         # Render appropriate page
         if st.session_state.page == "dashboard":
-            dashboard_page()
+            render_dashboard()
         elif st.session_state.page == "quick_scan":
-            quick_scan_page()
+            render_scan_single()
         elif st.session_state.page == "batch_scan":
-            batch_scan_page()
+            render_scan_batch()
         elif st.session_state.page == "history":
-            history_page()
-        elif st.session_state.page == "settings":
-            settings_page()
+            render_scan_history()
         else:
             st.error(f"Unknown page: {st.session_state.page}")
             st.session_state.page = "dashboard"
