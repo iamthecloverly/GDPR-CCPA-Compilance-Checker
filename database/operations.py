@@ -230,3 +230,231 @@ def get_latest_scan(url: str) -> Optional[Dict[str, Any]]:
         except Exception as e:
             logger.error(f"Failed to retrieve latest scan: {e}")
             return None
+
+def get_recent_scans(limit: int = 5) -> List[Dict[str, Any]]:
+    """
+    Get recent scans across all URLs.
+    
+    Args:
+        limit: Maximum number of scans to retrieve
+        
+    Returns:
+        List of scan result dictionaries
+    """
+    with get_db() as db:
+        if db is None:
+            logger.warning("Database not available - returning empty list")
+            return []
+        
+        try:
+            scans = db.query(ComplianceScan).order_by(
+                desc(ComplianceScan.scan_date)
+            ).limit(limit).all()
+            
+            result = []
+            for scan in scans:
+                result.append({
+                    'id': scan.id,
+                    'url': scan.url,
+                    'score': scan.score,
+                    'grade': scan.grade,
+                    'status': scan.status,
+                    'scan_date': scan.scan_date,
+                })
+            
+            return result
+        except Exception as e:
+            logger.error(f"Failed to retrieve recent scans: {e}")
+            return []
+
+
+def get_all_scans() -> List[Dict[str, Any]]:
+    """
+    Get all scans from database.
+    
+    Returns:
+        List of all scan result dictionaries
+    """
+    with get_db() as db:
+        if db is None:
+            logger.warning("Database not available - returning empty list")
+            return []
+        
+        try:
+            scans = db.query(ComplianceScan).order_by(
+                desc(ComplianceScan.scan_date)
+            ).all()
+            
+            result = []
+            for scan in scans:
+                result.append({
+                    'id': scan.id,
+                    'url': scan.url,
+                    'score': scan.score,
+                    'grade': scan.grade,
+                    'status': scan.status,
+                    'scan_date': scan.scan_date,
+                    'findings': {
+                        'cookie_consent': scan.cookie_consent,
+                        'privacy_policy': scan.privacy_policy,
+                        'contact_info': scan.contact_info,
+                    },
+                    'trackers': scan.trackers,
+                })
+            
+            return result
+        except Exception as e:
+            logger.error(f"Failed to retrieve all scans: {e}")
+            return []
+
+
+def get_scan_statistics() -> Dict[str, Any]:
+    """
+    Get overall scan statistics.
+    
+    Returns:
+        Dictionary with statistics
+    """
+    with get_db() as db:
+        if db is None:
+            logger.warning("Database not available - returning empty stats")
+            return {
+                'total_scans': 0,
+                'avg_score': 0,
+                'compliant_count': 0,
+                'at_risk_count': 0,
+            }
+        
+        try:
+            total = db.query(func.count(ComplianceScan.id)).scalar() or 0
+            avg_score = db.query(func.avg(ComplianceScan.score)).scalar() or 0
+            compliant = db.query(func.count(ComplianceScan.id)).filter(
+                ComplianceScan.score >= 80
+            ).scalar() or 0
+            at_risk = db.query(func.count(ComplianceScan.id)).filter(
+                ComplianceScan.score < 60
+            ).scalar() or 0
+            
+            return {
+                'total_scans': total,
+                'avg_score': float(avg_score),
+                'compliant_count': compliant,
+                'at_risk_count': at_risk,
+            }
+        except Exception as e:
+            logger.error(f"Failed to retrieve statistics: {e}")
+            return {
+                'total_scans': 0,
+                'avg_score': 0,
+                'compliant_count': 0,
+                'at_risk_count': 0,
+            }
+
+
+def get_scan_by_url(url: str) -> List[Dict[str, Any]]:
+    """
+    Get all scans for a specific URL.
+    
+    Args:
+        url: Website URL (can be partial search)
+        
+    Returns:
+        List of scan result dictionaries
+    """
+    with get_db() as db:
+        if db is None:
+            return []
+        
+        try:
+            scans = db.query(ComplianceScan).filter(
+                ComplianceScan.url.ilike(f"%{url}%")
+            ).order_by(
+                desc(ComplianceScan.scan_date)
+            ).all()
+            
+            result = []
+            for scan in scans:
+                result.append({
+                    'id': scan.id,
+                    'url': scan.url,
+                    'score': scan.score,
+                    'grade': scan.grade,
+                    'status': scan.status,
+                    'scan_date': scan.scan_date,
+                })
+            
+            return result
+        except Exception as e:
+            logger.error(f"Failed to retrieve scans for {url}: {e}")
+            return []
+
+
+def delete_scan(scan_id: int) -> bool:
+    """
+    Delete a scan by ID.
+    
+    Args:
+        scan_id: ID of scan to delete
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    with get_db() as db:
+        if db is None:
+            return False
+        
+        try:
+            scan = db.query(ComplianceScan).filter(
+                ComplianceScan.id == scan_id
+            ).first()
+            
+            if scan:
+                db.delete(scan)
+                db.commit()
+                logger.info(f"Deleted scan {scan_id}")
+                return True
+            
+            return False
+        except Exception as e:
+            logger.error(f"Failed to delete scan {scan_id}: {e}")
+            return False
+
+
+def get_scans_by_date_range(start_date, end_date) -> List[Dict[str, Any]]:
+    """
+    Get scans within a date range.
+    
+    Args:
+        start_date: Start date
+        end_date: End date
+        
+    Returns:
+        List of scan result dictionaries
+    """
+    with get_db() as db:
+        if db is None:
+            return []
+        
+        try:
+            scans = db.query(ComplianceScan).filter(
+                ComplianceScan.scan_date >= start_date,
+                ComplianceScan.scan_date <= end_date
+            ).order_by(
+                desc(ComplianceScan.scan_date)
+            ).all()
+            
+            result = []
+            for scan in scans:
+                result.append({
+                    'id': scan.id,
+                    'url': scan.url,
+                    'score': scan.score,
+                    'grade': scan.grade,
+                    'status': scan.status,
+                    'scan_date': scan.scan_date,
+                })
+            
+            return result
+        except Exception as e:
+            logger.error(f"Failed to retrieve scans by date range: {e}")
+            return []
