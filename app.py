@@ -1,782 +1,301 @@
+"""
+GDPR/CCPA Compliance Checker - Main Application
+
+A comprehensive tool for checking website compliance with GDPR and CCPA regulations.
+This is the main entry point that routes to different pages.
+"""
+
 import streamlit as st
 import os
-import traceback
 import logging
-from datetime import datetime
-from urllib.parse import urlparse
-import pandas as pd
-import plotly.express as px
+import sys
 
-# Import configuration and validation
+# Setup base path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import configuration and logger
 from config import Config
 from logger_config import setup_logging, get_logger
-from validators import validate_url, validate_batch_urls, InvalidURLError, ValidationError
-from exceptions import (
-    ComplianceCheckerError, ScanError, NetworkError, 
-    DatabaseError, AIServiceError, ConfigurationError
-)
+
+# Import page modules  
+from pages.dashboard import render_dashboard_page as dashboard_page
+from pages.quick_scan import render_quick_scan_page as quick_scan_page
+from pages.batch_scan import render_batch_scan_page as batch_scan_page
+from pages.history import render_history_page as history_page
+from pages.settings import render_settings_page as settings_page
+
+# Setup logging
+setup_logging()
+logger = get_logger(__name__)
 
 # Page config
 st.set_page_config(
     page_title="GDPR/CCPA Compliance Checker",
     page_icon="🔒",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Modern dark theme styling
+# Modern dark theme styling - COMPLETE
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-    :root {
-        color-scheme: dark;
+    
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
-    .stApp {
-        background: linear-gradient(135deg, #1a1d29 0%, #0f1419 50%, #0a0e1a 100%);
+    
+    html, body, [data-testid="stApp"] {
+        background: linear-gradient(135deg, #0f172a 0%, #1a1f35 50%, #16213e 100%) !important;
         background-attachment: fixed;
-        color: #e6edf3;
-        font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+        min-height: 100vh;
     }
-    .stApp::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        background: 
-            radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 35%),
-            radial-gradient(circle at 85% 75%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.04) 0%, transparent 50%);
-        z-index: 0;
+    
+    [data-testid="stAppViewContainer"] {
+        background: transparent;
     }
-    .block-container {
-        position: relative;
-        z-index: 1;
-        max-width: 72rem;
-        margin: 0 auto;
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-        animation: fadeInUp 0.6s ease forwards;
-        opacity: 0;
+    
+    [data-testid="stHeader"] {
+        background: rgba(20, 23, 36, 0.7);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        backdrop-filter: blur(10px);
     }
-    .stApp a { color: #7dd3fc; }
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(30, 33, 46, 0.85) 0%, rgba(20, 23, 36, 0.9) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.15);
-        backdrop-filter: blur(14px);
-        border-radius: 18px;
-        margin: 1rem;
-        width: 240px;
+    
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(20, 23, 36, 0.95) 100%) !important;
+        border-right: 1px solid rgba(139, 92, 246, 0.2);
     }
-    section[data-testid="stSidebar"] .stMarkdown,
-    section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] p,
-    section[data-testid="stSidebar"] div {
-        color: #e6edf3;
+    
+    [data-testid="stSidebar"] > div:first-child {
+        background: transparent;
     }
-    header[data-testid="stHeader"] {
-        background: linear-gradient(90deg, rgba(26, 29, 41, 0.8) 0%, rgba(20, 23, 36, 0.85) 100%);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+    
+    [data-testid="stSidebar"] .stMarkdown, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] p {
+        color: #e0e7ff !important;
     }
-    h1, h2, h3, h4, h5 {
-        color: #e6edf3;
+    
+    .stMainBlockContainer {
+        background: transparent;
+        padding: 2rem 1rem;
     }
-    .hero {
-        background: linear-gradient(145deg, rgba(30, 33, 46, 0.6) 0%, rgba(20, 23, 36, 0.7) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.2);
-        backdrop-filter: blur(12px);
-        border-radius: 20px;
-        padding: 32px 36px;
-        box-shadow: 0 18px 60px rgba(99, 102, 241, 0.15);
-        margin-bottom: 26px;
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .hero:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        box-shadow: 0 24px 80px rgba(99, 102, 241, 0.25);
-        transform: scale(1.01);
-    }
-    .hero-title {
-        font-size: 3rem;
+    
+    h1 { 
+        color: #e0e7ff !important;
         font-weight: 700;
         letter-spacing: -0.02em;
         margin-bottom: 0.5rem;
-        background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 50%, #a5b4fc 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
     }
-    .hero-subtitle {
-        font-size: 1.05rem;
-        color: #a1a1aa;
-        margin-bottom: 1rem;
+    
+    h2, h3, h4, h5, h6 { 
+        color: #e0e7ff !important;
+        font-weight: 600;
     }
-    .pill {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
-        border: 1px solid rgba(139, 92, 246, 0.3);
-        color: #e0e7ff;
-        margin-right: 8px;
-        margin-top: 6px;
+    
+    p, div, span, label { 
+        color: #c7d2fe !important;
     }
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 12px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(34, 197, 94, 0.2);
-        color: #4ade80;
-        font-size: 0.85rem;
+    
+    .stButton > button {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.2)) !important;
+        border: 1px solid rgba(139, 92, 246, 0.4) !important;
+        color: #e0e7ff !important;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
     }
-    .status-pill .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: #22c55e;
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
-        animation: pulse 2s infinite;
+    
+    .stButton > button:hover {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(139, 92, 246, 0.3)) !important;
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
     }
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
-        70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        background: rgba(30, 33, 46, 0.5);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 8px;
+        padding: 0 1rem;
     }
+    
     .stTabs [data-baseweb="tab"] {
         background: transparent;
-        color: #cbd5e1;
-        border-radius: 12px;
-        border: 1px solid rgba(139, 92, 246, 0.15);
-        padding: 8px 14px;
+        border: none;
+        color: #a1aec0 !important;
+        border-radius: 6px 6px 0 0;
+        transition: all 0.2s ease;
     }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15));
-        border-color: rgba(139, 92, 246, 0.5);
-        color: #e6edf3;
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background: rgba(99, 102, 241, 0.2);
+        color: #e0e7ff !important;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.6);
     }
-    .stButton > button, .stDownloadButton > button {
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(9, 13, 19, 0.9);
-        color: #e6edf3;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-        transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+    
+    .stInfo, .stSuccess, .stWarning, .stError {
+        border-radius: 8px;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(30, 33, 46, 0.6) !important;
     }
-    .stButton > button:hover, .stDownloadButton > button:hover {
-        border-color: rgba(255, 255, 255, 0.25);
-        background: rgba(9, 13, 19, 1);
-        color: #ffffff;
-        transform: translateY(-1px);
-    }
-    .stButton > button:focus, .stDownloadButton > button:focus {
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.3);
-    }
-    .primary-action > button {
-        border: 1px solid rgba(34, 211, 238, 0.4) !important;
-        background: radial-gradient(circle at top, rgba(34, 211, 238, 0.45), rgba(37, 99, 235, 0.55)) !important;
-        color: #f8fafc !important;
-        box-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
-    }
-    .stTextInput input {
-        background: rgba(30, 33, 46, 0.85) !important;
-        color: #e6edf3 !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 999px !important;
-        height: 3.5rem;
-        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
-    }
-    .stSelectbox div[data-baseweb="select"] {
-        background: rgba(30, 33, 46, 0.85) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 12px !important;
-    }
-    .stSelectbox div[data-baseweb="select"] > div {
-        background: rgba(30, 33, 46, 0.95) !important;
-        color: #e6edf3 !important;
-    }
-    .stTextInput div[data-baseweb="input"] {
-        background: transparent !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 999px !important;
-        box-shadow: none !important;
-    }
-    .stTextInput div[data-baseweb="input"]:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-    }
-    .stTextInput input:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-    }
-    .stSelectbox:hover div[data-baseweb="select"] {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-    }
-    .stTextArea textarea {
-        background: rgba(30, 33, 46, 0.85) !important;
-        color: #e6edf3 !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 16px !important;
-        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
-    }
-    .stTextInput input:focus, .stTextArea textarea:focus {
-        border-color: rgba(139, 92, 246, 0.6) !important;
-        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3) !important;
-    }
-    .stTextInput input::placeholder, .stTextArea textarea::placeholder {
-        color: #71717a !important;
-    }
-    .stMetric {
-        background: linear-gradient(145deg, rgba(30, 33, 46, 0.5), rgba(20, 23, 36, 0.6));
+    
+    .stExpanderDetails {
+        background: rgba(30, 33, 46, 0.4);
         border: 1px solid rgba(139, 92, 246, 0.2);
-        border-radius: 16px;
-        padding: 12px 16px;
-        backdrop-filter: blur(10px);
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
     }
-    div[data-testid="stMetric"] label,
-    div[data-testid="stMetricLabel"],
-    div[data-testid="stMetricValue"],
-    div[data-testid="stMetricDelta"],
-    div[data-testid="stMetric"] .metric-label,
-    div[data-testid="stMetric"] .metric-value,
-    div[data-testid="stMetric"] .metric-delta {
-        color: #f8fafc !important;
+    
+    .metric-value {
+        color: #60a5fa !important;
+        font-weight: 600;
     }
-    div[data-testid="stMetric"] span,
-    div[data-testid="stMetricValue"] span,
-    div[data-testid="stMetricLabel"] span {
-        color: #e2e8f0 !important;
+    
+    input, textarea, select {
+        background: rgba(30, 33, 46, 0.8) !important;
+        color: #e0e7ff !important;
+        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
     }
-    .stMetric:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        transform: scale(1.01);
+    
+    input:focus, textarea:focus, select:focus {
+        border-color: rgba(99, 102, 241, 0.6) !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
     }
-    .stExpander {
-        background: linear-gradient(145deg, rgba(30, 33, 46, 0.5), rgba(20, 23, 36, 0.6));
-        border: 1px solid rgba(139, 92, 246, 0.15);
-        border-radius: 14px;
-        backdrop-filter: blur(10px);
+    
+    [data-testid="stMetricValue"] {
+        color: #60a5fa !important;
+        font-weight: 700;
     }
-    .stDataFrame {
-        border-radius: 12px;
-        overflow: hidden;
+    
+    [data-testid="stMetricLabel"] {
+        color: #a1aec0 !important;
     }
-    .content-fade-in {
-        animation: fadeInUp 0.6s ease forwards;
-        opacity: 0;
+    
+    .dataframe {
+        background: rgba(20, 23, 36, 0.5) !important;
+        color: #e0e7ff;
     }
-    @keyframes fadeInUp {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
+    
+    .dataframe th {
+        background: rgba(30, 33, 46, 0.8) !important;
+        color: #e0e7ff !important;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.3) !important;
+    }
+    
+    .dataframe td {
+        border-color: rgba(99, 102, 241, 0.1) !important;
+        color: #c7d2fe !important;
+    }
+    
+    a {
+        color: #60a5fa !important;
+        transition: color 0.2s ease;
+    }
+    
+    a:hover {
+        color: #93c5fd !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Initialize session state
+if "page" not in st.session_state or st.session_state.page not in [
+    "dashboard", "quick_scan", "batch_scan", "history", "settings"
+]:
+    st.session_state.page = "dashboard"
 
-# Environment
-DEBUG = os.getenv("APP_DEBUG", "").lower() in {"1", "true", "yes"}
 
-# Helpers
-def safe_filename_from_url(url: str) -> str:
-    try:
-        parsed = urlparse(url)
-        base = parsed.netloc or "report"
-        return base.replace(":", "_")
-    except Exception:
-        return "report"
-
-# Initialize logging
-setup_logging(log_level="INFO")
-logger = get_logger(__name__)
-DEBUG = Config.DEBUG
-
-# Initialize database
-DB_AVAILABLE = False
-try:
-    from database.db import init_db
-    if Config.DATABASE_URL:
-        init_db()
-        DB_AVAILABLE = True
-        logger.info("Database initialized successfully")
-except DatabaseError as e:
-    DB_AVAILABLE = False
-    logger.error(f"Database initialization failed: {e}")
-except Exception as e:
-    DB_AVAILABLE = False
-    logger.exception("Unexpected error during database initialization")
-    
-# Import operations after database initialization
-try:
-    from database.operations import (
-        save_scan_result, 
-        get_scan_history, 
-        get_score_trend, 
-        get_all_scanned_urls
-    )
-    from controllers.compliance_controller import ComplianceController
-    from services.openai_service import OpenAIService
-except ImportError as e:
-    st.error("The app failed to start due to a missing dependency.")
-    if DEBUG:
-        st.code(traceback.format_exc())
-    logger.exception("Import error during startup")
-    st.stop()
-
-# Initialize services
-controller = ComplianceController()
-openai_service = OpenAIService()
-
-# App title
-st.markdown(
-    """
-    <div class="hero content-fade-in">
-        <div class="hero-title">Privacy Compliance, Instantly.</div>
-        <div class="hero-subtitle">Scan any site in seconds and surface GDPR/CCPA gaps with AI‑ready, audit‑friendly outputs.</div>
-        <span class="pill">Lightning scans</span>
-        <span class="pill">AI insights</span>
-        <span class="pill">Audit exports</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# Sidebar
-st.sidebar.header("Settings")
-assume_https = st.sidebar.checkbox(
-    "Assume https:// if missing",
-    value=True,
-    help="Automatically add https:// when you paste a bare domain"
-)
-ai_enabled = st.sidebar.checkbox(
-    "Enable AI Analysis",
-    value=bool(os.getenv("OPENAI_API_KEY")),
-    help="Requires OPENAI_API_KEY to be set"
-)
-
-if ai_enabled and not os.getenv("OPENAI_API_KEY"):
-    st.sidebar.error("OPENAI_API_KEY not found in environment variables")
-    ai_enabled = False
-
-st.sidebar.markdown("---")
-if DB_AVAILABLE:
-    st.sidebar.markdown(
-        """
-        <div class="status-pill">
-            <span class="dot"></span>
-            Database connected
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-else:
-    st.sidebar.markdown(
-        """
-        <div class="status-pill" style="border-color: rgba(248, 113, 113, 0.25); color: #f87171;">
-            <span class="dot" style="background: #f87171; box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6);"></span>
-            Database offline
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-st.sidebar.caption("Tip: Use full URLs to improve scan accuracy.")
-with st.sidebar.expander("How it works"):
-    st.write("1) Enter a URL\n2) Run a scan\n3) Review score and details\n4) Export CSV")
-
-# Main tabs
-tab1, tab2, tab3 = st.tabs(["Single Scan", "Scan History", "Batch Scan"])
-
-# Tab 1: Single Scan
-with tab1:
-    st.header("Single URL Scan")
-    st.caption("Enter a website URL to check for privacy compliance signals.")
-
-    with st.form("single_scan_form"):
-        input_col, button_col = st.columns([5, 1])
-        with input_col:
-            raw_url = st.text_input(
-                "Enter URL to scan",
-                placeholder="https://example.com",
-                help="Enter a complete URL including https://"
-            )
-        with button_col:
-            st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("➜", type="primary")
-
-    st.markdown(
-        """
-        <style>
-        div[data-testid="stForm"] button[kind="primary"] {
-            width: 56px;
-            height: 56px;
-            border-radius: 999px !important;
-            font-size: 1.2rem;
-            padding: 0;
-        }
-        div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        """
-        <style>
-        div[data-testid="stForm"] button[kind="primary"] {
-            border: 1px solid rgba(34, 211, 238, 0.4) !important;
-            background: radial-gradient(circle at top, rgba(34, 211, 238, 0.5), rgba(37, 99, 235, 0.6)) !important;
-            box-shadow: 0 0 24px rgba(34, 211, 238, 0.45) !important;
-        }
-        div[data-testid="stForm"] button[kind="primary"]:hover::after {
-            content: " Scan";
-            font-size: 0.85rem;
-            margin-left: 6px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    if submitted:
-        if not raw_url or not raw_url.strip():
-            st.error("Please enter a URL")
-        else:
-            try:
-                # Validate URL
-                is_valid, url = validate_url(raw_url)
-                
-                with st.spinner("Scanning website..."):
-                    try:
-                        results = controller.scan_website(url)
-                        st.session_state["last_results"] = {
-                            "url": url,
-                            "results": results
-                        }
-                        logger.info(f"Successful scan for {url}")
-                    except NetworkError as e:
-                        st.error(f"Network error: {str(e)}")
-                        st.info("Tip: Some sites block automated requests. Try again later.")
-                        logger.warning(f"Network error during scan: {e}")
-                        if DEBUG:
-                            with st.expander("Error Details"):
-                                st.code(str(e))
-                    except ScanError as e:
-                        st.error(f"Scan error: {str(e)}")
-                        logger.error(f"Scan failed: {e}")
-                        if DEBUG:
-                            with st.expander("Error Details"):
-                                st.code(traceback.format_exc())
-                    except ComplianceCheckerError as e:
-                        st.error(f"Application error: {str(e)}")
-                        logger.error(f"Compliance checker error: {e}")
-                        if DEBUG:
-                            with st.expander("Error Details"):
-                                st.code(traceback.format_exc())
-                    except Exception as e:
-                        st.error("Unexpected error during scan. Please try again.")
-                        logger.exception("Unexpected error during scan")
-                        if DEBUG:
-                            with st.expander("Error Details"):
-                                st.code(traceback.format_exc())
-                                
-            except InvalidURLError as e:
-                st.error(f"Invalid URL: {str(e)}")
-                logger.warning(f"Invalid URL provided: {e}")
-            except Exception as e:
-                st.error(f"Error processing URL: {str(e)}")
-                logger.error(f"URL processing error: {e}")
-
-    if st.session_state.get("last_results"):
-        url = st.session_state["last_results"]["url"]
-        results = st.session_state["last_results"]["results"]
-
-        st.subheader("Summary")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Compliance Score", f"{results['score']:.1f}/100")
-            st.progress(max(0.0, min(1.0, results["score"] / 100)))
-        with col2:
-            grade_color = {
-                "A": "🟢", "B": "🟡", "C": "🟠",
-                "D": "🔴", "F": "⛔"
-            }
-            st.metric("Grade", f"{grade_color.get(results['grade'], '❓')} {results['grade']}")
-        with col3:
-            status_emoji = {
-                "Compliant": "✅",
-                "Needs Improvement": "⚠️",
-                "Non-Compliant": "❌"
-            }
-            st.metric("Status", f"{status_emoji.get(results['status'], '❓')} {results['status']}")
-
-        # Score Breakdown Chart
-        st.subheader("Score Breakdown")
-
-        # Get score breakdown from controller
-        breakdown_data = controller.get_score_breakdown(results)
-        chart_df = pd.DataFrame(breakdown_data)
-
-        # Create donut chart
-        fig = px.pie(
-            chart_df,
-            values="Points",
-            names="Category",
-            hole=0.5,
-            color_discrete_sequence=["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"]
-        )
-        fig.update_traces(textposition='inside', textinfo='percent+label')
-        fig.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0))
-        st.plotly_chart(fig, use_container_width=True)  # TODO: Replace with width='stretch' after Streamlit update
-
-        st.subheader("Compliance Details")
-        details_col1, details_col2 = st.columns(2)
-
-        with details_col1:
-            st.write("**Cookie Consent:**", results["cookie_consent"])
-            st.write("**Privacy Policy:**", results["privacy_policy"])
-
-        with details_col2:
-            st.write("**Contact Info:**", results["contact_info"])
-            st.write("**Trackers Found:**", len(results.get("trackers", [])))
-
-        if results.get("trackers"):
-            with st.expander("View Detected Trackers"):
-                for tracker in results["trackers"]:
-                    st.code(tracker)
-
-        ai_analysis = None
-        if ai_enabled:
-            st.subheader("AI-Powered Analysis")
-            with st.spinner("Analyzing privacy policy..."):
-                try:
-                    ai_analysis = openai_service.analyze_privacy_policy(
-                        url,
-                        results
-                    )
-                    if ai_analysis:
-                        st.markdown(ai_analysis)
-                    else:
-                        st.warning("AI analysis unavailable")
-                except Exception as e:
-                    logger.exception("AI analysis failed")
-                    st.error("AI analysis failed. Please try again later.")
-                    if DEBUG:
-                        with st.expander("Error Details"):
-                            st.code(traceback.format_exc())
-
-        if DB_AVAILABLE:
-            try:
-                scan_id = save_scan_result(url, results, ai_analysis)
-                st.success(f"✅ Scan saved to database (ID: {scan_id})")
-            except Exception as e:
-                logger.exception("Could not save scan")
-                st.warning("Could not save to database")
-                if DEBUG:
-                    st.caption(str(e))
-
-        st.subheader("Export Results")
-        export_data = {
-            "URL": [url],
-            "Score": [results["score"]],
-            "Grade": [results["grade"]],
-            "Status": [results["status"]],
-            "Cookie Consent": [results["cookie_consent"]],
-            "Privacy Policy": [results["privacy_policy"]],
-            "Contact Info": [results["contact_info"]],
-            "Trackers": [len(results.get("trackers", []))],
-            "Scan Date": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
-        }
-        df = pd.DataFrame(export_data)
-        csv = df.to_csv(index=False)
-        st.download_button(
-            "Download Report (CSV)",
-            csv,
-            f"compliance_report_{safe_filename_from_url(url)}.csv",
-            "text/csv"
-        )
-
-# Tab 2: Scan History
-with tab2:
-    st.header("Scan History")
-    st.caption("Review previous scans and visualize trends over time.")
-    
-    if not DB_AVAILABLE:
-        st.info("Database not available. History tracking is disabled.")
-    else:
-        try:
-            scanned_urls = get_all_scanned_urls()
-            
-            if not scanned_urls:
-                st.info("No scan history available yet. Perform your first scan!")
-            else:
-                selected_url = st.selectbox("Select URL to view history", scanned_urls)
-                
-                if selected_url:
-                    history = get_scan_history(selected_url, limit=20)
-                    
-                    if history:
-                        st.subheader(f"History for {selected_url}")
-                        
-                        # Display history table
-                        history_data = []
-                        for scan in history:
-                            history_data.append({
-                                "Date": scan['scan_date'].strftime("%Y-%m-%d %H:%M"),
-                                "Score": scan['score'],
-                                "Grade": scan['grade'],
-                                "Status": scan['status'],
-                                "Cookie Consent": scan['cookie_consent'],
-                                "Privacy Policy": scan['privacy_policy']
-                            })
-                        
-                        df = pd.DataFrame(history_data)
-                        st.dataframe(df, use_container_width=True)  # TODO: Replace with width='stretch' after Streamlit update
-                        
-                        # Score trend chart
-                        st.subheader("Compliance Score Trend")
-                        trend_data = get_score_trend(selected_url)
-                        
-                        if trend_data:
-                            trend_df = pd.DataFrame(trend_data, columns=["Date", "Score"])
-                            st.line_chart(trend_df.set_index("Date"))
-                    else:
-                        st.info("No history available for this URL")
-        except Exception as e:
-            logger.exception("Error loading history")
-            st.error("Error loading history. Please try again later.")
-            if DEBUG:
-                with st.expander("Error Details"):
-                    st.code(traceback.format_exc())
-                
-# Tab 3: Batch Scan
-with tab3:
-    st.header("Batch Scan")
-    st.write("Scan multiple URLs at once (max 10)")
-    st.caption("Best for comparing multiple sites quickly.")
-    
-    urls_input = st.text_area(
-        "Enter URLs (one per line)",
-        placeholder="https://example1.com\nhttps://example2.com\nhttps://example3.com",
-        height=200
-    )
-    
-    if st.button("Scan All URLs", type="primary"):
-        raw_urls = [url.strip() for url in urls_input.split("\n") if url.strip()]
+def render_sidebar():
+    """Render navigation sidebar with modern UI."""
+    with st.sidebar:
+        st.markdown("")
+        st.markdown("### 🔒 GDPR/CCPA Checker")
+        st.markdown("---")
         
-        if not raw_urls:
-            st.error("Please enter at least one URL")
-        else:
-            try:
-                # Validate batch of URLs
-                valid_urls, invalid_urls = validate_batch_urls(raw_urls)
-                
-                # Deduplicate while preserving order
-                valid_urls = list(dict.fromkeys(valid_urls))
-                
-                if len(valid_urls) > Config.BATCH_SCAN_LIMIT:
-                    st.error(f"Maximum {Config.BATCH_SCAN_LIMIT} URLs allowed")
-                else:
-                    if invalid_urls:
-                        st.warning(f"{len(invalid_urls)} URLs were invalid and will be skipped.")
-                        with st.expander("Invalid URLs"):
-                            for item in invalid_urls:
-                                st.write(f"- {item['url']}: {item['error']}")
-
-                    results_list = []
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-
-                    for i, url in enumerate(valid_urls):
-                        status_text.text(f"Scanning {i+1}/{len(valid_urls)}: {url}")
-
-                        try:
-                            result = controller.scan_website(url)
-                            result["url"] = url
-                            results_list.append(result)
-
-                            if DB_AVAILABLE:
-                                try:
-                                    save_scan_result(url, result)
-                                    logger.info(f"Saved batch scan result for {url}")
-                                except DatabaseError as e:
-                                    logger.error(f"Failed to save batch result: {e}")
-                                except Exception as e:
-                                    logger.exception("Unexpected error saving batch result")
-                        except NetworkError as e:
-                            st.warning(f"Network error scanning {url}: {str(e)}")
-                            logger.warning(f"Network error in batch scan: {e}")
-                        except ScanError as e:
-                            st.warning(f"Scan error for {url}: {str(e)}")
-                            logger.error(f"Scan error in batch: {e}")
-                        except Exception as e:
-                            st.warning(f"Failed to scan {url}: {str(e)}")
-                            logger.error(f"Unexpected error in batch scan: {e}")
-
-                        progress_bar.progress((i + 1) / len(valid_urls))
-
-                    status_text.text("✅ Batch scan complete!")
-            except ValidationError as e:
-                st.error(f"Validation error: {str(e)}")
-                logger.error(f"Batch validation error: {e}")
-            except Exception as e:
-                st.error(f"Error processing batch: {str(e)}")
-                logger.error(f"Unexpected error in batch processing: {e}")
+        # Navigation buttons
+        pages = {
+            "dashboard": ("📊 Dashboard", "Overview & Stats"),
+            "quick_scan": ("📱 Quick Scan", "Single URL"),
+            "batch_scan": ("📦 Batch Scan", "Multiple URLs"),
+            "history": ("📜 History", "Past Scans"),
+            "settings": ("⚙️ Settings", "Configuration"),
+        }
+        
+        for page_id, (icon_title, description) in pages.items():
+            is_active = st.session_state.page == page_id
             
-            # Display results
-            if results_list:
-                st.subheader("Batch Scan Results")
-                
-                # Summary metrics
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    avg_score = sum(r["score"] for r in results_list) / len(results_list)
-                    st.metric("Average Score", f"{avg_score:.1f}/100")
-                with col2:
-                    compliant = sum(1 for r in results_list if r["status"] == "Compliant")
-                    st.metric("Compliant Sites", f"{compliant}/{len(results_list)}")
-                with col3:
-                    avg_trackers = sum(len(r.get("trackers", [])) for r in results_list) / len(results_list)
-                    st.metric("Avg Trackers", f"{avg_trackers:.1f}")
-                
-                # Results table
-                batch_data = []
-                for result in results_list:
-                    batch_data.append({
-                        "URL": result["url"],
-                        "Score": result["score"],
-                        "Grade": result["grade"],
-                        "Status": result["status"],
-                        "Cookie Consent": result["cookie_consent"],
-                        "Privacy Policy": result["privacy_policy"],
-                        "Trackers": len(result.get("trackers", []))
-                    })
-                
-                df = pd.DataFrame(batch_data)
-                st.dataframe(df, use_container_width=True)
-                
-                # Export
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    "Download Batch Results (CSV)",
-                    csv,
-                    f"batch_compliance_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    "text/csv"
-                )
+            if st.sidebar.button(
+                f"{icon_title}\n_{description}_",
+                key=f"nav_{page_id}",
+                use_container_width=True,
+                type="primary" if is_active else "secondary"
+            ):
+                st.session_state.page = page_id
+                st.rerun()
+        
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("### ℹ️ About")
+        st.sidebar.markdown(
+            """
+            **Version:** 1.0.0
+            
+            **Features:**
+            - Single & batch scanning
+            - Real-time analysis
+            - Result export (CSV/JSON)
+            - Scan caching (24h)
+            - Detailed recommendations
+            """
+        )
 
-# Footer
-st.markdown("---")
-st.markdown(
-    "**Note:** This tool provides automated compliance indicators. "
-    "Consult legal professionals for comprehensive compliance review."
-)
+
+def main():
+    """Main application router with error handling."""
+    try:
+        # Render sidebar
+        render_sidebar()
+        
+        # Render appropriate page
+        if st.session_state.page == "dashboard":
+            dashboard_page()
+        elif st.session_state.page == "quick_scan":
+            quick_scan_page()
+        elif st.session_state.page == "batch_scan":
+            batch_scan_page()
+        elif st.session_state.page == "history":
+            history_page()
+        elif st.session_state.page == "settings":
+            settings_page()
+        else:
+            st.error(f"Unknown page: {st.session_state.page}")
+            st.session_state.page = "dashboard"
+            st.rerun()
+    
+    except Exception as e:
+        logger.error(f"Error rendering page {st.session_state.page}: {e}", exc_info=True)
+        st.error(
+            f"""
+            ### ⚠️ Error Occurred
+            
+            **Page:** {st.session_state.page}
+            **Error:** {str(e)}
+            
+            Please try refreshing the page or return to the Dashboard.
+            """
+        )
+        if st.button("🔄 Return to Dashboard"):
+            st.session_state.page = "dashboard"
+            st.rerun()
+
+
+if __name__ == "__main__":
+    main()

@@ -188,3 +188,8 @@ def validate_export_data(data: Dict[str, Any]) -> tuple[bool, str]:
             return False, f"Missing required field: {field}"
     
     return True, ""
+
+
+# Aliases for convenience
+export_batch_results_csv = export_batch_results_to_csv
+export_json = export_scan_to_json
