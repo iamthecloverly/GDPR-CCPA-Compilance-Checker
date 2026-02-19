@@ -1,28 +1,4 @@
-"""
-Compliance Controller Module
-
-This module orchestrates the compliance scanning workflow. It acts as a controller
-layer between the UI and lower-level services, handling:
-
-- Compliance scoring based on scan results
-- Letter grade assignment
-- Compliance status determination
-- Batch scanning operations
-
-Classes:
-    ComplianceController: Main orchestrator for compliance scans
-
-Architecture:
-    The controller follows the MVC pattern and coordinates between:
-    - ComplianceModel: Web scraping and analysis
-    - OpenAIService: AI-powered policy analysis
-    - Scoring Engine: Weighted score calculation
-
-Example:
-    >>> controller = ComplianceController()
-    >>> results = controller.scan_website('https://example.com')
-    >>> print(f"Score: {results['score']}, Grade: {results['grade']}")
-"""
+"""Compliance controller orchestrating scanning workflow."""
 
 from typing import Dict, List, Any
 import logging
@@ -38,19 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ComplianceController:
-    """
-    Controller for handling compliance scanning operations.
-    
-    Orchestrates the compliance scanning workflow including:
-    - Web scraping and analysis
-    - Score calculation
-    - Grade assignment
-    - Batch scanning
-    
-    Attributes:
-        model: ComplianceModel instance for web scraping
-        openai_service: OpenAIService instance for AI analysis
-    """
+    """Controller for handling compliance scanning operations."""
     
     def __init__(self):
         """Initialize the controller with model and AI service."""

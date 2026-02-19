@@ -18,17 +18,9 @@ logger = get_logger(__name__)
 
 def render_history_page():
     """Render the scan history page."""
-    # Compact page header
-    st.markdown("""
-        <h1 style='margin-bottom: 8px; font-size: 32px; font-weight: 700;'>
-            Scan History
-        </h1>
-        <p style='color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;'>
-            Browse, filter, and compare your compliance scanning history
-        </p>
-    """, unsafe_allow_html=True)
+    st.markdown("# Scan History")
+    st.markdown("Browse, filter, and compare your compliance scanning history")
     
-    # Tabs for different views
     tab1, tab2, tab3, tab4 = st.tabs(["All Scans", "Compare", "Statistics", "Export"])
     
     with tab1:

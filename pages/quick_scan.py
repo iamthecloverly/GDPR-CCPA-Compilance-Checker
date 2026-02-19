@@ -24,66 +24,41 @@ scan_cache = ScanCache(ttl_hours=24)
 
 def render_quick_scan_page():
     """Render the quick scan page."""
-    # Compact page header
-    st.markdown("""
-        <h1 style='margin-bottom: 8px; font-size: 32px; font-weight: 700;'>
-            Quick Scan
-        </h1>
-        <p style='color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;'>
-            Analyze a single website for GDPR and CCPA compliance
-        </p>
-    """, unsafe_allow_html=True)
+    st.markdown("# Quick Scan")
+    st.markdown("Analyze a single website for GDPR and CCPA compliance")
     
-    # Get URL from form
     url, submitted = render_scan_form()
     
     if submitted:
-        # Validate URL
         is_valid, prepared_url, error_msg = validate_and_prepare_url(url)
         
         if not is_valid:
             st.error(error_msg)
             return
         
-        # Check cache
         cached_result = scan_cache.get(prepared_url)
         
         if cached_result:
-            st.success("Using cached result (scan from today)")
+            st.success("Using cached result")
             render_scan_results(cached_result)
         else:
-            # Perform scan
             with st.spinner("🔍 Scanning website..."):
+                controller = ComplianceController()
+                result = controller.scan_website(prepared_url)
+                
+                result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                result["url"] = prepared_url
+                
+                scan_cache.set(prepared_url, result)
+                
                 try:
-                    controller = ComplianceController()
-                    result = controller.scan_website(prepared_url)
-                    
-                    # Add metadata
-                    result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    result["url"] = prepared_url
-                    
-                    # Cache the result
-                    scan_cache.set(prepared_url, result)
-                    
-                    # Store in database if available
-                    try:
-                        from database.operations import save_scan_result
-                        ai_analysis = result.get("ai_analysis")
-                        save_scan_result(prepared_url, result, ai_analysis)
-                    except Exception as db_error:
-                        logger.warning(f"Could not save to database: {db_error}")
-                    
-                    st.success("Scan completed successfully!")
-                    render_scan_results(result)
+                    from database.operations import save_scan_result
+                    save_scan_result(prepared_url, result, result.get("ai_analysis"))
+                except Exception as db_error:
+                    logger.warning(f"Database save failed: {db_error}")
                 
-                except (ScanError, NetworkError) as e:
-                    logger.error(f"Scan error: {e}")
-                    st.error(f"Scanning failed: {str(e)}")
-                    st.info("This might be a temporary connection issue. Please try again.")
-                
-                except Exception as e:
-                    logger.error(f"Unexpected error during scan: {e}\n{traceback.format_exc()}")
-                    st.error(f"An unexpected error occurred: {str(e)}")
+                st.success("Scan completed!")
+                render_scan_results(result)
 
 
 def render_scan_results(result: dict):

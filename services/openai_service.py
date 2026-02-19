@@ -1,28 +1,4 @@
-"""
-OpenAI Service Module
-
-This module provides AI-powered privacy policy analysis using OpenAI's GPT models.
-It integrates with the compliance scanning pipeline to offer intelligent insights
-about GDPR/CCPA compliance.
-
-Classes:
-    OpenAIService: Main service for AI-powered analysis
-
-Features:
-    - Privacy policy fetching from websites
-    - GDPR/CCPA compliance analysis
-    - Remediation advice generation
-    - Robust error handling with retries
-
-Configuration:
-    Requires OPENAI_API_KEY environment variable to be set for AI features.
-    Without this, the service gracefully degrades to manual analysis only.
-
-Example:
-    >>> service = OpenAIService()
-    >>> analysis = service.analyze_privacy_policy(url, scan_results)
-    >>> print(analysis)
-"""
+"""AI-powered privacy policy analysis using OpenAI GPT models."""
 
 import os
 from typing import Dict, Any, Optional
@@ -42,20 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAIService:
-    """
-    Service for OpenAI-powered privacy policy analysis.
-
-    Provides AI-powered analysis of privacy policies including:
-    - GDPR/CCPA compliance assessment
-    - Data collection practices
-    - User rights documentation
-    - Remediation recommendations
-
-    Attributes:
-        api_key: OpenAI API key from environment
-        client: OpenAI client instance
-        session: HTTP session for fetching policy content
-    """
+    """Service for OpenAI-powered privacy policy analysis."""
 
     def __init__(self):
         """Initialize the OpenAI service with API key and HTTP session."""
@@ -63,19 +26,8 @@ class OpenAIService:
         self.client = OpenAI(api_key=self.api_key) if self.api_key else None
         self.session = create_session()
 
-    def analyze_privacy_policy(
-        self, url: str, scan_results: Dict[str, Any]
-    ) -> Optional[str]:
-        """
-        Analyze privacy policy using OpenAI.
-
-        Args:
-            url: The website URL
-            scan_results: Dictionary containing scan results
-
-        Returns:
-            AI-generated analysis string or None if unavailable
-        """
+    def analyze_privacy_policy(self, url: str, scan_results: Dict[str, Any]) -> Optional[str]:
+        """Analyze privacy policy using OpenAI."""
         if not self.client:
             logger.warning("OpenAI API key not configured - skipping AI analysis")
             return None
@@ -123,15 +75,7 @@ class OpenAIService:
             raise AIServiceError(f"AI Analysis Error: {str(e)}") from e
 
     def _fetch_privacy_policy(self, base_url: str) -> Optional[str]:
-        """
-        Fetch privacy policy content from the website.
-
-        Args:
-            base_url: Base URL of the website
-
-        Returns:
-            Privacy policy text or None if not found
-        """
+        """Fetch privacy policy content from website."""
         try:
             # Common privacy policy paths
             policy_paths = [
@@ -262,20 +206,8 @@ class OpenAIService:
             logger.warning(f"Failed to fetch privacy policy from {base_url}: {e}")
             return None
 
-    def _create_analysis_prompt(
-        self, url: str, policy_text: str, scan_results: Dict[str, Any]
-    ) -> str:
-        """
-        Create the analysis prompt for OpenAI.
-
-        Args:
-            url: Website URL
-            policy_text: Privacy policy content
-            scan_results: Scan results dictionary
-
-        Returns:
-            Formatted prompt for OpenAI API
-        """
+    def _create_analysis_prompt(self, url: str, policy_text: str, scan_results: Dict[str, Any]) -> str:
+        """Create analysis prompt for OpenAI."""
         prompt = f"""Analyze the following privacy policy for GDPR and CCPA compliance.
 
 **Website:** {url}
@@ -302,15 +234,7 @@ Keep the analysis concise and actionable."""
         return prompt
 
     def get_remediation_advice(self, scan_results: Dict[str, Any]) -> Optional[str]:
-        """
-        Get AI-powered remediation advice based on scan results.
-
-        Args:
-            scan_results: Dictionary containing scan results
-
-        Returns:
-            AI-generated remediation advice or None if unavailable
-        """
+        """Get AI-powered remediation advice."""
         if not self.client:
             logger.warning(
                 "OpenAI API key not configured - skipping remediation advice"

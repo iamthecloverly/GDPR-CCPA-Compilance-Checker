@@ -1,28 +1,4 @@
-"""
-Database Operations Module
-
-This module provides CRUD (Create, Read, Update, Delete) operations for managing
-compliance scan records in the database. It handles session management and data
-serialization for safe detachment from SQLAlchemy sessions.
-
-Functions:
-    save_scan_result: Store a compliance scan result
-    get_scan_history: Retrieve historical scans for a URL
-    get_score_trend: Get compliance score trends over time
-    get_all_scanned_urls: Retrieve all unique scanned URLs
-    get_latest_scan: Get the most recent scan for a URL
-
-Features:
-    - Automatic session management with context managers
-    - Proper error handling and logging
-    - Data detachment to prevent lazy-loading issues
-    - Transaction management (commit/rollback)
-
-Example:
-    >>> scan_id = save_scan_result(url, results, ai_analysis)
-    >>> history = get_scan_history(url, limit=10)
-    >>> trend = get_score_trend(url)
-"""
+"""Database CRUD operations for compliance scan records."""
 
 from typing import Dict, List, Any, Optional, Tuple
 import logging
@@ -37,25 +13,8 @@ from exceptions import DatabaseError
 logger = logging.getLogger(__name__)
 
 
-def save_scan_result(
-    url: str,
-    results: Dict[str, Any],
-    ai_analysis: Optional[str] = None
-) -> Optional[int]:
-    """
-    Save a compliance scan result to the database.
-    
-    Args:
-        url: Website URL
-        results: Scan results dictionary
-        ai_analysis: Optional AI-generated analysis
-        
-    Returns:
-        Scan ID if successful, None otherwise
-        
-    Raises:
-        DatabaseError: If database operation fails
-    """
+def save_scan_result(url: str, results: Dict[str, Any], ai_analysis: Optional[str] = None) -> Optional[int]:
+    """Save compliance scan result to database."""
     with get_db() as db:
         if db is None:
             logger.warning("Database not available - scan not saved")
@@ -86,16 +45,7 @@ def save_scan_result(
 
 
 def get_scan_history(url: str, limit: int = 10) -> List[Dict[str, Any]]:
-    """
-    Get scan history for a specific URL.
-    
-    Args:
-        url: Website URL
-        limit: Maximum number of results to return
-        
-    Returns:
-        List of scan result dictionaries
-    """
+    """Get scan history for a specific URL."""
     with get_db() as db:
         if db is None:
             logger.warning("Database not available - returning empty history")

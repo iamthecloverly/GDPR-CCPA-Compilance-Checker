@@ -23,17 +23,9 @@ scan_cache = ScanCache(ttl_hours=24)
 
 def render_batch_scan_page():
     """Render the batch scan page."""
-    # Compact page header
-    st.markdown("""
-        <h1 style='margin-bottom: 8px; font-size: 32px; font-weight: 700;'>
-            Batch Scan
-        </h1>
-        <p style='color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;'>
-            Upload a CSV and scan multiple websites at once
-        </p>
-    """, unsafe_allow_html=True)
+    st.markdown("# Batch Scan")
+    st.markdown("Upload a CSV and scan multiple websites at once")
     
-    # Get URLs from form
     csv_content, submitted = render_batch_upload_form()
     
     if submitted:

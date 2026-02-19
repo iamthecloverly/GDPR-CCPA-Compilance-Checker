@@ -13,17 +13,10 @@ logger = get_logger(__name__)
 def render_dashboard_page():
     """Render the dashboard landing page."""
     
-    # Compact header - no extra spacing
-    st.markdown("""
-        <h1 style='margin-bottom: 8px; font-size: 32px; font-weight: 700;'>
-            Dashboard
-        </h1>
-        <p style='color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;'>
-            Monitor compliance metrics and manage scans
-        </p>
-    """, unsafe_allow_html=True)
+    st.markdown("# Dashboard")
+    st.markdown("Monitor compliance metrics and manage scans")
     
-    # Statistics section with error handling
+    # Statistics section
     try:
         stats = get_scan_statistics()
         if stats:
@@ -110,8 +103,7 @@ def render_dashboard_page():
                 # Create grouped bar chart matching the image style
                 chart = alt.Chart(chart_data).mark_bar(
                     cornerRadiusTopLeft=3,
-                    cornerRadiusTopRight=3,
-                    width=40
+                    cornerRadiusTopRight=3
                 ).encode(
                     x=alt.X('Category:N', axis=alt.Axis(
                         labelColor='#8b949e',
@@ -138,7 +130,7 @@ def render_dashboard_page():
                     xOffset='Status:N',
                     tooltip=['Category', 'Status', 'Count']
                 ).properties(
-                    height=250
+                    height=300
                 ).configure_view(
                     stroke='transparent',
                     fill='transparent'
@@ -147,7 +139,7 @@ def render_dashboard_page():
                     domainColor='#21262d'
                 )
                 
-                st.altair_chart(chart, width='stretch')
+                st.altair_chart(chart, use_container_width=True)
         else:
             st.info("💡 No scans yet. Start by running a quick scan to see your first compliance report.")
     except Exception as e:
