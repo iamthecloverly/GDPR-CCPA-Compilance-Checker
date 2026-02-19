@@ -7,14 +7,12 @@ real-time scanning, and comprehensive reporting capabilities.
 
 import streamlit as st
 import os
-import logging
 import sys
 
 # Setup base path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import configuration and logger
-from config import Config
 from logger_config import setup_logging, get_logger
 
 # Import page modules
@@ -32,7 +30,7 @@ st.set_page_config(
     page_title="Privacy Compliance Scanner",
     page_icon="🔒",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # ============================================================================
@@ -93,9 +91,34 @@ st.markdown(
         display: none !important;
     }
     
-    /* ===== Sidebar (Hidden) ===== */
+    /* ===== Sidebar Styles ===== */
     [data-testid="stSidebar"] {
-        display: none !important;
+        background: var(--bg-surface) !important;
+        border-right: 1px solid var(--border-color) !important;
+    }
+    
+    [data-testid="stSidebar"] > div:first-child {
+        background: var(--bg-surface) !important;
+    }
+    
+    /* Sidebar Navigation Items */
+    .sidebar-nav-item {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+    
+    .sidebar-nav-item:hover {
+        background: rgba(0, 217, 255, 0.1);
+        border-color: var(--primary);
+    }
+    
+    .sidebar-nav-item.active {
+        background: linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(0, 217, 255, 0.05));
+        border-color: var(--primary);
     }
     
     /* Hide sidebar toggle button */
@@ -116,7 +139,6 @@ st.markdown(
         padding-left: 3rem !important;
         padding-right: 3rem !important;
         max-width: 100% !important;
-    }
     }
     
     /* ===== Typography ===== */
@@ -283,6 +305,115 @@ st.markdown(
     }
     
     /* ===== Cards & Containers ===== */
+    
+    /* Custom Glowing Metric Cards */
+    .metric-card {
+        background: linear-gradient(135deg, rgba(22, 27, 34, 0.95), rgba(15, 19, 26, 0.95));
+        border: 1px solid rgba(48, 54, 61, 0.8);
+        border-radius: 12px;
+        padding: 24px;
+        height: 140px;
+        position: relative;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+    
+    /* Colored top borders for metric cards */
+    .metric-card.blue {
+        border-top: 4px solid #58a6ff;
+        box-shadow: 0 4px 20px rgba(88, 166, 255, 0.15), 0 0 40px rgba(88, 166, 255, 0.1);
+    }
+    
+    .metric-card.orange {
+        border-top: 4px solid #d29922;
+        box-shadow: 0 4px 20px rgba(210, 153, 34, 0.15), 0 0 40px rgba(210, 153, 34, 0.1);
+    }
+    
+    .metric-card.green {
+        border-top: 4px solid #3fb950;
+        box-shadow: 0 4px 20px rgba(63, 185, 80, 0.15), 0 0 40px rgba(63, 185, 80, 0.1);
+    }
+    
+    .metric-card.red {
+        border-top: 4px solid #f85149;
+        box-shadow: 0 4px 20px rgba(248, 81, 73, 0.15), 0 0 40px rgba(248, 81, 73, 0.1);
+    }
+    
+    .metric-label {
+        font-size: 13px;
+        color: #8b949e;
+        font-weight: 500;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .metric-value {
+        font-size: 42px;
+        font-weight: 700;
+        color: #f0f6fc;
+        line-height: 1;
+        margin-bottom: 8px;
+    }
+    
+    .metric-delta {
+        font-size: 13px;
+        font-weight: 500;
+        margin-top: 8px;
+    }
+    
+    .metric-delta.blue { color: #58a6ff; }
+    .metric-delta.orange { color: #d29922; }
+    .metric-delta.green { color: #3fb950; }
+    .metric-delta.red { color: #f85149; }
+    
+    /* Action Card Styling */
+    .action-card {
+        background: linear-gradient(135deg, rgba(22, 27, 34, 0.95), rgba(15, 19, 26, 0.95));
+        border: 1px solid rgba(48, 54, 61, 0.8);
+        padding: 24px;
+        border-radius: 12px;
+        text-align: center;
+        transition: all 0.3s ease;
+        margin-bottom: 12px;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-5px);
+        border-color: #58a6ff;
+        box-shadow: 0 8px 30px rgba(88, 166, 255, 0.3);
+    }
+    
+    .action-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+    }
+    
+    .action-title {
+        color: #f0f6fc;
+        font-weight: 600;
+        font-size: 18px;
+        margin: 0 0 8px 0;
+    }
+    
+    .action-desc {
+        color: #8b949e;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 0;
+    }
+    
+    /* Default Streamlit metrics (fallback) */
     [data-testid="metric-container"] {
         background: linear-gradient(135deg, rgba(37, 45, 74, 0.5), rgba(26, 31, 58, 0.5)) !important;
         border: 1px solid var(--border-color) !important;
@@ -466,61 +597,73 @@ if "page" not in st.session_state or st.session_state.page not in [
     st.session_state.page = "dashboard"
 
 
-def render_top_navigation():
-    """Render modern top navigation bar."""
-    # Navigation container
-    nav_col1, nav_col2 = st.columns([2, 8])
-    
-    with nav_col1:
+def render_sidebar_navigation():
+    """Render modern sidebar navigation."""
+    with st.sidebar:
+        # Logo and title
         st.markdown(
             """
-            <div style="padding: 16px 0;">
-                <h2 style="margin: 0; color: var(--primary); font-weight: 700; font-size: 24px;">
-                    Privacy Compliance Scanner
+            <div style="padding: 24px 0 16px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 24px;">
+                <h2 style="margin: 0; color: var(--primary); font-weight: 700; font-size: 22px;">
+                    🔒 Privacy Scanner
                 </h2>
-                <p style="margin: 0; color: var(--text-tertiary); font-size: 13px;">GDPR & CCPA Analysis</p>
+                <p style="margin: 4px 0 0 0; color: var(--text-tertiary); font-size: 12px;">GDPR & CCPA Compliance</p>
             </div>
             """,
             unsafe_allow_html=True
         )
-    
-    with nav_col2:
-        # Navigation tabs
-        nav_cols = st.columns(len(NAV_PAGES))
         
-        for idx, (page_id, title) in enumerate(NAV_PAGES):
-            with nav_cols[idx]:
-                is_active = st.session_state.page == page_id
-                
-                if is_active:
-                    st.markdown(
-                        f"""
-                        <div style="
-                            text-align: center; 
-                            padding: 16px 12px; 
-                            background: linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(0, 217, 255, 0.05));
-                            border-bottom: 3px solid var(--primary);
-                            border-radius: 8px 8px 0 0;
-                            cursor: pointer;
-                        ">
-                            <span style="color: var(--primary); font-weight: 600; font-size: 14px;">{title}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                else:
-                    if st.button(title, key=f"nav_{page_id}", use_container_width=True, type="secondary"):
-                        st.session_state.page = page_id
-                        st.rerun()
-    
-    st.markdown("<hr style='margin: 0 0 24px 0; border-color: var(--border-color);' />", unsafe_allow_html=True)
+        # Navigation menu
+        st.markdown("### Navigate")
+        
+        for page_id, title in NAV_PAGES:
+            is_active = st.session_state.page == page_id
+            
+            # Icon mapping
+            icons = {
+                "dashboard": "📊",
+                "quick_scan": "🔍",
+                "batch_scan": "📂",
+                "history": "📅"
+            }
+            
+            icon = icons.get(page_id, "🔹")
+            
+            if is_active:
+                st.markdown(
+                    f"""
+                    <div class="sidebar-nav-item active">
+                        <span style="font-size: 18px;">{icon}</span>
+                        <span style="margin-left: 12px; color: var(--primary); font-weight: 600;">{title}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                if st.button(f"{icon}  {title}", key=f"nav_{page_id}", width='stretch', type="secondary"):
+                    st.session_state.page = page_id
+                    st.rerun()
+        
+        # Divider
+        st.markdown("<hr style='margin: 24px 0; border-color: var(--border-color);' />", unsafe_allow_html=True)
+        
+        # Stats summary in sidebar
+        st.markdown("### Quick Stats")
+        try:
+            from database.operations import get_scan_statistics
+            stats = get_scan_statistics()
+            if stats:
+                st.metric("🔍 Total Scans", stats.get("total_scans", 0))
+                st.metric("🎯 Avg Score", f"{stats.get('avg_score', 0):.0f}/100")
+        except:
+            st.caption("💡 No scans yet")
 
 
 def main():
     """Main application router with error handling."""
     try:
-        # Render top navigation
-        render_top_navigation()
+        # Render sidebar navigation
+        render_sidebar_navigation()
         
         # Render appropriate page
         if st.session_state.page == "dashboard":
@@ -551,7 +694,7 @@ def main():
             """
         )
         
-        if st.button("🔄 Return to Dashboard", use_container_width=True):
+        if st.button("🔄 Return to Dashboard", width='stretch'):
             st.session_state.page = "dashboard"
             st.rerun()
 

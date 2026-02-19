@@ -63,7 +63,7 @@ def render_batch_progress(
                 available_cols = [c for c in display_cols if c in df_completed.columns]
                 st.dataframe(
                     df_completed[available_cols],
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True
                 )
             else:
@@ -123,7 +123,7 @@ def render_batch_summary(
         
         st.dataframe(
             df[available_cols],
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
     

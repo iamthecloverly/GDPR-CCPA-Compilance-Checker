@@ -4,15 +4,12 @@ import streamlit as st
 from datetime import datetime, timedelta
 import pandas as pd
 from components import (
-    render_header,
     render_comparison_view,
     render_history_export,
 )
 from database.operations import (
     get_all_scans,
     get_scan_by_url,
-    delete_scan,
-    get_scans_by_date_range,
 )
 from logger_config import get_logger
 
@@ -21,11 +18,15 @@ logger = get_logger(__name__)
 
 def render_history_page():
     """Render the scan history page."""
-    render_header()
-    
-    st.markdown("# Scan History")
-    st.markdown("Browse, filter, and compare your compliance scanning history")
-    st.divider()
+    # Compact page header
+    st.markdown("""
+        <h1 style='margin-bottom: 8px; font-size: 32px; font-weight: 700;'>
+            Scan History
+        </h1>
+        <p style='color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;'>
+            Browse, filter, and compare your compliance scanning history
+        </p>
+    """, unsafe_allow_html=True)
     
     # Tabs for different views
     tab1, tab2, tab3, tab4 = st.tabs(["All Scans", "Compare", "Statistics", "Export"])
@@ -131,7 +132,7 @@ def render_all_scans_view():
                 by="scan_date" if "scan_date" in df.columns else "score",
                 ascending=False
             ),
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
         
@@ -173,7 +174,7 @@ def render_comparison_view_tab():
             scan2_idx = st.selectbox("Second Scan", range(len(scan_options)), key="comp2")
         
         if scan1_idx != scan2_idx:
-            if st.button("Compare", type="primary", use_container_width=True):
+            if st.button("Compare", type="primary", width='stretch'):
                 render_comparison_view(scans[scan1_idx], scans[scan2_idx])
         else:
             st.warning("Please select two different scans.")

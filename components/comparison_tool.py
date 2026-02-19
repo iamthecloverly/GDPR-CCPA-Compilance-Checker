@@ -119,7 +119,7 @@ def render_findings_comparison(findings1: Dict[str, list], findings2: Dict[str, 
     
     st.dataframe(
         df,
-        use_container_width=True,
+        width='stretch',
         hide_index=True
     )
     

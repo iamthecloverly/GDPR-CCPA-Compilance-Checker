@@ -3,7 +3,6 @@
 import streamlit as st
 from datetime import datetime
 from components import (
-    render_header,
     render_scan_form,
     validate_and_prepare_url,
     render_quick_results,
@@ -25,11 +24,15 @@ scan_cache = ScanCache(ttl_hours=24)
 
 def render_quick_scan_page():
     """Render the quick scan page."""
-    render_header()
-    
-    st.markdown("# Quick Scan")
-    st.markdown("Analyze a single website for GDPR and CCPA compliance violations")
-    st.divider()
+    # Compact page header
+    st.markdown("""
+        <h1 style='margin-bottom: 8px; font-size: 32px; font-weight: 700;'>
+            Quick Scan
+        </h1>
+        <p style='color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;'>
+            Analyze a single website for GDPR and CCPA compliance
+        </p>
+    """, unsafe_allow_html=True)
     
     # Get URL from form
     url, submitted = render_scan_form()
@@ -65,7 +68,8 @@ def render_quick_scan_page():
                     # Store in database if available
                     try:
                         from database.operations import save_scan_result
-                        save_scan_result(result)
+                        ai_analysis = result.get("ai_analysis")
+                        save_scan_result(prepared_url, result, ai_analysis)
                     except Exception as db_error:
                         logger.warning(f"Could not save to database: {db_error}")
                     

@@ -2,7 +2,8 @@
 
 import streamlit as st
 from typing import Tuple
-from validators import validate_url, InvalidURLError, ValidationError
+from validators import validate_url
+from exceptions import InvalidURLError, ValidationError
 
 
 def render_scan_form() -> Tuple[str, bool]:
@@ -29,7 +30,7 @@ def render_scan_form() -> Tuple[str, bool]:
         with col2:
             submitted = st.form_submit_button(
                 "Scan",
-                use_container_width=True,
+                width='stretch',
                 type="primary"
             )
     

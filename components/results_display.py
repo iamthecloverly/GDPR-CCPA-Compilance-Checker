@@ -170,7 +170,7 @@ def render_detailed_findings_table(findings: List[Dict[str, Any]]):
     
     st.dataframe(
         df[["Category", "Issue", "Severity", "Recommendation"]],
-        use_container_width=True,
+        width='stretch',
         hide_index=True
     )
 

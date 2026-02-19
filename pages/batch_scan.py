@@ -2,12 +2,9 @@
 
 import streamlit as st
 from datetime import datetime
-from threading import Thread
 from components import (
-    render_header,
     render_batch_upload_form,
     validate_and_prepare_batch_urls,
-    render_batch_progress,
     render_batch_summary,
     render_batch_export_options,
 )
@@ -26,11 +23,15 @@ scan_cache = ScanCache(ttl_hours=24)
 
 def render_batch_scan_page():
     """Render the batch scan page."""
-    render_header()
-    
-    st.markdown("# Batch Scan")
-    st.markdown("Upload a CSV file and scan multiple websites at once")
-    st.divider()
+    # Compact page header
+    st.markdown("""
+        <h1 style='margin-bottom: 8px; font-size: 32px; font-weight: 700;'>
+            Batch Scan
+        </h1>
+        <p style='color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;'>
+            Upload a CSV and scan multiple websites at once
+        </p>
+    """, unsafe_allow_html=True)
     
     # Get URLs from form
     csv_content, submitted = render_batch_upload_form()
@@ -45,7 +46,7 @@ def render_batch_scan_page():
         
         st.info(f"Ready to scan {len(urls)} website(s)")
         
-        if st.button("Start Batch Scanning", type="primary", use_container_width=True):
+        if st.button("Start Batch Scanning", type="primary", width='stretch'):
             perform_batch_scan(urls)
 
 
@@ -109,7 +110,8 @@ def perform_batch_scan(urls: list):
                     # Save to database
                     try:
                         from database.operations import save_scan_result
-                        save_scan_result(result)
+                        ai_analysis = result.get("ai_analysis")
+                        save_scan_result(url, result, ai_analysis)
                     except Exception as db_error:
                         logger.warning(f"Could not save {url} to database: {db_error}")
                     

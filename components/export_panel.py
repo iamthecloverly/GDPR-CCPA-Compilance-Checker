@@ -20,7 +20,7 @@ def render_export_options(scan_result: Dict[str, Any]):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("📄 Download CSV", key="export_csv", use_container_width=True):
+        if st.button("📄 Download CSV", key="export_csv", width='stretch'):
             try:
                 csv_data = export_scan_to_csv(scan_result)
                 st.download_button(
@@ -35,7 +35,7 @@ def render_export_options(scan_result: Dict[str, Any]):
                 st.error(f"Error exporting CSV: {str(e)}")
     
     with col2:
-        if st.button("📋 Download JSON", key="export_json", use_container_width=True):
+        if st.button("📋 Download JSON", key="export_json", width='stretch'):
             try:
                 json_data = export_json(scan_result)
                 st.download_button(
@@ -50,7 +50,7 @@ def render_export_options(scan_result: Dict[str, Any]):
                 st.error(f"Error exporting JSON: {str(e)}")
     
     with col3:
-        if st.button("🔗 Copy as Text", key="export_text", use_container_width=True):
+        if st.button("🔗 Copy as Text", key="export_text", width='stretch'):
             try:
                 text_report = format_text_report(scan_result)
                 st.code(text_report, language="text")
@@ -71,7 +71,7 @@ def render_batch_export_options(scan_results: List[Dict[str, Any]]):
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("📊 Download CSV", key="export_batch_csv", use_container_width=True):
+        if st.button("📊 Download CSV", key="export_batch_csv", width='stretch'):
             try:
                 csv_data = export_batch_results_csv(scan_results)
                 st.download_button(
@@ -86,7 +86,7 @@ def render_batch_export_options(scan_results: List[Dict[str, Any]]):
                 st.error(f"Error exporting batch CSV: {str(e)}")
     
     with col2:
-        if st.button("📋 Download JSON", key="export_batch_json", use_container_width=True):
+        if st.button("📋 Download JSON", key="export_batch_json", width='stretch'):
             try:
                 json_data = export_json({"batch_results": scan_results})
                 st.download_button(
