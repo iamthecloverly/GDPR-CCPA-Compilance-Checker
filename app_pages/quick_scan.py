@@ -9,12 +9,13 @@ from components import (
     render_findings,
     render_recommendations,
     render_export_options,
+    render_ai_analysis,
 )
 from controllers.compliance_controller import ComplianceController
 from libs.cache import ScanCache
 from exceptions import ScanError, NetworkError
 from logger_config import get_logger
-import traceback
+from config import Config
 
 logger = get_logger(__name__)
 
@@ -26,74 +27,97 @@ def render_quick_scan_page():
     """Render the quick scan page."""
     st.markdown("# Quick Scan")
     st.markdown("Analyze a single website for GDPR and CCPA compliance")
-    
+
+    # AI analysis toggle
+    ai_enabled = False
+    if Config.OPENAI_API_KEY:
+        ai_enabled = st.toggle(
+            "Enable AI Analysis",
+            value=False,
+            help="After scanning, fetches the site's privacy policy and analyzes it with GPT",
+        )
+    else:
+        st.caption("AI analysis unavailable — set OPENAI_API_KEY to enable")
+
     url, submitted = render_scan_form()
-    
+
     if submitted:
         is_valid, prepared_url, error_msg = validate_and_prepare_url(url)
-        
+
         if not is_valid:
             st.error(error_msg)
             return
-        
+
         cached_result = scan_cache.get(prepared_url)
-        
+
         if cached_result:
             st.success("Using cached result")
             render_scan_results(cached_result)
         else:
-            with st.spinner("🔍 Scanning website..."):
+            with st.spinner("Scanning website..."):
                 controller = ComplianceController()
                 result = controller.scan_website(prepared_url)
-                
+
                 result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 result["url"] = prepared_url
-                
-                scan_cache.set(prepared_url, result)
-                
-                try:
-                    from database.operations import save_scan_result
-                    save_scan_result(prepared_url, result, result.get("ai_analysis"))
-                except Exception as db_error:
-                    logger.warning(f"Database save failed: {db_error}")
-                
-                st.success("Scan completed!")
-                render_scan_results(result)
+
+            if ai_enabled:
+                with st.spinner("Running AI analysis on privacy policy..."):
+                    try:
+                        from services.openai_service import OpenAIService
+                        svc = OpenAIService()
+                        result["ai_analysis"] = svc.analyze_privacy_policy(prepared_url, result)
+                    except Exception as e:
+                        logger.warning(f"AI analysis failed: {e}")
+                        result["ai_analysis"] = None
+
+            scan_cache.set(prepared_url, result)
+
+            try:
+                from database.operations import save_scan_result
+                save_scan_result(prepared_url, result, result.get("ai_analysis"))
+            except Exception as db_error:
+                logger.warning(f"Database save failed: {db_error}")
+
+            st.success("Scan completed!")
+            render_scan_results(result)
 
 
 def render_scan_results(result: dict):
     """Render detailed scan results."""
-    st.markdown("---")
     st.markdown("## Results")
-    
-    # Quick results view
+
+    # Score, chart, and summary
     render_quick_results(result)
-    
-    st.markdown("---")
-    
+
+    st.divider()
+
     # Detailed findings
     findings = result.get("findings", {})
     if findings:
         render_findings(findings)
-    
-    st.markdown("---")
-    
+
+    st.divider()
+
     # Recommendations
     recommendations = result.get("recommendations", [])
     if recommendations:
         render_recommendations(recommendations)
-    
-    st.markdown("---")
-    
+
     # Export options
     render_export_options(result)
+
+    # AI analysis (shown if available)
+    if result.get("ai_analysis"):
+        st.divider()
+        render_ai_analysis(result["ai_analysis"])
 
 
 def main():
     """Main function for quick scan page."""
     if "page" not in st.session_state:
         st.session_state.page = "quick_scan"
-    
+
     render_quick_scan_page()
 
 

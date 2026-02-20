@@ -3,6 +3,7 @@
 import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
+import altair as alt
 
 # Score thresholds and colors
 SCORE_THRESHOLDS = {
@@ -89,7 +90,24 @@ def render_quick_results(results: Dict[str, Any]):
                 })
             
             df = pd.DataFrame(breakdown_data)
-            st.bar_chart(df.set_index("Category")["Points"], height=250)
+            chart = alt.Chart(df).mark_bar(
+                cornerRadiusTopLeft=4, cornerRadiusTopRight=4
+            ).encode(
+                x=alt.X('Category:N', sort=None, axis=alt.Axis(
+                    labelColor='#b4bcd4', labelAngle=0, title=None
+                )),
+                y=alt.Y('Points:Q', scale=alt.Scale(domain=[0, 30]), axis=alt.Axis(
+                    labelColor='#b4bcd4', title=None, gridColor='#2a3250'
+                )),
+                color=alt.Color('Category:N', scale=alt.Scale(
+                    domain=['Cookie Consent', 'Privacy Policy', 'Contact Info', 'Trackers (0=best)'],
+                    range=['#f59e0b', '#3b82f6', '#10b981', '#ef4444']
+                ), legend=None),
+                tooltip=['Category', 'Points']
+            ).properties(height=200).configure_view(
+                stroke='transparent', fill='transparent'
+            ).configure_axis(domainColor='#2a3250')
+            st.altair_chart(chart, use_container_width=True)
         else:
             st.info("No breakdown data available")
     
@@ -195,3 +213,13 @@ def render_recommendations(recommendations: List[str]):
                 st.markdown(f"**{i}.**")
             with col2:
                 st.markdown(rec)
+
+
+def render_ai_analysis(analysis_text: str):
+    """Render AI-powered privacy policy analysis output."""
+    if not analysis_text:
+        st.info("No AI analysis available.")
+        return
+    with st.container(border=True):
+        st.markdown("### AI Analysis")
+        st.markdown(analysis_text)
