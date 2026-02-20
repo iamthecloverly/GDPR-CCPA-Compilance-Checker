@@ -50,14 +50,19 @@ def render_batch_upload_form() -> Tuple[str, bool]:
     # Tab interface for different input methods
     tab1, tab2 = st.tabs(["Paste URLs", "Upload CSV"])
     
+    csv_content_tab1 = ""
+    csv_content_tab2 = ""
+    submitted_tab1 = False
+    submitted_tab2 = False
+    
     with tab1:
-        csv_content = st.text_area(
+        csv_content_tab1 = st.text_area(
             "URLs (comma or newline separated)",
             placeholder="example1.com\nexample2.com\nexample3.com",
             height=150,
             label_visibility="collapsed"
         )
-        submitted = st.button("Start Batch Scan", key="batch_paste")
+        submitted_tab1 = st.button("Start Batch Scan", key="batch_paste")
     
     with tab2:
         uploaded_file = st.file_uploader(
@@ -67,13 +72,17 @@ def render_batch_upload_form() -> Tuple[str, bool]:
         )
         
         if uploaded_file:
-            csv_content = uploaded_file.getvalue().decode('utf-8')
-        else:
-            csv_content = ""
+            csv_content_tab2 = uploaded_file.getvalue().decode('utf-8')
         
-        submitted = st.button("Start Batch Scan", key="batch_upload")
+        submitted_tab2 = st.button("Start Batch Scan", key="batch_upload")
     
-    return csv_content, submitted
+    # Return content from whichever tab was submitted
+    if submitted_tab1:
+        return csv_content_tab1, True
+    elif submitted_tab2:
+        return csv_content_tab2, True
+    else:
+        return "", False
 
 
 def validate_and_prepare_url(raw_url: str) -> Tuple[bool, str, str]:

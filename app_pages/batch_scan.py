@@ -38,10 +38,9 @@ def render_batch_scan_page():
             st.error(error_msg)
             return
         
-        st.info(f"Ready to scan {len(urls)} website(s)")
-        
-        if st.button("Start Batch Scanning", type="primary", use_container_width=False):
-            perform_batch_scan(urls)
+        # Validate and immediately start scanning
+        st.info(f"Starting scan of {len(urls)} website(s)...")
+        perform_batch_scan(urls)
 
 
 def perform_batch_scan(urls: list):
@@ -107,12 +106,21 @@ def perform_batch_scan(urls: list):
                         result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         result["url"] = url
 
+                        # Generate AI analysis for this site
+                        try:
+                            from services.openai_service import OpenAIService
+                            openai_service = OpenAIService()
+                            ai_analysis = openai_service.analyze_privacy_policy(url, result)
+                            result["ai_analysis"] = ai_analysis
+                        except Exception as ai_error:
+                            logger.warning(f"Could not generate AI analysis for {url}: {ai_error}")
+                            result["ai_analysis"] = None
+
                         scan_cache.set(url, result)
 
                         try:
                             from database.operations import save_scan_result
-                            ai_analysis = result.get("ai_analysis")
-                            save_scan_result(url, result, ai_analysis)
+                            save_scan_result(url, result, result.get("ai_analysis"))
                         except Exception as db_error:
                             logger.warning(f"Could not save {url} to database: {db_error}")
 
