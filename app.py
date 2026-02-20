@@ -160,14 +160,13 @@ st.markdown("""
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        padding: 4rem 3rem;
+        padding: 5rem 3.5rem;
         background: linear-gradient(135deg, #080c20 0%, #0b1030 55%, #0f1520 100%);
         border-radius: 20px;
         border: 1px solid #1e2647;
         box-shadow: 0 0 60px rgba(0,217,255,0.06), 0 20px 60px rgba(0,0,0,0.5);
-        min-height: calc(100vh - 80px);
-        margin-bottom: 0;
-        gap: 2.5rem;
+        margin-bottom: 3rem;
+        gap: 3rem;
         position: relative;
         overflow: hidden;
         animation: fadeInUp 0.65s ease both;
@@ -196,7 +195,7 @@ st.markdown("""
         background: radial-gradient(circle, rgba(88,166,255,0.07) 0%, transparent 65%);
         pointer-events: none;
     }
-    .hero-content { flex: 1; max-width: 580px; position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; }
+    .hero-content { flex: 1; min-width: 320px; max-width: 560px; position: relative; z-index: 1; }
     .hero-badge {
         display: inline-flex;
         align-items: center;
@@ -251,47 +250,127 @@ st.markdown("""
         transition: border-color 0.2s, color 0.2s;
     }
     .hero-pill:hover { border-color: rgba(0,217,255,0.3); color: #c9d1d9; }
-    /* Floating SVG */
-    .hero-visual { flex-shrink: 0; position: relative; z-index: 1; }
-    .hero-visual svg { animation: float 5.5s ease-in-out infinite; display: block; }
 
-    /* ── Trust strip ────────────────────────────────────────────── */
-    .trust-strip {
-        display: flex; align-items: center; gap: 1.5rem;
-        flex-wrap: wrap; margin-top: 0.25rem;
+    /* ── Hero CTA buttons ──────────────────────────────────────── */
+    .hero-cta-row {
+        display: flex; gap: 0.85rem; flex-wrap: wrap; margin: 2rem 0 2.5rem;
     }
-    .trust-item {
-        display: flex; align-items: center; gap: 0.35rem;
-        font-size: 0.8rem; color: #6b7a96;
+    .hero-btn-primary {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        background: linear-gradient(135deg, #00b4d8, #0077b6);
+        color: #fff; font-weight: 700; font-size: 0.92rem;
+        padding: 0.75rem 1.6rem; border-radius: 10px;
+        text-decoration: none;
+        box-shadow: 0 4px 20px rgba(0,180,216,0.35);
+        transition: transform 0.15s, box-shadow 0.15s;
     }
-    .trust-value { color: #c9d1d9; font-weight: 700; }
-    .trust-sep {
-        width: 1px; height: 14px;
-        background: #2a3250; flex-shrink: 0;
+    .hero-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0,180,216,0.5);
+        color: #fff; text-decoration: none;
+    }
+    .hero-btn-secondary {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #c9d1d9; font-weight: 600; font-size: 0.92rem;
+        padding: 0.75rem 1.6rem; border-radius: 10px;
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .hero-btn-secondary:hover {
+        background: rgba(0,217,255,0.08);
+        border-color: rgba(0,217,255,0.3);
+        color: #f0f6fc; text-decoration: none;
     }
 
-    /* ── Hero scroll hint ───────────────────────────────────────── */
-    @keyframes bounce {
-        0%, 100% { transform: translateX(-50%) translateY(0); }
-        50%       { transform: translateX(-50%) translateY(6px); }
+    /* ── Hero stats row ─────────────────────────────────────────── */
+    .hero-stats {
+        display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 0;
     }
-    .hero-scroll-hint {
-        position: absolute;
-        bottom: 1.5rem;
-        left: 50%;
-        transform: translateX(-50%);
-        opacity: 0.3;
-        animation: bounce 1.8s ease-in-out infinite;
-        pointer-events: none;
-        z-index: 2;
+    .hero-stat-item { display: flex; flex-direction: column; }
+    .hero-stat-num {
+        font-size: 1.65rem; font-weight: 800; color: #f5f7fa; line-height: 1;
     }
-    .hero-scroll-hint span {
-        display: block;
-        width: 18px;
-        height: 18px;
-        border-right: 2px solid #00d9ff;
-        border-bottom: 2px solid #00d9ff;
-        transform: rotate(45deg);
+    .hero-stat-label {
+        font-size: 0.72rem; color: #5a6a8a; text-transform: uppercase;
+        letter-spacing: 0.07em; margin-top: 0.2rem; font-weight: 600;
+    }
+
+    /* ── Product mockup card ────────────────────────────────────── */
+    .hero-mockup {
+        flex-shrink: 0; width: 380px; position: relative; z-index: 1;
+    }
+    .mockup-window {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px #21262d;
+    }
+    .mockup-titlebar {
+        background: #161b22;
+        padding: 0.65rem 1rem;
+        display: flex; align-items: center; gap: 0.5rem;
+        border-bottom: 1px solid #21262d;
+    }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .mockup-dot.red    { background: #ff5f57; }
+    .mockup-dot.yellow { background: #febc2e; }
+    .mockup-dot.green  { background: #28c840; }
+    .mockup-url {
+        flex: 1; background: #0d1117; border: 1px solid #30363d;
+        border-radius: 6px; padding: 0.22rem 0.65rem;
+        font-size: 0.72rem; color: #8b949e; margin-left: 0.5rem;
+    }
+    .mockup-body { padding: 1.25rem 1.25rem 1.5rem; }
+    .mockup-site-row {
+        display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;
+    }
+    .mockup-favicon {
+        width: 20px; height: 20px; border-radius: 4px;
+        background: linear-gradient(135deg, #58a6ff, #1d60b5);
+        flex-shrink: 0;
+    }
+    .mockup-site-name { font-size: 0.78rem; color: #8b949e; }
+    .mockup-score-row {
+        display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
+        padding: 0.85rem 1rem; background: #0a0f1e;
+        border: 1px solid #1e2647; border-radius: 10px;
+    }
+    .mockup-grade {
+        width: 52px; height: 52px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; font-weight: 900; flex-shrink: 0;
+        background: rgba(63,185,80,0.12); border: 2px solid #3fb950; color: #3fb950;
+    }
+    .mockup-score-num { font-size: 1.6rem; font-weight: 800; color: #f0f6fc; line-height: 1; }
+    .mockup-score-sub { font-size: 0.7rem; color: #8b949e; margin-top: 0.15rem; }
+    .mockup-status-badge {
+        font-size: 0.65rem; font-weight: 700; padding: 0.18rem 0.55rem;
+        border-radius: 20px; background: rgba(63,185,80,0.12);
+        border: 1px solid rgba(63,185,80,0.3); color: #3fb950;
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        margin-top: 0.25rem;
+    }
+    .mockup-findings { display: flex; flex-direction: column; gap: 0.45rem; }
+    .mockup-finding {
+        display: flex; align-items: center; gap: 0.6rem;
+        font-size: 0.73rem; padding: 0.4rem 0.75rem;
+        border-radius: 7px; color: #c9d1d9;
+    }
+    .mockup-finding.pass { background: rgba(63,185,80,0.06); border: 1px solid rgba(63,185,80,0.15); }
+    .mockup-finding.warn { background: rgba(240,136,62,0.06); border: 1px solid rgba(240,136,62,0.15); color: #f0883e; }
+    .mockup-finding.fail { background: rgba(248,81,73,0.06); border: 1px solid rgba(248,81,73,0.15); color: #f85149; }
+    .mockup-finding-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .mockup-finding.pass .mockup-finding-dot { background: #3fb950; }
+    .mockup-finding.warn .mockup-finding-dot { background: #f0883e; }
+    .mockup-finding.fail .mockup-finding-dot { background: #f85149; }
+    .mockup-glow {
+        position: absolute; top: -60px; right: -60px;
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(0,217,255,0.06) 0%, transparent 70%);
+        pointer-events: none; border-radius: 50%;
     }
 
     /* ── Section divider ─────────────────────────────────────────── */
@@ -316,14 +395,13 @@ st.markdown("""
         .hero-section { flex-direction: column; padding: 2.25rem 1.5rem; gap: 1.5rem; }
         .hero-title   { font-size: 2rem; }
         .hero-subtitle{ font-size: 0.95rem; max-width: 100%; }
-        .hero-content { max-width: 100%; }
-        .hero-visual  { display: none; }
-        .hero-scroll-hint { display: none; }
+        .hero-content { max-width: 100%; min-width: unset; }
+        .hero-mockup  { display: none; }
+        .hero-btn-primary, .hero-btn-secondary { font-size: 0.85rem; padding: 0.7rem 1.2rem; }
         .metric-card  { padding: 1rem; }
         .metric-value { font-size: 1.6rem; }
         .action-card  { padding: 1.1rem; }
         .section-heading { font-size: 1.1rem; }
-        .trust-strip  { gap: 0.85rem; }
     }
     @media (max-width: 480px) {
         .hero-title  { font-size: 1.65rem; }
@@ -392,6 +470,13 @@ NAV_PAGES = {
 
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
+
+# ── Query-param CTA routing ──────────────────────────────────────────
+_nav = st.query_params.get("nav", "")
+if _nav in NAV_PAGES:
+    st.session_state.page = _nav
+    st.query_params.clear()
+    st.rerun()
 
 
 def render_sidebar_navigation():

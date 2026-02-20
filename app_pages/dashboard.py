@@ -9,33 +9,10 @@ from logger_config import get_logger
 
 logger = get_logger(__name__)
 
-_SHIELD_SVG = (
-    '<svg width="240" height="260" viewBox="0 0 240 260" fill="none" xmlns="http://www.w3.org/2000/svg">'
-    '<defs><linearGradient id="sg" x1="120" y1="44" x2="120" y2="180" gradientUnits="userSpaceOnUse">'
-    '<stop offset="0%" stop-color="#00d9ff"/>'
-    '<stop offset="100%" stop-color="#0d1135" stop-opacity="0"/>'
-    '</linearGradient></defs>'
-    '<circle cx="120" cy="120" r="112" stroke="#00d9ff" stroke-opacity="0.08" stroke-width="1.5"/>'
-    '<circle cx="120" cy="120" r="92" stroke="#00d9ff" stroke-opacity="0.12" stroke-width="1" stroke-dasharray="5 5"/>'
-    '<circle cx="120" cy="120" r="72" stroke="#58a6ff" stroke-opacity="0.1" stroke-width="1"/>'
-    '<path d="M120 32 L178 57 L178 118 Q178 163 120 192 Q62 163 62 118 L62 57 Z" fill="#0d1135" stroke="#00d9ff" stroke-width="1.8" stroke-linejoin="round"/>'
-    '<path d="M120 44 L168 65 L168 118 Q168 155 120 180 Q72 155 72 118 L72 65 Z" fill="url(#sg)" opacity="0.18"/>'
-    '<path d="M96 118 L112 136 L148 100" stroke="#00d9ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
-    '<rect x="68" y="202" width="44" height="22" rx="11" fill="rgba(0,217,255,0.12)" stroke="rgba(0,217,255,0.3)" stroke-width="1"/>'
-    '<text x="90" y="217" text-anchor="middle" fill="#00d9ff" font-size="9.5" font-family="sans-serif" font-weight="700">GDPR</text>'
-    '<rect x="128" y="202" width="44" height="22" rx="11" fill="rgba(88,166,255,0.12)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>'
-    '<text x="150" y="217" text-anchor="middle" fill="#58a6ff" font-size="9.5" font-family="sans-serif" font-weight="700">CCPA</text>'
-    '<circle cx="28" cy="80" r="3.5" fill="#00d9ff" opacity="0.35"/>'
-    '<circle cx="212" cy="155" r="2.5" fill="#58a6ff" opacity="0.45"/>'
-    '<circle cx="40" cy="180" r="2" fill="#00d9ff" opacity="0.25"/>'
-    '<circle cx="200" cy="60" r="2" fill="#58a6ff" opacity="0.3"/>'
-    '</svg>'
-)
-
 
 def render_hero():
-    """Render the hero section with headline, subtitle, feature pills, SVG visual, and trust strip."""
-    hero_html = f"""
+    """Render the hero section with headline, subtitle, CTA links, stats, and product mockup."""
+    hero_html = """
     <div class="hero-section">
         <div class="hero-glow-top"></div>
         <div class="hero-glow-bottom"></div>
@@ -46,7 +23,7 @@ def render_hero():
             </div>
             <h1 class="hero-title">Privacy Compliance,<br>Simplified.</h1>
             <p class="hero-subtitle">
-                Scan any website in seconds. Get actionable GDPR and CCPA insights
+                Scan any website in seconds. Get actionable GDPR &amp; CCPA insights
                 powered by AI &mdash; no technical expertise required.
             </p>
             <div class="hero-pills">
@@ -56,35 +33,66 @@ def render_hero():
                 <span class="hero-pill">🤖 AI-Powered</span>
                 <span class="hero-pill">📊 Detailed Reports</span>
             </div>
-            <div style="flex-grow: 1; min-height: 2rem;"></div>
-            <div class="trust-strip">
-                <div class="trust-item">✅&nbsp;<span class="trust-value">GDPR</span>&nbsp;Article 13 Ready</div>
-                <div class="trust-sep"></div>
-                <div class="trust-item">✅&nbsp;<span class="trust-value">CCPA</span>&nbsp;Section 1798 Ready</div>
-                <div class="trust-sep"></div>
-                <div class="trust-item">⚡&nbsp;<span class="trust-value">Real-time</span>&nbsp;scanning</div>
-                <div class="trust-sep"></div>
-                <div class="trust-item">🤖&nbsp;<span class="trust-value">GPT-4</span>&nbsp;powered analysis</div>
+            <div class="hero-cta-row">
+                <a href="?nav=quick_scan" class="hero-btn-primary">🚀 Start Quick Scan</a>
+                <a href="?nav=batch_scan" class="hero-btn-secondary">📂 Batch Scan</a>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat-item">
+                    <span class="hero-stat-num">10K+</span>
+                    <span class="hero-stat-label">Sites Checked</span>
+                </div>
+                <div class="hero-stat-item">
+                    <span class="hero-stat-num">99%</span>
+                    <span class="hero-stat-label">GDPR Coverage</span>
+                </div>
+                <div class="hero-stat-item">
+                    <span class="hero-stat-num">&lt;30s</span>
+                    <span class="hero-stat-label">Scan Time</span>
+                </div>
             </div>
         </div>
-        <div class="hero-visual">
-            {_SHIELD_SVG}
+        <div class="hero-mockup">
+            <div class="mockup-glow"></div>
+            <div class="mockup-window">
+                <div class="mockup-titlebar">
+                    <div class="mockup-dot red"></div>
+                    <div class="mockup-dot yellow"></div>
+                    <div class="mockup-dot green"></div>
+                    <div class="mockup-url">privacyguard.io/scan</div>
+                </div>
+                <div class="mockup-body">
+                    <div class="mockup-site-row">
+                        <div class="mockup-favicon"></div>
+                        <span class="mockup-site-name">example.com &mdash; Compliance Report</span>
+                    </div>
+                    <div class="mockup-score-row">
+                        <div class="mockup-grade">A</div>
+                        <div>
+                            <div class="mockup-score-num">87<span style="font-size:1rem;color:#8b949e">/100</span></div>
+                            <div class="mockup-status-badge">&#10004; Compliant</div>
+                        </div>
+                    </div>
+                    <div class="mockup-findings">
+                        <div class="mockup-finding pass">
+                            <div class="mockup-finding-dot"></div>Cookie Consent Banner
+                        </div>
+                        <div class="mockup-finding pass">
+                            <div class="mockup-finding-dot"></div>Privacy Policy Detected
+                        </div>
+                        <div class="mockup-finding pass">
+                            <div class="mockup-finding-dot"></div>Contact Info Found
+                        </div>
+                        <div class="mockup-finding warn">
+                            <div class="mockup-finding-dot"></div>3 Third-party Trackers
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="hero-scroll-hint"><span></span></div>
     </div>
     """
     st.markdown(hero_html, unsafe_allow_html=True)
-
-    # CTA buttons
-    b1, b2, b3 = st.columns([1.8, 1.8, 4], gap="small")
-    with b1:
-        if st.button("🚀 Start Quick Scan", key="hero_quick", use_container_width=True, type="primary"):
-            st.session_state.page = "quick_scan"
-            st.rerun()
-    with b2:
-        if st.button("📂 Batch Scan", key="hero_batch", use_container_width=True):
-            st.session_state.page = "batch_scan"
-            st.rerun()
 
 
 def render_dashboard_page():
