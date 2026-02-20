@@ -30,9 +30,20 @@ class Config:
     MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
     BACKOFF_FACTOR = float(os.getenv("BACKOFF_FACTOR", "0.3"))
     MAX_POLICY_LENGTH = int(os.getenv("MAX_POLICY_LENGTH", "8000"))
+    MAX_RESPONSE_BYTES = int(os.getenv("MAX_RESPONSE_BYTES", "2000000"))
     
     # Batch Scanning
     BATCH_SCAN_LIMIT = int(os.getenv("BATCH_SCAN_LIMIT", "10"))
+    BATCH_MAX_WORKERS = int(os.getenv("BATCH_MAX_WORKERS", "4"))
+
+    # Cache
+    CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", str(24 * 3600)))
+    CACHE_MAXSIZE = int(os.getenv("CACHE_MAXSIZE", "512"))
+
+    # Domain allowlist/blocklist
+    DOMAIN_ALLOWLIST = [d.strip().lower() for d in os.getenv("DOMAIN_ALLOWLIST", "").split(",") if d.strip()]
+    DOMAIN_BLOCKLIST = [d.strip().lower() for d in os.getenv("DOMAIN_BLOCKLIST", "").split(",") if d.strip()]
+    ENFORCE_ALLOWLIST = os.getenv("ENFORCE_ALLOWLIST", "").lower() in {"1", "true", "yes"}
     
     # Scoring Weights
     SCORING_WEIGHTS: Dict[str, int] = {
@@ -41,12 +52,6 @@ class Config:
         "contact_info": int(os.getenv("SCORE_CONTACT_INFO", "20")),
         "trackers": int(os.getenv("SCORE_TRACKERS_MAX", "20")),
     }
-    
-    # Individual weight properties for settings page
-    COOKIE_CONSENT_WEIGHT = int(os.getenv("SCORE_COOKIE_CONSENT", "30"))
-    PRIVACY_POLICY_WEIGHT = int(os.getenv("SCORE_PRIVACY_POLICY", "30"))
-    CONTACT_INFO_WEIGHT = int(os.getenv("SCORE_CONTACT_INFO", "20"))
-    TRACKER_DETECTION_WEIGHT = int(os.getenv("SCORE_TRACKERS_MAX", "20"))
     
     # History
     DEFAULT_HISTORY_LIMIT = int(os.getenv("DEFAULT_HISTORY_LIMIT", "20"))

@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import logging
 
 from exceptions import InvalidURLError, ValidationError
+from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,9 @@ def validate_url(url: str) -> Tuple[bool, str]:
                 # Block localhost for security - SSRF protection
                 raise InvalidURLError(f"Invalid URL: host '{hostname}' is not allowed")
 
+        # Check allowlist/blocklist if configured
+        _validate_domain_policies(hostname)
+
         # Check for valid domain format if not a public IP
         if not is_ip:
             # This regex allows standard domains.
@@ -87,6 +91,36 @@ def validate_url(url: str) -> Tuple[bool, str]:
     except Exception as e:
         logger.error(f"URL validation error: {e}")
         raise InvalidURLError(f"Invalid URL: {str(e)}") from e
+
+
+def _matches_domain_list(hostname: str, domains: list) -> bool:
+    """Check if hostname matches any domain in list (supports *.example.com)."""
+    for domain in domains:
+        if not domain:
+            continue
+        if domain.startswith("*."):
+            base = domain[2:]
+            if hostname == base or hostname.endswith("." + base):
+                return True
+        else:
+            if hostname == domain or hostname.endswith("." + domain):
+                return True
+    return False
+
+
+def _validate_domain_policies(hostname: str) -> None:
+    """Enforce allowlist/blocklist rules from configuration."""
+    allowlist = Config.DOMAIN_ALLOWLIST
+    blocklist = Config.DOMAIN_BLOCKLIST
+
+    if blocklist and _matches_domain_list(hostname, blocklist):
+        raise InvalidURLError(f"Invalid URL: host '{hostname}' is blocked")
+
+    if allowlist or Config.ENFORCE_ALLOWLIST:
+        if not allowlist:
+            raise InvalidURLError("Invalid URL: allowlist enforcement is enabled, but allowlist is empty")
+        if not _matches_domain_list(hostname, allowlist):
+            raise InvalidURLError(f"Invalid URL: host '{hostname}' is not in the allowlist")
 
 
 def validate_batch_urls(urls: list) -> Tuple[list, list]:

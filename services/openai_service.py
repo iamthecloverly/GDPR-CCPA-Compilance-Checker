@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 import trafilatura
 
 from config import Config
+from constants import PRIVACY_KEYWORDS
 from exceptions import AIServiceError, NetworkError, InvalidURLError
 from validators import validate_url
 from utils import create_session
@@ -71,6 +72,7 @@ class OpenAIService:
     def _fetch_privacy_policy(self, base_url: str) -> Optional[str]:
         """Fetch privacy policy content from website."""
         try:
+            _, base_url = validate_url(base_url)
             policy_paths = [
                 "/privacy-policy", "/privacy", "/privacy-notice",
                 "/legal/privacy", "/privacy-statement", "/data-protection",
@@ -101,28 +103,38 @@ class OpenAIService:
                     timeout=Config.REQUEST_TIMEOUT,
                     headers=headers,
                     allow_redirects=True,
+                    stream=True,
                 )
                 response.raise_for_status()
                 content_type = response.headers.get("Content-Type", "")
 
                 if "text/html" in content_type:
-                    soup = BeautifulSoup(response.content, "html.parser")
-                    keywords = [
-                        "privacy", "data protection", "data-protection",
-                        "gdpr", "ccpa", "cookie policy", "data policy",
-                    ]
+                    homepage_html = self._read_limited_response(response, Config.MAX_RESPONSE_BYTES)
+                    soup = BeautifulSoup(homepage_html, "html.parser")
+                    keywords = PRIVACY_KEYWORDS
                     all_links = soup.find_all("a", href=True)
                     privacy_link = None
 
-                    for link in all_links:
-                        if any(k in link.get_text().lower() for k in keywords):
-                            privacy_link = link
+                    # Prefer footer links when available
+                    footer = soup.find("footer")
+                    footer_links = footer.find_all("a", href=True) if footer else []
+                    search_sets = [footer_links, all_links]
+
+                    for link_set in search_sets:
+                        for link in link_set:
+                            if any(k in link.get_text().lower() for k in keywords):
+                                privacy_link = link
+                                break
+                        if privacy_link:
                             break
                     if not privacy_link:
-                        for link in all_links:
-                            href = link.get("href", "").lower()
-                            if any(k in href for k in keywords):
-                                privacy_link = link
+                        for link_set in search_sets:
+                            for link in link_set:
+                                href = link.get("href", "").lower()
+                                if any(k in href for k in keywords):
+                                    privacy_link = link
+                                    break
+                            if privacy_link:
                                 break
 
                     if privacy_link:
@@ -171,13 +183,15 @@ class OpenAIService:
                 timeout=Config.REQUEST_TIMEOUT,
                 headers={**headers, "Referer": base_url},
                 allow_redirects=True,
+                stream=True,
             )
             policy_response.raise_for_status()
 
-            text = trafilatura.extract(policy_response.text)
+            policy_html = self._read_limited_response(policy_response, Config.MAX_RESPONSE_BYTES)
+            text = trafilatura.extract(policy_html.decode("utf-8", errors="ignore"))
 
             if not text:
-                policy_soup = BeautifulSoup(policy_response.content, "html.parser")
+                policy_soup = BeautifulSoup(policy_html, "html.parser")
                 for tag in policy_soup(["script", "style", "nav", "header", "footer"]):
                     tag.decompose()
                 text = policy_soup.get_text(separator="\n", strip=True)
@@ -194,6 +208,24 @@ class OpenAIService:
         except requests.RequestException as e:
             logger.warning(f"Failed to fetch privacy policy from {base_url}: {e}")
             return None
+
+    def _read_limited_response(self, response: requests.Response, max_bytes: int) -> bytes:
+        """Read response content up to max_bytes to avoid large payloads."""
+        content_length = response.headers.get("Content-Length")
+        if content_length and int(content_length) > max_bytes:
+            response.close()
+            raise requests.RequestException("Response too large")
+        chunks = []
+        bytes_read = 0
+        for chunk in response.iter_content(chunk_size=16384):
+            if not chunk:
+                continue
+            bytes_read += len(chunk)
+            if bytes_read > max_bytes:
+                response.close()
+                raise requests.RequestException("Response too large")
+            chunks.append(chunk)
+        return b"".join(chunks)
 
     def _create_analysis_prompt(self, url: str, policy_text: str, scan_results: Dict[str, Any]) -> str:
         """Create analysis prompt for OpenAI."""

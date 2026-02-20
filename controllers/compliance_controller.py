@@ -3,11 +3,12 @@
 from typing import Dict, List, Any
 import logging
 import threading
+from cachetools import TTLCache
 
 from models.compliance_model import ComplianceModel
 from services.openai_service import OpenAIService
 from config import Config
-from constants import GRADE_THRESHOLDS
+from constants import GRADE_THRESHOLDS, TRACKER_TIERS, STATUS_THRESHOLDS
 from exceptions import ScanError, NetworkError
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class ComplianceController:
         self.model = ComplianceModel()
         self.openai_service = OpenAIService()
         self._cache_lock = threading.Lock()
-        self._cache = {}
+        self._cache = TTLCache(maxsize=Config.CACHE_MAXSIZE, ttl=Config.CACHE_TTL_SECONDS)
 
     def scan_website(self, url):
         """
@@ -122,17 +123,7 @@ class ComplianceController:
         
         # Tracker penalty (weighted from config)
         trackers = results.get("trackers", [])
-        tracker_weight = Config.SCORING_WEIGHTS["trackers"]
-        
-        if len(trackers) == 0:
-            score += tracker_weight
-        elif len(trackers) <= 3:
-            score += int(tracker_weight * 0.75)
-        elif len(trackers) <= 5:
-            score += int(tracker_weight * 0.5)
-        elif len(trackers) <= 10:
-            score += int(tracker_weight * 0.25)
-        # More than 10 trackers = 0 points
+        score += self._calculate_tracker_points(len(trackers))
         
         return min(100, max(0, score))
     
@@ -168,18 +159,7 @@ class ComplianceController:
         
         # Tracker points
         trackers = results.get("trackers", [])
-        tracker_weight = Config.SCORING_WEIGHTS["trackers"]
-        tracker_points = 0
-        
-        if len(trackers) == 0:
-            tracker_points = tracker_weight
-        elif len(trackers) <= 3:
-            tracker_points = int(tracker_weight * 0.75)
-        elif len(trackers) <= 5:
-            tracker_points = int(tracker_weight * 0.5)
-        elif len(trackers) <= 10:
-            tracker_points = int(tracker_weight * 0.25)
-        
+        tracker_points = self._calculate_tracker_points(len(trackers))
         breakdown.append({"Category": f"Trackers ({len(trackers)} found)", "Points": tracker_points})
         
         return breakdown
@@ -209,12 +189,19 @@ class ComplianceController:
         Returns:
             Status string (Compliant/Needs Improvement/Non-Compliant)
         """
-        if score >= 80:
+        if score >= STATUS_THRESHOLDS["Compliant"]:
             return "Compliant"
-        elif score >= 60:
+        if score >= STATUS_THRESHOLDS["Needs Improvement"]:
             return "Needs Improvement"
-        else:
-            return "Non-Compliant"
+        return "Non-Compliant"
+
+    def _calculate_tracker_points(self, tracker_count: int) -> int:
+        """Calculate tracker points using configured weight and tier multipliers."""
+        tracker_weight = Config.SCORING_WEIGHTS["trackers"]
+        for max_trackers, multiplier in TRACKER_TIERS:
+            if tracker_count <= max_trackers:
+                return int(tracker_weight * multiplier)
+        return 0
     
     def batch_scan(self, urls: List[str]) -> List[Dict[str, Any]]:
         """

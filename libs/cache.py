@@ -11,15 +11,17 @@ logger = logging.getLogger(__name__)
 class ScanCache:
     """Simple time-based cache for scan results."""
     
-    def __init__(self, ttl_hours: int = 24):
+    def __init__(self, ttl_hours: int = 24, max_items: Optional[int] = None):
         """
         Initialize cache.
         
         Args:
             ttl_hours: Time-to-live in hours (default: 24)
+            max_items: Maximum number of items to keep in cache
         """
         self.cache: Dict[str, Dict] = {}
         self.ttl = timedelta(hours=ttl_hours)
+        self.max_items = max_items
     
     def _get_key(self, url: str) -> str:
         """Generate cache key from URL."""
@@ -61,6 +63,9 @@ class ScanCache:
             "timestamp": datetime.now(),
             "url": url
         }
+        if self.max_items and len(self.cache) > self.max_items:
+            oldest_key = min(self.cache, key=lambda k: self.cache[k]["timestamp"])
+            del self.cache[oldest_key]
         logger.info(f"Cached result for {url}")
     
     def clear_expired(self) -> None:

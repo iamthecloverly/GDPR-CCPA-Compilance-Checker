@@ -20,7 +20,7 @@ from config import Config
 logger = get_logger(__name__)
 
 # Initialize cache
-scan_cache = ScanCache(ttl_hours=24)
+scan_cache = ScanCache(ttl_hours=24, max_items=Config.CACHE_MAXSIZE)
 
 
 def render_quick_scan_page():

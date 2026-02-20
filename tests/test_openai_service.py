@@ -38,14 +38,16 @@ class TestOpenAIService(unittest.TestCase):
         html_content = "<html><body><a href='/data-protection-policy'>Data Protection</a></body></html>"
         mock_response.content = html_content.encode('utf-8')
         mock_response.text = html_content
-        mock_response.headers = {"Content-Type": "text/html"}
+        mock_response.headers = {"Content-Type": "text/html", "Content-Length": str(len(mock_response.content))}
+        mock_response.iter_content.return_value = [mock_response.content]
 
         # Setup get calls: first for homepage, second for policy page
         policy_response = MagicMock()
         policy_response.status_code = 200
         policy_response.text = "This is the Data Protection Policy content."
         policy_response.content = policy_response.text.encode('utf-8')
-        policy_response.headers = {"Content-Type": "text/html"}
+        policy_response.headers = {"Content-Type": "text/html", "Content-Length": str(len(policy_response.content))}
+        policy_response.iter_content.return_value = [policy_response.content]
 
         mock_session.get.side_effect = [mock_response, policy_response]
         mock_session.head.return_value = MagicMock(status_code=404)
@@ -82,14 +84,17 @@ class TestOpenAIService(unittest.TestCase):
         # Homepage has clear link
         home_response = MagicMock()
         home_response.status_code = 200
-        home_response.headers = {"Content-Type": "text/html"}
+        home_response.headers = {"Content-Type": "text/html", "Content-Length": "64"}
         home_response.content = b'<html><a href="/privacy">Privacy</a></html>'
+        home_response.iter_content.return_value = [home_response.content]
 
         # Policy page
         policy_response = MagicMock()
         policy_response.status_code = 200
         policy_response.text = "<html><body><p>Privacy Policy Content</p></body></html>"
-        policy_response.headers = {"Content-Type": "text/html"}
+        policy_response.content = policy_response.text.encode("utf-8")
+        policy_response.headers = {"Content-Type": "text/html", "Content-Length": str(len(policy_response.content))}
+        policy_response.iter_content.return_value = [policy_response.content]
 
         mock_session.get.side_effect = [home_response, policy_response]
 

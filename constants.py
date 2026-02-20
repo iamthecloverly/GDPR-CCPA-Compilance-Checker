@@ -27,7 +27,20 @@ PRIVACY_KEYWORDS: List[str] = [
     "privacy",
     "privacy policy",
     "privacy notice",
-    "data protection"
+    "data protection",
+    "data privacy",
+    "privacy statement",
+    "privacy center",
+    "data policy",
+    "gdpr",
+    "ccpa",
+    "politica de privacidad",
+    "politique de confidentialite",
+    "informativa privacy",
+    "datenschutz",
+    "privacyverklaring",
+    "aviso de privacidad",
+    "politica de privacidade"
 ]
 
 # Common privacy policy paths
@@ -77,13 +90,13 @@ STATUS_THRESHOLDS: Dict[str, int] = {
     STATUS_NON_COMPLIANT: 0
 }
 
-# Tracker scoring tiers
+# Tracker scoring tiers (max tracker count, score multiplier)
 TRACKER_TIERS: List[tuple] = [
-    (0, 20),    # 0 trackers = 20 points
-    (3, 15),    # 1-3 trackers = 15 points
-    (5, 10),    # 4-5 trackers = 10 points
-    (10, 5),    # 6-10 trackers = 5 points
-    # >10 trackers = 0 points
+    (0, 1.0),    # 0 trackers = 100% of tracker points
+    (3, 0.75),   # 1-3 trackers = 75%
+    (5, 0.5),    # 4-5 trackers = 50%
+    (10, 0.25),  # 6-10 trackers = 25%
+    # >10 trackers = 0%
 ]
 
 # HTTP headers

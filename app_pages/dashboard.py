@@ -34,8 +34,8 @@ def render_hero():
                 <span class="hero-pill">📊 Detailed Reports</span>
             </div>
             <div class="hero-cta-row">
-                <a href="?nav=quick_scan" class="hero-btn-primary">🚀 Start Quick Scan</a>
-                <a href="?nav=batch_scan" class="hero-btn-secondary">📂 Batch Scan</a>
+                <a href="?nav=quick_scan" class="hero-btn-primary" target="_self">🚀 Start Quick Scan</a>
+                <a href="?nav=batch_scan" class="hero-btn-secondary" target="_self">📂 Batch Scan</a>
             </div>
             <div class="hero-stats">
                 <div class="hero-stat-item">

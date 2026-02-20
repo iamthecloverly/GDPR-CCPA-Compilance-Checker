@@ -28,6 +28,7 @@ from bs4 import BeautifulSoup
 import re
 from typing import Dict, List, Optional, Any
 import logging
+from urllib.parse import urlparse
 
 from config import Config
 from utils import create_session
@@ -36,6 +37,7 @@ from constants import (
     EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
 )
 from exceptions import NetworkError, ScanError
+from validators import validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -84,18 +86,24 @@ class ComplianceModel:
         """
         try:
             verify_ssl = os.getenv("VERIFY_SSL", "true").lower() == "true"
+            _, normalized = validate_url(url)
             response = self.session.get(
-                url,
+                normalized,
                 timeout=self.timeout,
                 headers=self.headers,
                 allow_redirects=True,
-                verify=verify_ssl
+                verify=verify_ssl,
+                stream=True,
             )
             response.raise_for_status()
             content_type = response.headers.get("Content-Type", "")
             if "text/html" not in content_type:
                 raise NetworkError(f"URL did not return HTML content (got {content_type})")
-            return response.content
+            content_length = response.headers.get("Content-Length")
+            if content_length and int(content_length) > Config.MAX_RESPONSE_BYTES:
+                raise NetworkError("Response too large to scan safely")
+            content = self._read_limited_response(response, Config.MAX_RESPONSE_BYTES)
+            return content
         except NetworkError:
             raise
         except requests.exceptions.SSLError as e:
@@ -155,15 +163,16 @@ class ComplianceModel:
             ScanError: If analysis fails
         """
         try:
+            _, normalized_url = validate_url(url)
             # Fetch webpage
-            html = self._get_html(url)
+            html = self._get_html(normalized_url)
             soup = BeautifulSoup(html, "html.parser")
             
             results = {
                 "cookie_consent": self._check_cookie_consent(soup),
-                "privacy_policy": self._check_privacy_policy(soup, url),
+                "privacy_policy": self._check_privacy_policy(soup, normalized_url),
                 "contact_info": self._check_contact_info(soup),
-                "trackers": self._detect_trackers(soup)
+                "trackers": self._detect_trackers(soup, normalized_url)
             }
             
             logger.info(f"Successfully analyzed {url}")
@@ -262,7 +271,7 @@ class ComplianceModel:
         
         return "Not Found - No contact information detected"
     
-    def _detect_trackers(self, soup: BeautifulSoup) -> List[str]:
+    def _detect_trackers(self, soup: BeautifulSoup, base_url: str) -> List[str]:
         """
         Detect third-party tracking scripts.
         
@@ -273,24 +282,81 @@ class ComplianceModel:
             List of detected tracking domains
         """
         trackers = []
+        base_host = self._extract_hostname(base_url)
         
         # Check script tags
         scripts = soup.find_all("script", src=True)
         
         for script in scripts:
             src = script.get("src", "")
-            for domain in TRACKING_DOMAINS:
-                if domain in src:
-                    if domain not in trackers:
-                        trackers.append(domain)
+            hostname = self._extract_hostname(src)
+            if hostname and self._is_third_party_tracker(hostname, base_host):
+                tracker = self._match_tracking_domain(hostname)
+                if tracker and tracker not in trackers:
+                    trackers.append(tracker)
         
         # Check inline scripts for tracking code
         inline_scripts = soup.find_all("script", src=False)
         for script in inline_scripts:
             script_content = script.string or ""
-            for domain in TRACKING_DOMAINS:
-                if domain in script_content:
-                    if domain not in trackers:
-                        trackers.append(domain)
+            for hostname in self._extract_hosts_from_text(script_content):
+                if self._is_third_party_tracker(hostname, base_host):
+                    tracker = self._match_tracking_domain(hostname)
+                    if tracker and tracker not in trackers:
+                        trackers.append(tracker)
         
         return trackers
+
+    def _read_limited_response(self, response: requests.Response, max_bytes: int) -> bytes:
+        """Read response content up to max_bytes to avoid large payloads."""
+        chunks = []
+        bytes_read = 0
+        for chunk in response.iter_content(chunk_size=16384):
+            if not chunk:
+                continue
+            bytes_read += len(chunk)
+            if bytes_read > max_bytes:
+                response.close()
+                raise NetworkError("Response too large to scan safely")
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+    def _extract_hostname(self, url: str) -> Optional[str]:
+        """Extract hostname from a URL or protocol-relative URL."""
+        if not url:
+            return None
+        parsed = urlparse(url)
+        if not parsed.scheme and url.startswith("//"):
+            parsed = urlparse("https:" + url)
+        hostname = parsed.hostname
+        return hostname.lower() if hostname else None
+
+    def _extract_hosts_from_text(self, text: str) -> List[str]:
+        """Extract hostnames from inline script text."""
+        if not text:
+            return []
+        urls = re.findall(r"https?://[^\s'\"]+|//[^\s'\"]+", text)
+        hosts = []
+        for url in urls:
+            host = self._extract_hostname(url)
+            if host:
+                hosts.append(host)
+        return hosts
+
+    def _match_tracking_domain(self, hostname: str) -> Optional[str]:
+        """Return the matched tracking domain for a hostname."""
+        for domain in TRACKING_DOMAINS:
+            if hostname == domain or hostname.endswith("." + domain):
+                return domain
+        return None
+
+    def _is_third_party_tracker(self, hostname: str, base_host: Optional[str]) -> bool:
+        """Check if hostname is a known tracker and not first-party."""
+        tracker = self._match_tracking_domain(hostname)
+        if not tracker:
+            return False
+        if not base_host:
+            return True
+        if hostname == base_host or hostname.endswith("." + base_host):
+            return False
+        return True

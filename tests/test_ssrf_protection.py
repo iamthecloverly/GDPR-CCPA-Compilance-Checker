@@ -61,7 +61,8 @@ class TestSSRFProtection(unittest.TestCase):
         # Mock homepage response that returns a link to an internal IP
         home_response = MagicMock()
         home_response.status_code = 200
-        home_response.headers = {"Content-Type": "text/html"}
+        home_response.headers = {"Content-Type": "text/html", "Content-Length": "64"}
+        home_response.iter_content.return_value = [b"<html><a href='http://169.254.169.254/'>Privacy</a></html>"]
 
         # We need to mock BeautifulSoup behavior
         mock_link = MagicMock()
