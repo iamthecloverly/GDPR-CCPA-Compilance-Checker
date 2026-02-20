@@ -200,6 +200,7 @@ def render_statistics_view():
 
             grade_chart = (
                 alt.Chart(grade_df)
+                .mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
                 .encode(
                     x=alt.X("Grade:N", sort=grade_order, axis=alt.Axis(labelColor="#8b949e", title=None)),
                     y=alt.Y("Count:Q", axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d", title="Sites")),
