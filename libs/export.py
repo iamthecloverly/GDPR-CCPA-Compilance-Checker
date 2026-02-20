@@ -34,10 +34,11 @@ def export_scan_to_csv(scan_data: Dict[str, Any]) -> str:
     writer.writerow(['Compliance Scan Report'])
     writer.writerow([''])
     
-    # Metadata
+    # Metadata - support both 'score' and 'overall_score' keys
+    score_value = scan_data.get('score') or scan_data.get('overall_score') or 0
     writer.writerow(['URL', scan_data.get('url', 'N/A')])
     writer.writerow(['Scan Date', scan_data.get('scan_date', 'N/A')])
-    writer.writerow(['Overall Score', f"{scan_data.get('overall_score', 0):.1f}%"])
+    writer.writerow(['Overall Score', f"{score_value:.1f}%"])
     writer.writerow(['Grade', scan_data.get('grade', 'N/A')])
     writer.writerow(['Status', scan_data.get('status', 'N/A')])
     writer.writerow([''])
@@ -45,14 +46,17 @@ def export_scan_to_csv(scan_data: Dict[str, Any]) -> str:
     # Score breakdown if available
     if 'score_breakdown' in scan_data:
         breakdown = scan_data['score_breakdown']
-        if isinstance(breakdown, list):
-            writer.writerow(['Category', 'Points'])
+        writer.writerow(['Category', 'Points'])
+        if isinstance(breakdown, dict):
+            for category, points in breakdown.items():
+                writer.writerow([category, points])
+        elif isinstance(breakdown, list):
             for item in breakdown:
                 if isinstance(item, dict):
                     writer.writerow([item.get('category', ''), item.get('points', 0)])
                 elif isinstance(item, str):
                     writer.writerow([item, ''])
-            writer.writerow([''])
+        writer.writerow([''])
     
     # Findings
     writer.writerow(['Findings Summary'])
@@ -353,11 +357,15 @@ def export_scan_to_pdf(scan_data: Dict[str, Any]) -> bytes:
     story.append(Spacer(1, 0.15*inch))
     
     # Metadata table with professional styling
+    # Support both 'score' and 'overall_score' keys for compatibility
+    score_value = scan_data.get('score') or scan_data.get('overall_score') or 0
+    grade_value = scan_data.get('grade', 'N/A')
+    
     metadata = [
         ['URL', html.escape(str(scan_data.get('url', 'N/A')))],
         ['Scan Date', html.escape(str(scan_data.get('scan_date', 'N/A')))],
-        ['Overall Score', f"{scan_data.get('overall_score', 0):.1f}%"],
-        ['Grade', html.escape(str(scan_data.get('grade', 'N/A')))],
+        ['Overall Score', f"{score_value:.1f}%"],
+        ['Grade', html.escape(str(grade_value))],
         ['Status', html.escape(str(scan_data.get('status', 'N/A')))],
     ]
     
@@ -430,7 +438,7 @@ def export_scan_to_pdf(scan_data: Dict[str, Any]) -> bytes:
             safe_rec = html.escape(str(rec))
             story.append(Paragraph(f"<b>{i}.</b> {safe_rec}", body_style))
     else:
-        story.append(Paragraph("No recommendations - site is fully compliant! ✓", normal_style))
+        story.append(Paragraph("All major compliance areas addressed. ✓", normal_style))
     
     story.append(Spacer(1, 0.2*inch))
     
@@ -438,9 +446,14 @@ def export_scan_to_pdf(scan_data: Dict[str, Any]) -> bytes:
     ai_analysis = scan_data.get('ai_analysis', '')
     if ai_analysis:
         story.append(Paragraph("AI Compliance Analysis", heading_style))
-        # Escape HTML special characters and format with line breaks
-        safe_analysis = html.escape(str(ai_analysis))
-        # Convert newlines to HTML breaks for proper formatting
+        # Strip markdown syntax for cleaner PDF display
+        # Remove markdown headers (### , ## , # )
+        clean_analysis = ai_analysis
+        clean_analysis = clean_analysis.replace('###', '').replace('##', '').replace('#', '')
+        # Remove excessive asterisks used for bold/italic
+        clean_analysis = clean_analysis.replace('**', '').replace('***', '')
+        # Escape HTML and convert newlines to breaks
+        safe_analysis = html.escape(clean_analysis)
         formatted_analysis = safe_analysis.replace('\n', '<br/>')
         story.append(Paragraph(formatted_analysis, body_style))
         story.append(Spacer(1, 0.2*inch))
