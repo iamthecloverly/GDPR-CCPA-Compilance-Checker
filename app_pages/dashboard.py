@@ -56,10 +56,21 @@ def render_hero():
                 <span class="hero-pill">🤖 AI-Powered</span>
                 <span class="hero-pill">📊 Detailed Reports</span>
             </div>
+            <div style="flex-grow: 1; min-height: 2rem;"></div>
+            <div class="trust-strip">
+                <div class="trust-item">✅&nbsp;<span class="trust-value">GDPR</span>&nbsp;Article 13 Ready</div>
+                <div class="trust-sep"></div>
+                <div class="trust-item">✅&nbsp;<span class="trust-value">CCPA</span>&nbsp;Section 1798 Ready</div>
+                <div class="trust-sep"></div>
+                <div class="trust-item">⚡&nbsp;<span class="trust-value">Real-time</span>&nbsp;scanning</div>
+                <div class="trust-sep"></div>
+                <div class="trust-item">🤖&nbsp;<span class="trust-value">GPT-4</span>&nbsp;powered analysis</div>
+            </div>
         </div>
         <div class="hero-visual">
             {_SHIELD_SVG}
         </div>
+        <div class="hero-scroll-hint"><span></span></div>
     </div>
     """
     st.markdown(hero_html, unsafe_allow_html=True)
@@ -75,19 +86,6 @@ def render_hero():
             st.session_state.page = "batch_scan"
             st.rerun()
 
-    # Trust strip
-    st.markdown("""
-    <div class="trust-strip">
-        <div class="trust-item">✅&nbsp;<span class="trust-value">GDPR</span>&nbsp;Article 13 Ready</div>
-        <div class="trust-sep"></div>
-        <div class="trust-item">✅&nbsp;<span class="trust-value">CCPA</span>&nbsp;Section 1798 Ready</div>
-        <div class="trust-sep"></div>
-        <div class="trust-item">⚡&nbsp;<span class="trust-value">Real-time</span>&nbsp;scanning</div>
-        <div class="trust-sep"></div>
-        <div class="trust-item">🤖&nbsp;<span class="trust-value">GPT-4</span>&nbsp;powered analysis</div>
-    </div>
-    """, unsafe_allow_html=True)
-
 
 def render_dashboard_page():
     """Render the dashboard landing page."""
@@ -95,6 +93,7 @@ def render_dashboard_page():
     render_hero()
 
     # ── Compliance Overview ────────────────────────────────────────────
+    st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">Overview</div>
     <div class="section-heading">Compliance Overview</div>
@@ -139,7 +138,7 @@ def render_dashboard_page():
         )
 
     # ── Compliance Activity chart ──────────────────────────────────────
-    st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">Analytics</div>
     <div class="section-heading">Compliance Activity</div>
@@ -184,7 +183,7 @@ def render_dashboard_page():
         st.altair_chart(chart, use_container_width=True)
 
     # ── Quick Actions ──────────────────────────────────────────────────
-    st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">Actions</div>
     <div class="section-heading">Quick Actions</div>
@@ -217,7 +216,7 @@ def render_dashboard_page():
             st.rerun()
 
     # ── Recent Scans ───────────────────────────────────────────────────
-    st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">History</div>
     <div class="section-heading">Recent Scans</div>

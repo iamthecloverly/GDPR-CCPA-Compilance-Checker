@@ -165,7 +165,8 @@ st.markdown("""
         border-radius: 20px;
         border: 1px solid #1e2647;
         box-shadow: 0 0 60px rgba(0,217,255,0.06), 0 20px 60px rgba(0,0,0,0.5);
-        margin-bottom: 2.5rem;
+        min-height: calc(100vh - 80px);
+        margin-bottom: 0;
         gap: 2.5rem;
         position: relative;
         overflow: hidden;
@@ -195,7 +196,7 @@ st.markdown("""
         background: radial-gradient(circle, rgba(88,166,255,0.07) 0%, transparent 65%);
         pointer-events: none;
     }
-    .hero-content { flex: 1; max-width: 580px; position: relative; z-index: 1; }
+    .hero-content { flex: 1; max-width: 580px; position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; }
     .hero-badge {
         display: inline-flex;
         align-items: center;
@@ -269,6 +270,37 @@ st.markdown("""
         background: #2a3250; flex-shrink: 0;
     }
 
+    /* ── Hero scroll hint ───────────────────────────────────────── */
+    @keyframes bounce {
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50%       { transform: translateX(-50%) translateY(6px); }
+    }
+    .hero-scroll-hint {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0.3;
+        animation: bounce 1.8s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 2;
+    }
+    .hero-scroll-hint span {
+        display: block;
+        width: 18px;
+        height: 18px;
+        border-right: 2px solid #00d9ff;
+        border-bottom: 2px solid #00d9ff;
+        transform: rotate(45deg);
+    }
+
+    /* ── Section divider ─────────────────────────────────────────── */
+    .hero-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, #1e2647 25%, #1e2647 75%, transparent 100%);
+        margin: 3rem 0;
+    }
+
     /* ── Section eyebrow labels ────────────────────────────────── */
     .section-eyebrow {
         font-size: 0.68rem; font-weight: 700; letter-spacing: 0.13em;
@@ -286,6 +318,7 @@ st.markdown("""
         .hero-subtitle{ font-size: 0.95rem; max-width: 100%; }
         .hero-content { max-width: 100%; }
         .hero-visual  { display: none; }
+        .hero-scroll-hint { display: none; }
         .metric-card  { padding: 1rem; }
         .metric-value { font-size: 1.6rem; }
         .action-card  { padding: 1.1rem; }
