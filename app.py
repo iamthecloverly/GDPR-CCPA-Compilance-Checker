@@ -55,7 +55,8 @@ st.markdown("""
         color: var(--text-primary);
     }
     
-    [data-testid="stHeader"] { display: none; }
+    [data-testid="stHeader"] { background: transparent; }
+    [data-testid="stToolbar"] { display: none; }
     [data-testid="stSidebar"] { background: var(--bg-surface); border-right: 1px solid var(--border-color); }
     
     h1 { color: var(--primary); font-size: 2.5rem; margin-bottom: 0.5rem; }
