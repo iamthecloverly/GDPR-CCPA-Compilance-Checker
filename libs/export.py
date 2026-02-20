@@ -44,10 +44,15 @@ def export_scan_to_csv(scan_data: Dict[str, Any]) -> str:
     
     # Score breakdown if available
     if 'score_breakdown' in scan_data:
-        writer.writerow(['Category', 'Points'])
-        for item in scan_data['score_breakdown']:
-            writer.writerow([item.get('category', ''), item.get('points', 0)])
-        writer.writerow([''])
+        breakdown = scan_data['score_breakdown']
+        if isinstance(breakdown, list):
+            writer.writerow(['Category', 'Points'])
+            for item in breakdown:
+                if isinstance(item, dict):
+                    writer.writerow([item.get('category', ''), item.get('points', 0)])
+                elif isinstance(item, str):
+                    writer.writerow([item, ''])
+            writer.writerow([''])
     
     # Findings
     writer.writerow(['Findings Summary'])
@@ -69,9 +74,11 @@ def export_scan_to_csv(scan_data: Dict[str, Any]) -> str:
     
     # Details
     if 'details' in scan_data:
-        writer.writerow(['Detailed Analysis'])
-        for key, value in scan_data['details'].items():
-            writer.writerow([key, str(value)])
+        details = scan_data['details']
+        if isinstance(details, dict):
+            writer.writerow(['Detailed Analysis'])
+            for key, value in details.items():
+                writer.writerow([key, str(value)])
     
     return output.getvalue()
 
@@ -124,11 +131,22 @@ def export_batch_results_to_csv(results: List[Dict[str, Any]]) -> str:
         if isinstance(findings, dict):
             gdpr_val = findings.get('GDPR Issues', 0)
             ccpa_val = findings.get('CCPA Issues', 0)
-            gdpr_count = len(gdpr_val) if isinstance(gdpr_val, list) else gdpr_val
-            ccpa_count = len(ccpa_val) if isinstance(ccpa_val, list) else ccpa_val
+            try:
+                gdpr_count = len(gdpr_val) if isinstance(gdpr_val, list) else (gdpr_val if isinstance(gdpr_val, int) else 0)
+                ccpa_count = len(ccpa_val) if isinstance(ccpa_val, list) else (ccpa_val if isinstance(ccpa_val, int) else 0)
+            except Exception:
+                gdpr_count = 0
+                ccpa_count = 0
         elif isinstance(findings, list):
-            gdpr_count = len([f for f in findings if 'GDPR' in str(f)])
-            ccpa_count = len([f for f in findings if 'CCPA' in str(f)])
+            try:
+                gdpr_count = len([f for f in findings if 'GDPR' in str(f)])
+                ccpa_count = len([f for f in findings if 'CCPA' in str(f)])
+            except Exception:
+                gdpr_count = 0
+                ccpa_count = 0
+        else:
+            gdpr_count = 0
+            ccpa_count = 0
         
         writer.writerow([
             scan.get('url', ''),
@@ -370,12 +388,16 @@ def export_scan_to_pdf(scan_data: Dict[str, Any]) -> bytes:
         if isinstance(findings, dict):
             for category, count in findings.items():
                 category_safe = html.escape(str(category))
-                if isinstance(count, (int, float)):
-                    findings_data.append([category_safe, str(count)])
-                elif isinstance(count, list):
-                    findings_data.append([category_safe, str(len(count))])
-                else:
-                    findings_data.append([category_safe, str(count)])
+                try:
+                    if isinstance(count, (int, float)):
+                        findings_data.append([category_safe, str(count)])
+                    elif isinstance(count, list):
+                        findings_data.append([category_safe, str(len(count))])
+                    else:
+                        findings_data.append([category_safe, str(count)])
+                except Exception as e:
+                    logger.warning(f"Error processing finding '{category}': {e}")
+                    findings_data.append([category_safe, 'N/A'])
         elif isinstance(findings, list):
             findings_data.append(['Total Issues Found', str(len(findings))])
         
