@@ -297,6 +297,55 @@ st.markdown("""
         .hero-badge  { font-size: 0.62rem; }
         .hero-section{ padding: 1.75rem 1rem; }
     }
+
+    /* ── Sidebar brand & structure ──────────────────────────────── */
+    .sb-brand {
+        display: flex; align-items: center; gap: 0.7rem;
+        padding: 0.25rem 0.25rem 1rem;
+    }
+    .sb-logo {
+        width: 38px; height: 38px; flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(0,217,255,0.15), rgba(88,166,255,0.2));
+        border: 1px solid rgba(0,217,255,0.28);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.05rem;
+    }
+    .sb-name {
+        font-size: 0.98rem; font-weight: 700; color: #f0f4ff; line-height: 1.2;
+        letter-spacing: -0.01em;
+    }
+    .sb-tag {
+        font-size: 0.62rem; color: #556080; text-transform: uppercase;
+        letter-spacing: 0.07em; margin-top: 1px;
+    }
+    .sb-hr {
+        height: 1px; background: #1a2040;
+        margin: 0.4rem 0 0.75rem;
+    }
+    .sb-section-label {
+        font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em;
+        text-transform: uppercase; color: #3d4f72;
+        padding: 0 0.25rem 0.4rem;
+    }
+    .sb-stats-row {
+        display: flex; gap: 0; margin: 0.25rem 0 0.75rem;
+    }
+    .sb-stat {
+        flex: 1; text-align: center; padding: 0.65rem 0.25rem;
+        background: #0f1428; border-radius: 8px; margin: 0 0.2rem;
+    }
+    .sb-stat-val {
+        font-size: 1.2rem; font-weight: 800; color: #f0f4ff; line-height: 1;
+    }
+    .sb-stat-label {
+        font-size: 0.6rem; color: #4a5a7a; text-transform: uppercase;
+        letter-spacing: 0.07em; margin-top: 3px;
+    }
+    .sb-footer {
+        text-align: center; font-size: 0.62rem; color: #2e3d5a;
+        padding: 0.5rem 0 0.25rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -315,8 +364,27 @@ if "page" not in st.session_state:
 def render_sidebar_navigation():
     """Render sidebar navigation."""
     with st.sidebar:
-        # Navigation buttons styled as links via CSS
-        for page_id, label in NAV_PAGES.items():
+        # ── Brand header ──────────────────────────────────────────
+        st.markdown("""
+        <div class="sb-brand">
+            <div class="sb-logo">🔒</div>
+            <div>
+                <div class="sb-name">PrivacyGuard</div>
+                <div class="sb-tag">Compliance Platform</div>
+            </div>
+        </div>
+        <div class="sb-hr"></div>
+        <div class="sb-section-label">Navigation</div>
+        """, unsafe_allow_html=True)
+
+        # ── Nav items ─────────────────────────────────────────────
+        NAV_ITEMS = [
+            ("dashboard",  "⊞  Dashboard"),
+            ("quick_scan", "⚡  Quick Scan"),
+            ("batch_scan", "⊟  Batch Scan"),
+            ("history",    "◷  History"),
+        ]
+        for page_id, label in NAV_ITEMS:
             is_active = st.session_state.page == page_id
             if st.button(
                 label,
@@ -327,25 +395,33 @@ def render_sidebar_navigation():
                 st.session_state.page = page_id
                 st.rerun()
 
-        st.divider()
-
-        # Compact quick stats
-        st.markdown(
-            '<div style="font-size:0.72rem; color:#b4bcd4; text-transform:uppercase; '
-            'letter-spacing:0.08em; padding: 0 0.25rem 0.5rem;">Quick Stats</div>',
-            unsafe_allow_html=True,
-        )
+        # ── Stats row ─────────────────────────────────────────────
+        st.markdown('<div class="sb-hr" style="margin-top:1.25rem;"></div>', unsafe_allow_html=True)
         try:
             from database.operations import get_scan_statistics
-            stats = get_scan_statistics()
-            if stats:
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Scans", stats.get("total_scans", 0))
-                with col2:
-                    st.metric("Avg", f"{stats.get('avg_score', 0):.0f}")
+            stats = get_scan_statistics() or {}
+            total = stats.get("total_scans", 0)
+            avg = stats.get("avg_score", 0)
+            st.markdown(f"""
+            <div class="sb-stats-row">
+                <div class="sb-stat">
+                    <div class="sb-stat-val">{total}</div>
+                    <div class="sb-stat-label">Scans</div>
+                </div>
+                <div class="sb-stat">
+                    <div class="sb-stat-val">{avg:.0f}</div>
+                    <div class="sb-stat-label">Avg Score</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         except Exception:
-            st.caption("No scans yet")
+            pass
+
+        # ── Footer ────────────────────────────────────────────────
+        st.markdown(
+            '<div class="sb-footer">PrivacyGuard · GDPR &amp; CCPA</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def main():
