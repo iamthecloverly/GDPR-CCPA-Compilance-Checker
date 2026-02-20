@@ -34,13 +34,16 @@ _SHIELD_SVG = (
 
 
 def render_hero():
-    """Render the hero section with headline, subtitle, feature pills, and SVG visual."""
+    """Render the hero section with headline, subtitle, feature pills, SVG visual, and trust strip."""
     hero_html = f"""
     <div class="hero-section">
         <div class="hero-glow-top"></div>
         <div class="hero-glow-bottom"></div>
         <div class="hero-content">
-            <div class="hero-badge">&#x1F512;&nbsp; GDPR &amp; CCPA Compliance Platform</div>
+            <div class="hero-badge">
+                <span class="hero-live-dot"></span>
+                GDPR &amp; CCPA Compliance Platform
+            </div>
             <h1 class="hero-title">Privacy Compliance,<br>Simplified.</h1>
             <p class="hero-subtitle">
                 Scan any website in seconds. Get actionable GDPR and CCPA insights
@@ -61,7 +64,7 @@ def render_hero():
     """
     st.markdown(hero_html, unsafe_allow_html=True)
 
-    # CTA buttons sit right below the hero box
+    # CTA buttons
     b1, b2, b3 = st.columns([1.8, 1.8, 4], gap="small")
     with b1:
         if st.button("🚀 Start Quick Scan", key="hero_quick", use_container_width=True, type="primary"):
@@ -71,6 +74,19 @@ def render_hero():
         if st.button("📂 Batch Scan", key="hero_batch", use_container_width=True):
             st.session_state.page = "batch_scan"
             st.rerun()
+
+    # Trust strip
+    st.markdown("""
+    <div class="trust-strip">
+        <div class="trust-item">✅&nbsp;<span class="trust-value">GDPR</span>&nbsp;Article 13 Ready</div>
+        <div class="trust-sep"></div>
+        <div class="trust-item">✅&nbsp;<span class="trust-value">CCPA</span>&nbsp;Section 1798 Ready</div>
+        <div class="trust-sep"></div>
+        <div class="trust-item">⚡&nbsp;<span class="trust-value">Real-time</span>&nbsp;scanning</div>
+        <div class="trust-sep"></div>
+        <div class="trust-item">🤖&nbsp;<span class="trust-value">GPT-4</span>&nbsp;powered analysis</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def render_dashboard_page():

@@ -33,25 +33,19 @@ class OpenAIService:
             return None
 
         try:
-            # Get privacy policy URL from scan results
-            privacy_policy_status = scan_results.get("privacy_policy", "")
-
-            if "Found" not in privacy_policy_status:
-                return "**No privacy policy detected** - Cannot perform AI analysis without a privacy policy."
-
-            # Extract privacy policy content
+            # Try to fetch privacy policy text
             policy_text = self._fetch_privacy_policy(url)
 
-            if not policy_text:
-                return "**Unable to fetch privacy policy content** - The policy may be behind authentication or dynamically loaded."
-
-            # Truncate if too long (to stay within token limits)
-            max_length = Config.OPENAI_MAX_TOKENS * 2
-            if len(policy_text) > max_length:
-                policy_text = policy_text[:max_length] + "...\n[Content truncated]"
-
-            # Create analysis prompt
-            prompt = self._create_analysis_prompt(url, policy_text, scan_results)
+            if policy_text:
+                # Truncate if too long (to stay within token limits)
+                max_length = Config.OPENAI_MAX_TOKENS * 2
+                if len(policy_text) > max_length:
+                    policy_text = policy_text[:max_length] + "...\n[Content truncated]"
+                prompt = self._create_analysis_prompt(url, policy_text, scan_results)
+            else:
+                # Fallback: analyse purely from scan results
+                logger.info(f"Policy text unavailable for {url} — running scan-based analysis")
+                prompt = self._create_scanonly_prompt(url, scan_results)
 
             # Call OpenAI API
             response = self.client.chat.completions.create(
@@ -59,7 +53,7 @@ class OpenAIService:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a privacy compliance expert specializing in GDPR and CCPA regulations. Provide clear, actionable analysis.",
+                        "content": "You are a privacy compliance expert specialising in GDPR and CCPA regulations. Provide clear, actionable analysis.",
                     },
                     {"role": "user", "content": prompt},
                 ],
@@ -67,7 +61,7 @@ class OpenAIService:
                 max_tokens=Config.OPENAI_MAX_TOKENS,
             )
 
-            logger.info(f"Successfully analyzed privacy policy for {url}")
+            logger.info(f"Successfully analysed privacy compliance for {url}")
             return response.choices[0].message.content
 
         except Exception as e:
@@ -77,19 +71,26 @@ class OpenAIService:
     def _fetch_privacy_policy(self, base_url: str) -> Optional[str]:
         """Fetch privacy policy content from website."""
         try:
-            # Common privacy policy paths
             policy_paths = [
-                "/privacy-policy",
-                "/privacy",
-                "/privacy-notice",
-                "/legal/privacy",
-                "/privacy-statement",
-                "/data-protection",
-                "/legal/data-protection",
-                "/gdpr",
+                "/privacy-policy", "/privacy", "/privacy-notice",
+                "/legal/privacy", "/privacy-statement", "/data-protection",
+                "/legal/data-protection", "/gdpr", "/legal", "/policies/privacy",
+                "/en/privacy-policy", "/about/privacy", "/terms-privacy",
+                "/cookie-policy", "/data-privacy",
             ]
 
-            headers = {"User-Agent": Config.USER_AGENT}
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Upgrade-Insecure-Requests": "1",
+            }
 
             policy_url = None
 
@@ -106,20 +107,17 @@ class OpenAIService:
 
                 if "text/html" in content_type:
                     soup = BeautifulSoup(response.content, "html.parser")
-
-                    # Look for privacy policy links with expanded keywords
-                    keywords = ["privacy", "data protection", "data-protection", "gdpr"]
-
+                    keywords = [
+                        "privacy", "data protection", "data-protection",
+                        "gdpr", "ccpa", "cookie policy", "data policy",
+                    ]
                     all_links = soup.find_all("a", href=True)
                     privacy_link = None
 
-                    # 1. Check text content
                     for link in all_links:
                         if any(k in link.get_text().lower() for k in keywords):
                             privacy_link = link
                             break
-
-                    # 2. Check href if text match failed
                     if not privacy_link:
                         for link in all_links:
                             href = link.get("href", "").lower()
@@ -143,17 +141,15 @@ class OpenAIService:
                 for path in policy_paths:
                     test_url = base_url.rstrip("/") + path
                     try:
-                        # Use HEAD first to be efficient
                         test_response = self.session.head(
-                            test_url, timeout=5, allow_redirects=True
+                            test_url, timeout=5, headers=headers, allow_redirects=True
                         )
                         if test_response.status_code == 200:
                             policy_url = test_url
                             break
-
                         if test_response.status_code in {403, 405}:
                             get_response = self.session.get(
-                                test_url, timeout=5, allow_redirects=True
+                                test_url, timeout=5, headers=headers, allow_redirects=True
                             )
                             if get_response.status_code == 200:
                                 policy_url = test_url
@@ -164,38 +160,31 @@ class OpenAIService:
             if not policy_url:
                 return None
 
-            # Validate the policy URL to prevent SSRF
             try:
                 validate_url(policy_url)
             except InvalidURLError as e:
                 logger.warning(f"Skipping invalid or unsafe privacy policy URL {policy_url}: {e}")
                 return None
 
-            # Fetch privacy policy content
             policy_response = self.session.get(
                 policy_url,
                 timeout=Config.REQUEST_TIMEOUT,
-                headers=headers,
+                headers={**headers, "Referer": base_url},
                 allow_redirects=True,
             )
             policy_response.raise_for_status()
 
-            # Use Trafilatura for robust text extraction
             text = trafilatura.extract(policy_response.text)
 
             if not text:
-                # Fallback to BeautifulSoup if Trafilatura fails
                 policy_soup = BeautifulSoup(policy_response.content, "html.parser")
-                for script in policy_soup(
-                    ["script", "style", "nav", "header", "footer"]
-                ):
-                    script.decompose()
+                for tag in policy_soup(["script", "style", "nav", "header", "footer"]):
+                    tag.decompose()
                 text = policy_soup.get_text(separator="\n", strip=True)
 
             if not text:
                 return None
 
-            # Clean up whitespace
             lines = [line.strip() for line in text.splitlines() if line.strip()]
             clean_text = "\n".join(lines)
 
@@ -231,6 +220,33 @@ Please provide:
 
 Keep the analysis concise and actionable."""
 
+        return prompt
+
+    def _create_scanonly_prompt(self, url: str, scan_results: Dict[str, Any]) -> str:
+        """Fallback prompt when policy text cannot be fetched — uses scan data only."""
+        trackers = scan_results.get("trackers", [])
+        tracker_list = ", ".join(trackers[:10]) if trackers else "None detected"
+        prompt = f"""You are auditing the GDPR/CCPA compliance posture of a website based on automated scan results only.
+The privacy policy page could not be retrieved (it may be dynamically loaded or behind a CDN).
+
+**Website:** {url}
+
+**Automated Scan Findings:**
+- Cookie Consent Banner: {scan_results.get('cookie_consent', 'Unknown')}
+- Privacy Policy Link: {scan_results.get('privacy_policy', 'Unknown')}
+- Contact / DPO Information: {scan_results.get('contact_info', 'Unknown')}
+- Third-party Trackers Detected ({len(trackers)}): {tracker_list}
+- Score: {scan_results.get('score', 'N/A')}/100
+- Grade: {scan_results.get('grade', 'N/A')}
+
+Based on these observable signals, provide:
+
+1. **Compliance Assessment** — what the scan findings suggest about GDPR/CCPA posture
+2. **Key Risks** — specific concerns raised by the scan data
+3. **Recommended Actions** — prioritised next steps to improve compliance
+4. **Risk Level** — Low / Medium / High
+
+Be concise, specific to these findings, and note that a full policy text review was not possible."""
         return prompt
 
     def get_remediation_advice(self, scan_results: Dict[str, Any]) -> Optional[str]:
