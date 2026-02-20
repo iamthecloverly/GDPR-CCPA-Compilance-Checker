@@ -54,12 +54,31 @@ def render_quick_scan_page():
             st.success("Using cached result")
             render_scan_results(cached_result)
         else:
-            with st.spinner("Scanning website..."):
-                controller = ComplianceController()
-                result = controller.scan_website(prepared_url)
+            try:
+                with st.spinner("Scanning website..."):
+                    controller = ComplianceController()
+                    result = controller.scan_website(prepared_url)
 
-                result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                result["url"] = prepared_url
+                    result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    result["url"] = prepared_url
+
+            except NetworkError as e:
+                st.error(f"**Could not reach the website:** {e}")
+                st.info(
+                    "**Troubleshooting tips:**\n"
+                    "- Double-check the URL spelling\n"
+                    "- Make sure the site is publicly accessible (not behind a login or VPN)\n"
+                    "- Try opening the URL in your browser first"
+                )
+                return
+            except ScanError as e:
+                st.error(f"**Scan failed:** {e}")
+                st.info("If this is unexpected, try again or verify the site is accessible in a browser.")
+                return
+            except Exception as e:
+                logger.error(f"Unhandled scan error for {prepared_url}: {e}")
+                st.error("**An unexpected error occurred.** Please try again.")
+                return
 
             if ai_enabled:
                 with st.spinner("Running AI analysis on privacy policy..."):

@@ -96,9 +96,46 @@ class ComplianceModel:
             if "text/html" not in content_type:
                 raise NetworkError(f"URL did not return HTML content (got {content_type})")
             return response.content
+        except NetworkError:
+            raise
+        except requests.exceptions.SSLError as e:
+            logger.error(f"SSL error for {url}: {e}")
+            raise NetworkError(
+                "SSL certificate error — the site may have an invalid or expired certificate."
+            ) from e
+        except requests.exceptions.ConnectionError as e:
+            err_str = str(e)
+            if any(k in err_str for k in ("NameResolutionError", "Failed to resolve", "Errno -5", "Errno 11001")):
+                from urllib.parse import urlparse
+                domain = urlparse(url).netloc or url
+                raise NetworkError(
+                    f"Could not resolve '{domain}' — check the domain name is correct and the site is online."
+                ) from e
+            raise NetworkError(
+                "Connection refused — the site may be offline or blocking automated requests."
+            ) from e
+        except requests.exceptions.Timeout:
+            raise NetworkError(
+                "Request timed out — the site may be slow or blocking automated requests."
+            ) from None
+        except requests.exceptions.TooManyRedirects:
+            raise NetworkError(
+                "Too many redirects — the site has a redirect loop."
+            ) from None
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else "unknown"
+            if status == 403:
+                raise NetworkError("Access forbidden (HTTP 403) — the site is blocking automated scans.") from e
+            elif status == 404:
+                raise NetworkError("Page not found (HTTP 404) — check the URL is correct.") from e
+            elif status == 429:
+                raise NetworkError("Rate limited (HTTP 429) — try again in a few minutes.") from e
+            elif isinstance(status, int) and status >= 500:
+                raise NetworkError(f"Server error (HTTP {status}) — the site is experiencing issues.") from e
+            raise NetworkError(f"HTTP error {status} — could not access the site.") from e
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch URL {url}: {e}")
-            raise NetworkError(f"Failed to fetch URL: {str(e)}") from e
+            raise NetworkError(f"Network error — could not reach the site ({type(e).__name__}).") from e
     
     def analyze_compliance(self, url: str) -> Dict[str, Any]:
         """

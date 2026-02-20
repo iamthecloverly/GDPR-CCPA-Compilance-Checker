@@ -38,7 +38,7 @@ def render_batch_scan_page():
         
         st.info(f"Ready to scan {len(urls)} website(s)")
         
-        if st.button("Start Batch Scanning", type="primary", width='stretch'):
+        if st.button("Start Batch Scanning", type="primary", use_container_width=False):
             perform_batch_scan(urls)
 
 

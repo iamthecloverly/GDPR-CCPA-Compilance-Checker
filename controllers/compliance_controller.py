@@ -8,7 +8,7 @@ from models.compliance_model import ComplianceModel
 from services.openai_service import OpenAIService
 from config import Config
 from constants import GRADE_THRESHOLDS
-from exceptions import ScanError
+from exceptions import ScanError, NetworkError
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,8 @@ class ComplianceController:
 
             return response
 
+        except (ScanError, NetworkError):
+            raise
         except Exception as e:
             logger.error(f"Scan failed for {url}: {e}")
             raise ScanError(f"Scan failed: {str(e)}") from e
