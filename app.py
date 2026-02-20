@@ -457,6 +457,165 @@ st.markdown("""
         text-align: center; font-size: 0.62rem; color: #2e3d5a;
         padding: 0.5rem 0 0.25rem;
     }
+
+    /* ── Spacing utilities ─────────────────────────────────────── */
+    .section-space {
+        margin: 1.5rem 0 !important;
+    }
+    .compact-space {
+        margin: 0.75rem 0 !important;
+    }
+    .large-space {
+        margin: 2rem 0 !important;
+    }
+
+    /* ── Component-specific styles ─────────────────────────────── */
+    .score-display-container {
+        text-align: center;
+        padding: 20px;
+        background: rgba(30, 33, 46, 0.5);
+        border-radius: 12px;
+        border: 1px solid rgba(88, 166, 255, 0.1);
+    }
+    .score-display-value {
+        font-size: 64px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .score-display-max {
+        font-size: 14px;
+        color: #a0aec0;
+        margin-bottom: 15px;
+    }
+    .score-display-grade {
+        font-size: 24px;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+    .score-display-status {
+        font-size: 12px;
+        color: #e6edf3;
+    }
+
+    .stats-summary-box {
+        background: rgba(30, 33, 46, 0.5);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(88, 166, 255, 0.08);
+        font-size: 14px;
+    }
+    .stats-summary-item {
+        margin-bottom: 10px;
+    }
+    .stats-summary-label {
+        color: #a0aec0;
+        display: block;
+        margin-bottom: 3px;
+    }
+    .stats-summary-value {
+        color: #e6edf3;
+        word-break: break-all;
+    }
+    .stats-summary-value.status {
+        font-weight: bold;
+    }
+
+    .ai-analysis-box {
+        border: 1px solid rgba(0, 217, 255, 0.2);
+        border-radius: 8px;
+        padding: 1.5rem;
+        background: rgba(0, 217, 255, 0.02);
+        margin: 1.5rem 0;
+    }
+    .ai-analysis-title {
+        color: #00d9ff;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    /* ── Responsive media queries ──────────────────────────────── */
+    @media (max-width: 768px) {
+        .section-space {
+            margin: 1rem 0 !important;
+        }
+        .compact-space {
+            margin: 0.5rem 0 !important;
+        }
+        .large-space {
+            margin: 1.5rem 0 !important;
+        }
+        /* Metric cards spacing adjustment for tablets */
+        .metric-card {
+            padding: 1rem !important;
+        }
+        /* Component responsiveness for tablets */
+        .score-display-container {
+            padding: 15px;
+        }
+        .score-display-value {
+            font-size: 48px;
+        }
+        .score-display-grade {
+            font-size: 18px;
+        }
+        .stats-summary-box {
+            padding: 12px;
+            font-size: 13px;
+        }
+        .ai-analysis-box {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .section-space {
+            margin: 0.75rem 0 !important;
+        }
+        .compact-space {
+            margin: 0.25rem 0 !important;
+        }
+        .large-space {
+            margin: 1rem 0 !important;
+        }
+        /* Mobile button sizing and spacing */
+        .stButton > button {
+            padding: 0.5rem 1rem !important;
+            font-size: 0.9rem !important;
+        }
+        /* Mobile component sizing */
+        .score-display-container {
+            padding: 12px;
+        }
+        .score-display-value {
+            font-size: 36px;
+        }
+        .score-display-max {
+            font-size: 12px;
+        }
+        .score-display-grade {
+            font-size: 16px;
+            margin-top: 8px;
+        }
+        .score-display-status {
+            font-size: 11px;
+        }
+        .stats-summary-box {
+            padding: 10px;
+            font-size: 12px;
+        }
+        .stats-summary-item {
+            margin-bottom: 8px;
+        }
+        .ai-analysis-box {
+            padding: 0.8rem;
+            margin: 1rem 0;
+        }
+        .ai-analysis-title {
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 

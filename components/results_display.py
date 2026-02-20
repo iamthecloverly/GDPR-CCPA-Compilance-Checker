@@ -62,17 +62,11 @@ def render_quick_results(results: Dict[str, Any]):
         color, status_text = _get_score_status(score)
         
         st.markdown(f"""
-        <div style="text-align: center; padding: 20px; background: rgba(30, 33, 46, 0.5); border-radius: 12px;">
-            <div style="font-size: 64px; font-weight: bold; color: {color};">
-                {score}
-            </div>
-            <div style="font-size: 14px; color: #a0aec0; margin-top: 5px;">/ 100</div>
-            <div style="font-size: 24px; color: {color}; margin-top: 15px; font-weight: bold;">
-                Grade: {grade}
-            </div>
-            <div style="font-size: 12px; color: #e6edf3; margin-top: 10px;">
-                {status_text} - {results.get('status', 'Unknown')}
-            </div>
+        <div class="score-display-container">
+            <div class="score-display-value" style="color: {color};">{score}</div>
+            <div class="score-display-max">/ 100</div>
+            <div class="score-display-grade" style="color: {color};">Grade: {grade}</div>
+            <div class="score-display-status">{status_text} - {results.get('status', 'Unknown')}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -116,18 +110,18 @@ def render_quick_results(results: Dict[str, Any]):
         st.markdown("**Summary**")
         
         stats_html = f"""
-        <div style="background: rgba(30, 33, 46, 0.5); padding: 15px; border-radius: 8px; font-size: 14px;">
-            <div style="margin-bottom: 10px;">
-                <span style="color: #a0aec0;">URL:</span><br>
-                <span style="color: #e6edf3; word-break: break-all;">{results.get("url", "N/A")}</span>
+        <div class="stats-summary-box">
+            <div class="stats-summary-item">
+                <span class="stats-summary-label">URL:</span>
+                <span class="stats-summary-value">{results.get("url", "N/A")}</span>
             </div>
-            <div style="margin-bottom: 10px;">
-                <span style="color: #a0aec0;">Scanned:</span><br>
-                <span style="color: #e6edf3;">{results.get("scan_date", "N/A")}</span>
+            <div class="stats-summary-item">
+                <span class="stats-summary-label">Scanned:</span>
+                <span class="stats-summary-value">{results.get("scan_date", "N/A")}</span>
             </div>
-            <div>
-                <span style="color: #a0aec0;">Status:</span><br>
-                <span style="color: {color}; font-weight: bold;">{results.get("status", "Unknown")}</span>
+            <div class="stats-summary-item">
+                <span class="stats-summary-label">Status:</span>
+                <span class="stats-summary-value status" style="color: {color};">{results.get("status", "Unknown")}</span>
             </div>
         </div>
         """
@@ -220,6 +214,9 @@ def render_ai_analysis(analysis_text: str):
     if not analysis_text:
         st.info("No AI analysis available.")
         return
-    with st.container(border=True):
-        st.markdown("### AI Analysis")
-        st.markdown(analysis_text)
+    st.markdown(f"""
+    <div class="ai-analysis-box">
+        <div class="ai-analysis-title">🤖 AI Analysis</div>
+        <div>{analysis_text.replace(chr(10), '<br>')}</div>
+    </div>
+    """, unsafe_allow_html=True)

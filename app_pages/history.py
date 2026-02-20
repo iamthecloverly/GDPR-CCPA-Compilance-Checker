@@ -40,8 +40,6 @@ def render_history_page():
 
 def render_all_scans_view():
     """All scans with filter bar."""
-    st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
-
     # ── Filter bar ────────────────────────────────────────────────
     f1, f2, f3 = st.columns([2, 2, 3], gap="medium")
 
@@ -76,67 +74,56 @@ def render_all_scans_view():
             key="search_url",
         )
 
-    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-
     # ── Load & filter data ────────────────────────────────────────
-    try:
-        scans = get_scan_by_url(search_url) if search_url else get_all_scans()
+    scans = get_scan_by_url(search_url) if search_url else get_all_scans()
 
-        if not scans:
-            st.info("No scans yet — start with a Quick Scan or Batch Scan.")
-            return
+    if not scans:
+        st.info("No scans yet — start with a Quick Scan or Batch Scan.")
+        return
 
-        df = pd.DataFrame(scans)
+    df = pd.DataFrame(scans)
 
-        if filter_grade:
-            df = df[df["grade"].isin(filter_grade)]
+    if filter_grade:
+        df = df[df["grade"].isin(filter_grade)]
 
-        if "scan_date" in df.columns:
-            cutoff = datetime.now() - timedelta(days=date_range)
-            df["scan_date"] = pd.to_datetime(df["scan_date"])
-            df = df[df["scan_date"] >= cutoff]
+    if "scan_date" in df.columns:
+        cutoff = datetime.now() - timedelta(days=date_range)
+        df["scan_date"] = pd.to_datetime(df["scan_date"])
+        df = df[df["scan_date"] >= cutoff]
 
-        if df.empty:
-            st.info("No scans match the current filters.")
-            return
+    if df.empty:
+        st.info("No scans match the current filters.")
+        return
 
-        # ── Summary metrics ───────────────────────────────────────
-        total = len(df)
-        avg_score = df["score"].mean() if "score" in df.columns else 0
-        compliant = int((df["score"] >= 80).sum()) if "score" in df.columns else 0
-        at_risk = int((df["score"] < 60).sum()) if "score" in df.columns else 0
+    # ── Summary metrics ───────────────────────────────────────
+    total = len(df)
+    avg_score = df["score"].mean() if "score" in df.columns else 0
+    compliant = int((df["score"] >= 80).sum()) if "score" in df.columns else 0
+    at_risk = int((df["score"] < 60).sum()) if "score" in df.columns else 0
 
-        m1, m2, m3, m4 = st.columns(4, gap="medium")
-        with m1:
-            st.metric("Total Scans", total)
-        with m2:
-            st.metric("Avg Score", f"{avg_score:.1f}")
-        with m3:
-            st.metric("Compliant (≥80)", compliant)
-        with m4:
-            st.metric("At Risk (<60)", at_risk)
+    m1, m2, m3, m4 = st.columns(4, gap="medium")
+    with m1:
+        st.metric("Total Scans", total)
+    with m2:
+        st.metric("Avg Score", f"{avg_score:.1f}")
+    with m3:
+        st.metric("Compliant (≥80)", compliant)
+    with m4:
+        st.metric("At Risk (<60)", at_risk)
 
-        st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
+    # ── Scans table ───────────────────────────────────────────
+    display_cols = [c for c in ["url", "score", "grade", "status", "scan_date"] if c in df.columns]
+    sort_col = "scan_date" if "scan_date" in df.columns else "score"
 
-        # ── Scans table ───────────────────────────────────────────
-        display_cols = [c for c in ["url", "score", "grade", "status", "scan_date"] if c in df.columns]
-        sort_col = "scan_date" if "scan_date" in df.columns else "score"
-
-        st.dataframe(
-            df[display_cols].sort_values(sort_col, ascending=False).reset_index(drop=True),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-    except Exception as e:
-        logger.error(f"Error loading scan history: {e}")
-        st.error("Could not load scan history. Please try again.")
+    st.dataframe(
+        df[display_cols].sort_values(sort_col, ascending=False).reset_index(drop=True),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 def render_comparison_view_tab():
     """Compare two scans side-by-side."""
-    st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
-
     try:
         scans = get_all_scans()
 
@@ -162,8 +149,6 @@ def render_comparison_view_tab():
                 label_visibility="collapsed", key="comp2",
             )
 
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-
         if scan1_idx == scan2_idx:
             st.warning("Select two different scans to compare.")
         else:
@@ -177,8 +162,6 @@ def render_comparison_view_tab():
 
 def render_statistics_view():
     """Statistics and trends for all scans."""
-    st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
-
     try:
         scans = get_all_scans()
 
@@ -209,7 +192,6 @@ def render_statistics_view():
 
         # ── Grade distribution ────────────────────────────────────
         if "grade" in df.columns:
-            st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
             st.caption("GRADE BREAKDOWN")
             grade_df = df["grade"].value_counts().reset_index()
             grade_df.columns = ["Grade", "Count"]
@@ -218,7 +200,6 @@ def render_statistics_view():
 
             grade_chart = (
                 alt.Chart(grade_df)
-                .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
                 .encode(
                     x=alt.X("Grade:N", sort=grade_order, axis=alt.Axis(labelColor="#8b949e", title=None)),
                     y=alt.Y("Count:Q", axis=alt.Axis(labelColor="#8b949e", gridColor="#21262d", title="Sites")),
@@ -237,7 +218,6 @@ def render_statistics_view():
 
         # ── Compliance summary ────────────────────────────────────
         if "score" in df.columns:
-            st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
             st.caption("COMPLIANCE STATUS")
             compliant  = int((df["score"] >= 80).sum())
             needs_work = int(((df["score"] >= 60) & (df["score"] < 80)).sum())
@@ -257,8 +237,6 @@ def render_statistics_view():
 
 def render_export_view():
     """Export scan data."""
-    st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
-
     try:
         scans = get_all_scans()
         if not scans:

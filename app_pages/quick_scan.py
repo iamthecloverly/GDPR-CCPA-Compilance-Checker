@@ -109,27 +109,26 @@ def render_scan_results(result: dict):
     # Score, chart, and summary
     render_quick_results(result)
 
-    st.divider()
-
     # Detailed findings
     findings = result.get("findings", {})
     if findings:
+        st.markdown("---")  # Visual separator for clean layout
         render_findings(findings)
-
-    st.divider()
 
     # Recommendations
     recommendations = result.get("recommendations", [])
     if recommendations:
+        st.markdown("---")  # Visual separator for clean layout
         render_recommendations(recommendations)
-
-    # Export options
-    render_export_options(result)
 
     # AI analysis (shown if available)
     if result.get("ai_analysis"):
-        st.divider()
+        st.markdown("---")  # Visual separator for clean layout
         render_ai_analysis(result["ai_analysis"])
+
+    # Export options (at the end after AI analysis)
+    st.markdown("---")  # Visual separator before export section
+    render_export_options(result)
 
 
 def main():

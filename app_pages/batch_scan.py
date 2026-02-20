@@ -130,10 +130,7 @@ def perform_batch_scan(urls: list):
         st.success(f"✓ Batch scan completed! Scanned {len(completed_scans)} websites successfully.")
         
         # Show results summary
-        st.markdown("---")
         render_batch_summary(completed_scans, [s["url"] for s in failed_scans])
-        
-        st.markdown("---")
         
         # Export options
         if completed_scans:
