@@ -1,4 +1,4 @@
-"""Header and navigation components."""
+"""Header and metric card components."""
 
 import streamlit as st
 from typing import Dict, Any
@@ -6,8 +6,8 @@ from typing import Dict, Any
 
 def create_metric_card(title: str, value: str, delta: str, color: str):
     """
-    Create a custom metric card with colored border and glow effect.
-    
+    Create a custom metric card with colored border.
+
     Args:
         title: Metric title/label
         value: Main metric value to display
@@ -18,40 +18,16 @@ def create_metric_card(title: str, value: str, delta: str, color: str):
     <div class="metric-card {color}">
         <div class="metric-label">{title}</div>
         <div class="metric-value">{value}</div>
-        <div class="metric-delta {color}">
-            {delta}
-        </div>
+        <div class="metric-delta {color}">{delta}</div>
     </div>
     """
     st.markdown(html_code, unsafe_allow_html=True)
 
 
-def render_header():
-    """Render consistent application header with navigation."""
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 3, 1])
-    
-    with col1:
-        st.markdown("### 🔒")
-    
-    with col2:
-        st.markdown("""
-        <h1 style="font-size: 28px; margin: 0; color: #e6edf3;">
-            GDPR/CCPA Compliance Checker
-        </h1>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        if st.button("⚙️ Settings", key="header_settings"):
-            st.session_state.page = "settings"
-    
-    st.markdown("---")
-
-
 def render_stats_row(stats: Dict[str, Any]):
     """
-    Render a row of stat cards with improved visual hierarchy.
-    
+    Render a row of stat cards using native Streamlit metrics.
+
     Args:
         stats: Dictionary containing statistics
                - total_scans: int
@@ -60,43 +36,42 @@ def render_stats_row(stats: Dict[str, Any]):
                - at_risk_count: int
     """
     col1, col2, col3, col4 = st.columns(4, gap="medium")
-    
+
     with col1:
         total = stats.get("total_scans", 0)
         st.metric(
-            "📊 Total Scans",
+            "Total Scans",
             f"{total:,}",
             delta="All time" if total > 0 else None,
             delta_color="off"
         )
-    
+
     with col2:
         avg_score = stats.get("avg_score", 0)
-        # Calculate delta (comparing to baseline of 70)
         baseline = 70
         delta_val = avg_score - baseline
         delta_text = f"{delta_val:+.0f} vs baseline" if avg_score > 0 else None
-        
+
         st.metric(
-            "🎯 Average Score",
+            "Average Score",
             f"{avg_score:.0f}/100",
             delta=delta_text,
             delta_color="normal" if delta_val >= 0 else "inverse"
         )
-    
+
     with col3:
         compliant = stats.get("compliant_count", 0)
         st.metric(
-            "✅ Compliant",
+            "Compliant",
             f"{compliant:,}",
             delta="Grade A" if compliant > 0 else None,
             delta_color="off"
         )
-    
+
     with col4:
         at_risk = stats.get("at_risk_count", 0)
         st.metric(
-            "⚠️ At Risk",
+            "At Risk",
             f"{at_risk:,}",
             delta="High Priority" if at_risk > 0 else None,
             delta_color="inverse" if at_risk > 0 else "off"
@@ -106,7 +81,7 @@ def render_stats_row(stats: Dict[str, Any]):
 def render_page_title(title: str, description: str = ""):
     """
     Render a page title with optional description.
-    
+
     Args:
         title: Page title
         description: Optional description text

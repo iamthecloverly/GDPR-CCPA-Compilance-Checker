@@ -38,85 +38,73 @@ st.set_page_config(
     }
 )
 
-# Minimal, clean CSS theme
+# Custom CSS for elements not covered by Streamlit theme
 st.markdown("""
 <style>
-    :root {
-        --primary: #00d9ff;
-        --bg-dark: #0a0e27;
-        --bg-surface: #1a1f3a;
-        --text-primary: #f5f7fa;
-        --text-secondary: #b4bcd4;
-        --border-color: #2a3250;
-    }
-    
-    [data-testid="stApp"], body {
-        background: var(--bg-dark);
-        color: var(--text-primary);
-    }
-    
-    [data-testid="stHeader"] { background: transparent; }
-    [data-testid="stToolbar"] { display: none; }
-    [data-testid="stSidebar"] { background: var(--bg-surface); border-right: 1px solid var(--border-color); }
-    
-    h1 { color: var(--primary); font-size: 2.5rem; margin-bottom: 0.5rem; }
-    h2 { color: var(--text-primary); }
-    h3 { color: var(--text-primary); }
-    
-    .stButton > button {
-        background: linear-gradient(135deg, var(--primary), #00b8d4);
-        color: #000;
-        font-weight: 600;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        transition: all 0.2s;
-    }
-    
-    .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 217, 255, 0.4); }
-    
-    .stButton > button[kind="secondary"] {
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-    }
-    
-    input, textarea, select {
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-    }
-    
-    input:focus, textarea:focus { border-color: var(--primary); outline: none; }
-    
+    /* --- Metric cards (custom HTML from create_metric_card) --- */
     .metric-card {
-        background: linear-gradient(135deg, rgba(26, 31, 58, 0.95), rgba(15, 19, 26, 0.95));
-        border-radius: 12px;
-        padding: 1.5rem;
-        border-top: 3px solid;
-    }
-    
-    .metric-card.blue { border-top-color: #58a6ff; }
-    .metric-card.green { border-top-color: #3fb950; }
-    .metric-card.orange { border-top-color: #d29922; }
-    .metric-card.red { border-top-color: #f85149; }
-    
-    [data-testid="metric-container"] {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-color);
+        background: #1a1f3a;
         border-radius: 12px;
         padding: 1.25rem;
+        border-top: 3px solid;
+    }
+    .metric-card.blue  { border-top-color: #58a6ff; }
+    .metric-card.green { border-top-color: #3fb950; }
+    .metric-card.orange{ border-top-color: #d29922; }
+    .metric-card.red   { border-top-color: #f85149; }
+    .metric-label {
+        font-size: 0.85rem;
+        color: #b4bcd4;
+        margin-bottom: 0.4rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #f5f7fa;
+        line-height: 1.2;
+    }
+    .metric-delta {
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+        color: #b4bcd4;
+    }
+    .metric-delta.blue  { color: #58a6ff; }
+    .metric-delta.green { color: #3fb950; }
+    .metric-delta.orange{ color: #d29922; }
+    .metric-delta.red   { color: #f85149; }
+
+    /* --- Action cards (dashboard quick actions) --- */
+    .action-card {
+        background: #1a1f3a;
+        border: 1px solid #2a3250;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 0.75rem;
+    }
+    .action-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .action-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #f5f7fa;
+        margin: 0.5rem 0 0.25rem;
+    }
+    .action-desc {
+        font-size: 0.85rem;
+        color: #b4bcd4;
+        margin: 0;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # Navigation
 NAV_PAGES = {
-    "dashboard": ("📊", "Dashboard"),
-    "quick_scan": ("🔍", "Quick Scan"),
-    "batch_scan": ("📂", "Batch Scan"),
-    "history": ("📅", "History"),
+    "dashboard": "Dashboard",
+    "quick_scan": "Quick Scan",
+    "batch_scan": "Batch Scan",
+    "history": "History",
 }
 
 if "page" not in st.session_state:
@@ -126,16 +114,26 @@ if "page" not in st.session_state:
 def render_sidebar_navigation():
     """Render sidebar navigation."""
     with st.sidebar:
-        st.markdown("## 🔒 Privacy Scanner")
+        st.markdown("## Privacy Scanner")
         st.markdown("*GDPR & CCPA Compliance*")
         st.divider()
-        
-        for page_id, (icon, title) in NAV_PAGES.items():
-            if st.button(f"{icon}  {title}", key=f"nav_{page_id}", use_container_width=True,
-                        type="primary" if st.session_state.page == page_id else "secondary"):
-                st.session_state.page = page_id
-                st.rerun()
-        
+
+        page_ids = list(NAV_PAGES.keys())
+        page_labels = list(NAV_PAGES.values())
+        current_index = page_ids.index(st.session_state.page) if st.session_state.page in page_ids else 0
+
+        selected_label = st.radio(
+            "Navigation",
+            page_labels,
+            index=current_index,
+            label_visibility="collapsed",
+        )
+
+        selected_id = page_ids[page_labels.index(selected_label)]
+        if selected_id != st.session_state.page:
+            st.session_state.page = selected_id
+            st.rerun()
+
         st.divider()
         st.markdown("### Quick Stats")
         try:
@@ -144,7 +142,7 @@ def render_sidebar_navigation():
             if stats:
                 st.metric("Total Scans", stats.get("total_scans", 0))
                 st.metric("Avg Score", f"{stats.get('avg_score', 0):.0f}/100")
-        except:
+        except Exception:
             st.caption("No scans yet")
 
 
