@@ -210,13 +210,12 @@ def render_recommendations(recommendations: List[str]):
 
 
 def render_ai_analysis(analysis_text: str):
-    """Render AI-powered privacy policy analysis output."""
+    """Render AI-powered privacy policy analysis output with proper markdown formatting."""
     if not analysis_text:
         st.info("No AI analysis available.")
         return
-    st.markdown(f"""
-    <div class="ai-analysis-box">
-        <div class="ai-analysis-title">🤖 AI Analysis</div>
-        <div>{analysis_text.replace(chr(10), '<br>')}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    
+    # Use expandable container for better UI
+    with st.expander("🤖 AI Compliance Analysis", expanded=True):
+        # Render markdown properly to parse headers, bold, lists, etc.
+        st.markdown(analysis_text)
