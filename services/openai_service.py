@@ -13,7 +13,7 @@ from config import Config
 from constants import PRIVACY_KEYWORDS
 from exceptions import AIServiceError, NetworkError, InvalidURLError
 from validators import validate_url
-from utils import create_session
+from utils import create_session, safe_request
 
 logger = logging.getLogger(__name__)
 
@@ -98,15 +98,17 @@ class OpenAIService:
 
             # Try to find privacy policy link in the page
             try:
-                response = self.session.get(
+                logger.debug(f"Fetching homepage: {base_url}")
+                response = safe_request(
+                    self.session,
+                    "GET",
                     base_url,
                     timeout=Config.REQUEST_TIMEOUT,
                     headers=headers,
-                    allow_redirects=True,
                     stream=True,
                 )
                 response.raise_for_status()
-                content_type = response.headers.get("Content-Type", "")
+                content_type = response.headers.get("Content-Type", "") or ""
 
                 if "text/html" in content_type:
                     homepage_html = self._read_limited_response(response, Config.MAX_RESPONSE_BYTES)
@@ -145,7 +147,7 @@ class OpenAIService:
                             policy_url = "https:" + href
                         else:
                             policy_url = urljoin(base_url, href)
-            except requests.RequestException:
+            except Exception:
                 pass
 
             # If not found via scraping, try common paths
@@ -153,20 +155,20 @@ class OpenAIService:
                 for path in policy_paths:
                     test_url = base_url.rstrip("/") + path
                     try:
-                        test_response = self.session.head(
-                            test_url, timeout=5, headers=headers, allow_redirects=True
+                        test_response = safe_request(
+                            self.session, "HEAD", test_url, timeout=5, headers=headers
                         )
                         if test_response.status_code == 200:
                             policy_url = test_url
                             break
                         if test_response.status_code in {403, 405}:
-                            get_response = self.session.get(
-                                test_url, timeout=5, headers=headers, allow_redirects=True
+                            get_response = safe_request(
+                                self.session, "GET", test_url, timeout=5, headers=headers
                             )
                             if get_response.status_code == 200:
                                 policy_url = test_url
                                 break
-                    except requests.RequestException:
+                    except Exception:
                         continue
 
             if not policy_url:
@@ -178,11 +180,12 @@ class OpenAIService:
                 logger.warning(f"Skipping invalid or unsafe privacy policy URL {policy_url}: {e}")
                 return None
 
-            policy_response = self.session.get(
+            policy_response = safe_request(
+                self.session,
+                "GET",
                 policy_url,
                 timeout=Config.REQUEST_TIMEOUT,
                 headers={**headers, "Referer": base_url},
-                allow_redirects=True,
                 stream=True,
             )
             policy_response.raise_for_status()
@@ -205,7 +208,7 @@ class OpenAIService:
             logger.info(f"Successfully fetched privacy policy from {policy_url}")
             return clean_text
 
-        except requests.RequestException as e:
+        except Exception as e:
             logger.warning(f"Failed to fetch privacy policy from {base_url}: {e}")
             return None
 
