@@ -110,3 +110,4 @@ PHONE_PATTERN = re.compile(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\b\+?\d{1,3}[\s.-]?\(
 # These are pre-compiled for efficiency during scanning
 COOKIE_PATTERNS = [re.compile(keyword, re.IGNORECASE) for keyword in COOKIE_KEYWORDS]
 PRIVACY_PATTERNS = [re.compile(keyword, re.IGNORECASE) for keyword in PRIVACY_KEYWORDS]
+PRIVACY_COMBINED_PATTERN = re.compile("|".join(re.escape(k) for k in PRIVACY_KEYWORDS), re.IGNORECASE)

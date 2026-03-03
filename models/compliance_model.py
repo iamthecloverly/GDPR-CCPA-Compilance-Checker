@@ -33,8 +33,8 @@ from urllib.parse import urlparse
 from config import Config
 from utils import create_session
 from constants import (
-    COOKIE_KEYWORDS, COOKIE_PATTERNS, PRIVACY_PATTERNS, TRACKING_DOMAINS,
-    EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
+    COOKIE_KEYWORDS, COOKIE_PATTERNS, PRIVACY_COMBINED_PATTERN,
+    TRACKING_DOMAINS, EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
 )
 from exceptions import NetworkError, ScanError
 from validators import validate_url
@@ -227,16 +227,16 @@ class ComplianceModel:
         Returns:
             Status string indicating whether privacy policy was found
         """
-        # Look for links containing privacy keywords using pre-compiled patterns
-        all_links = soup.find_all("a", href=True)
+        # 1. Optimized check for href attributes using combined regex (filtered at C-level in BS4)
+        if soup.find("a", href=PRIVACY_COMBINED_PATTERN):
+            return "Found - Privacy policy link detected"
         
-        for link in all_links:
-            link_text = link.get_text()
-            href = link.get("href", "")
-            
-            for pattern in PRIVACY_PATTERNS:
-                if pattern.search(link_text) or pattern.search(href):
-                    return "Found - Privacy policy link detected"
+        # 2. Check link text if not found in hrefs
+        # We iterate over all links once and use the combined pattern
+        # We only check links with href to match original logic
+        for link in soup.find_all("a", href=True):
+            if PRIVACY_COMBINED_PATTERN.search(link.get_text()):
+                return "Found - Privacy policy link detected"
         
         return "Not Found - No privacy policy link detected"
     
