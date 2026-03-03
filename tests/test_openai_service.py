@@ -13,8 +13,6 @@ if 'requests.adapters' not in sys.modules:
     sys.modules['requests.adapters'] = MagicMock()
 if 'urllib3.util.retry' not in sys.modules:
     sys.modules['urllib3.util.retry'] = MagicMock()
-if 'bs4' not in sys.modules:
-    sys.modules['bs4'] = MagicMock()
 
 import unittest
 from services.openai_service import OpenAIService
