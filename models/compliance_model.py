@@ -33,8 +33,8 @@ from urllib.parse import urlparse
 from config import Config
 from utils import create_session
 from constants import (
-    COOKIE_KEYWORDS, COOKIE_PATTERNS, PRIVACY_PATTERNS, TRACKING_DOMAINS,
-    EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
+    COOKIE_KEYWORDS, COOKIE_PATTERNS, PRIVACY_PATTERNS, PRIVACY_COMBINED_PATTERN,
+    TRACKING_DOMAINS, EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
 )
 from exceptions import NetworkError, ScanError
 from validators import validate_url
@@ -227,16 +227,15 @@ class ComplianceModel:
         Returns:
             Status string indicating whether privacy policy was found
         """
-        # Look for links containing privacy keywords using pre-compiled patterns
+        # Fast path: Check href attributes using BeautifulSoup's native regex support
+        if soup.find("a", href=PRIVACY_COMBINED_PATTERN):
+            return "Found - Privacy policy link detected"
+
+        # Fallback: Look for links containing privacy keywords in their text
         all_links = soup.find_all("a", href=True)
-        
         for link in all_links:
-            link_text = link.get_text()
-            href = link.get("href", "")
-            
-            for pattern in PRIVACY_PATTERNS:
-                if pattern.search(link_text) or pattern.search(href):
-                    return "Found - Privacy policy link detected"
+            if PRIVACY_COMBINED_PATTERN.search(link.get_text()):
+                return "Found - Privacy policy link detected"
         
         return "Not Found - No privacy policy link detected"
     
