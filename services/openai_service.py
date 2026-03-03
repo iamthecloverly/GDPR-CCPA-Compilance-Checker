@@ -122,7 +122,8 @@ class OpenAIService:
 
                     for link_set in search_sets:
                         for link in link_set:
-                            if any(k in link.get_text().lower() for k in keywords):
+                            link_text = link.get_text().lower()
+                            if any(k in link_text for k in keywords):
                                 privacy_link = link
                                 break
                         if privacy_link:
