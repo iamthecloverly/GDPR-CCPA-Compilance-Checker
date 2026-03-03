@@ -13,6 +13,23 @@ from exceptions import DatabaseError
 logger = logging.getLogger(__name__)
 
 
+def _scan_to_dict(scan: ComplianceScan) -> Dict[str, Any]:
+    """Convert a ComplianceScan model instance to a dictionary."""
+    return {
+        'id': scan.id,
+        'url': scan.url,
+        'score': scan.score,
+        'grade': scan.grade,
+        'status': scan.status,
+        'cookie_consent': scan.cookie_consent,
+        'privacy_policy': scan.privacy_policy,
+        'contact_info': scan.contact_info,
+        'trackers': scan.trackers,
+        'scan_date': scan.scan_date,
+        'ai_analysis': scan.ai_analysis
+    }
+
+
 def save_scan_result(url: str, results: Dict[str, Any], ai_analysis: Optional[str] = None) -> Optional[int]:
     """Save compliance scan result to database."""
     with get_db() as db:
@@ -59,21 +76,7 @@ def get_scan_history(url: str, limit: int = 10) -> List[Dict[str, Any]]:
             ).limit(limit).all()
             
             # Convert to dictionaries to detach from session
-            result = []
-            for scan in scans:
-                result.append({
-                    'id': scan.id,
-                    'url': scan.url,
-                    'score': scan.score,
-                    'grade': scan.grade,
-                    'status': scan.status,
-                    'cookie_consent': scan.cookie_consent,
-                    'privacy_policy': scan.privacy_policy,
-                    'contact_info': scan.contact_info,
-                    'trackers': scan.trackers,
-                    'scan_date': scan.scan_date,
-                    'ai_analysis': scan.ai_analysis
-                })
+            result = [_scan_to_dict(scan) for scan in scans]
             
             logger.info(f"Retrieved {len(result)} scan records for {url}")
             return result
@@ -159,19 +162,7 @@ def get_latest_scan(url: str) -> Optional[Dict[str, Any]]:
             
             if scan:
                 # Convert to dictionary to detach from session
-                result = {
-                    'id': scan.id,
-                    'url': scan.url,
-                    'score': scan.score,
-                    'grade': scan.grade,
-                    'status': scan.status,
-                    'cookie_consent': scan.cookie_consent,
-                    'privacy_policy': scan.privacy_policy,
-                    'contact_info': scan.contact_info,
-                    'trackers': scan.trackers,
-                    'scan_date': scan.scan_date,
-                    'ai_analysis': scan.ai_analysis
-                }
+                result = _scan_to_dict(scan)
                 logger.info(f"Retrieved latest scan for {url}")
                 return result
             
@@ -201,18 +192,7 @@ def get_recent_scans(limit: int = 5) -> List[Dict[str, Any]]:
                 desc(ComplianceScan.scan_date)
             ).limit(limit).all()
             
-            result = []
-            for scan in scans:
-                result.append({
-                    'id': scan.id,
-                    'url': scan.url,
-                    'score': scan.score,
-                    'grade': scan.grade,
-                    'status': scan.status,
-                    'scan_date': scan.scan_date,
-                })
-            
-            return result
+            return [_scan_to_dict(scan) for scan in scans]
         except Exception as e:
             logger.error(f"Failed to retrieve recent scans: {e}")
             return []
@@ -237,20 +217,14 @@ def get_all_scans() -> List[Dict[str, Any]]:
             
             result = []
             for scan in scans:
-                result.append({
-                    'id': scan.id,
-                    'url': scan.url,
-                    'score': scan.score,
-                    'grade': scan.grade,
-                    'status': scan.status,
-                    'scan_date': scan.scan_date,
-                    'findings': {
-                        'cookie_consent': scan.cookie_consent,
-                        'privacy_policy': scan.privacy_policy,
-                        'contact_info': scan.contact_info,
-                    },
-                    'trackers': scan.trackers,
-                })
+                s_dict = _scan_to_dict(scan)
+                # Maintain 'findings' for backward compatibility with comparison tool
+                s_dict['findings'] = {
+                    'cookie_consent': scan.cookie_consent,
+                    'privacy_policy': scan.privacy_policy,
+                    'contact_info': scan.contact_info,
+                }
+                result.append(s_dict)
             
             return result
         except Exception as e:
@@ -322,18 +296,7 @@ def get_scan_by_url(url: str) -> List[Dict[str, Any]]:
                 desc(ComplianceScan.scan_date)
             ).all()
             
-            result = []
-            for scan in scans:
-                result.append({
-                    'id': scan.id,
-                    'url': scan.url,
-                    'score': scan.score,
-                    'grade': scan.grade,
-                    'status': scan.status,
-                    'scan_date': scan.scan_date,
-                })
-            
-            return result
+            return [_scan_to_dict(scan) for scan in scans]
         except Exception as e:
             logger.error(f"Failed to retrieve scans for {url}: {e}")
             return []
@@ -393,18 +356,7 @@ def get_scans_by_date_range(start_date, end_date) -> List[Dict[str, Any]]:
                 desc(ComplianceScan.scan_date)
             ).all()
             
-            result = []
-            for scan in scans:
-                result.append({
-                    'id': scan.id,
-                    'url': scan.url,
-                    'score': scan.score,
-                    'grade': scan.grade,
-                    'status': scan.status,
-                    'scan_date': scan.scan_date,
-                })
-            
-            return result
+            return [_scan_to_dict(scan) for scan in scans]
         except Exception as e:
             logger.error(f"Failed to retrieve scans by date range: {e}")
             return []
