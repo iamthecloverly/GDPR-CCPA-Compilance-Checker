@@ -1,7 +1,7 @@
 """Export and report generation components."""
 
 import streamlit as st
-from typing import Dict, Any, List, Optional, Literal
+from typing import Dict, Any, List, Literal
 from libs.export import (
     export_scan_to_csv,
     export_batch_results_to_csv,
