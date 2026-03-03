@@ -1,5 +1,5 @@
 import unittest
-from validators import validate_api_key
+from validators import validate_api_key, validate_grade
 from exceptions import ValidationError
 
 class TestValidators(unittest.TestCase):
@@ -69,6 +69,30 @@ class TestValidators(unittest.TestCase):
                 with self.assertRaises(ValidationError) as cm:
                     validate_api_key(invalid)
                 self.assertIn("cannot be empty", str(cm.exception))
+
+    def test_validate_grade_valid(self):
+        """Test valid grades (A, B, C, D, F)."""
+        valid_grades = ['A', 'B', 'C', 'D', 'F', 'a', 'b', 'c', 'd', 'f']
+        for grade in valid_grades:
+            with self.subTest(grade=grade):
+                self.assertTrue(validate_grade(grade))
+
+    def test_validate_grade_invalid(self):
+        """Test invalid grades."""
+        invalid_grades = ['E', 'G', 'Z', '', 'AA', '1', 'A+', 'B-']
+        for grade in invalid_grades:
+            with self.subTest(grade=grade):
+                with self.assertRaises(ValidationError) as cm:
+                    validate_grade(grade)
+                self.assertIn("Grade must be A-F", str(cm.exception))
+
+    def test_validate_grade_non_string(self):
+        """Test non-string inputs for validate_grade."""
+        for invalid in [None, 123, [], {}]:
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValidationError) as cm:
+                    validate_grade(invalid)
+                self.assertIn("Grade must be A-F", str(cm.exception))
 
 if __name__ == "__main__":
     unittest.main()
