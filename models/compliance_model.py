@@ -31,7 +31,7 @@ import logging
 from urllib.parse import urlparse
 
 from config import Config
-from utils import create_session
+from utils import create_session, safe_request
 from constants import (
     COOKIE_KEYWORDS, COOKIE_PATTERNS, PRIVACY_PATTERNS, PRIVACY_COMBINED_PATTERN,
     TRACKING_DOMAINS, EMAIL_PATTERN, PHONE_PATTERN, USER_AGENT
@@ -86,12 +86,12 @@ class ComplianceModel:
         """
         try:
             verify_ssl = os.getenv("VERIFY_SSL", "true").lower() == "true"
-            _, normalized = validate_url(url)
-            response = self.session.get(
-                normalized,
+            response = safe_request(
+                self.session,
+                "GET",
+                url,
                 timeout=self.timeout,
                 headers=self.headers,
-                allow_redirects=True,
                 verify=verify_ssl,
                 stream=True,
             )

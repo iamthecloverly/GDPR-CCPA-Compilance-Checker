@@ -23,10 +23,11 @@ class TestOpenAIService(unittest.TestCase):
         with patch('config.Config.OPENAI_API_KEY', 'test_key'):
             self.service = OpenAIService()
 
+    @patch('services.openai_service.safe_request')
     @patch('services.openai_service.requests.Session')
     @patch('services.openai_service.BeautifulSoup')
     @patch('services.openai_service.trafilatura.extract')
-    def test_fetch_privacy_policy_link_finding(self, mock_extract, mock_soup_cls, mock_session_cls):
+    def test_fetch_privacy_policy_link_finding(self, mock_extract, mock_soup_cls, mock_session_cls, mock_safe_request):
         # Mock session and response
         mock_session = mock_session_cls.return_value
         mock_response = MagicMock()
@@ -47,8 +48,7 @@ class TestOpenAIService(unittest.TestCase):
         policy_response.headers = {"Content-Type": "text/html", "Content-Length": str(len(policy_response.content))}
         policy_response.iter_content.return_value = [policy_response.content]
 
-        mock_session.get.side_effect = [mock_response, policy_response]
-        mock_session.head.return_value = MagicMock(status_code=404)
+        mock_safe_request.side_effect = [mock_response, policy_response]
 
         # Mock BeautifulSoup to find the link
         mock_link = MagicMock()
@@ -68,15 +68,16 @@ class TestOpenAIService(unittest.TestCase):
         self.assertIn("Data Protection Policy content", policy_text)
 
         # Verify calls
-        calls = mock_session.get.call_args_list
+        calls = mock_safe_request.call_args_list
         self.assertEqual(len(calls), 2)
-        self.assertEqual(calls[0][0][0], "https://example.com")
-        self.assertTrue(calls[1][0][0].endswith("/data-protection-policy"))
+        self.assertEqual(calls[0][0][2], "https://example.com")
+        self.assertTrue(calls[1][0][2].endswith("/data-protection-policy"))
 
+    @patch('services.openai_service.safe_request')
     @patch('services.openai_service.requests.Session')
     @patch('services.openai_service.trafilatura.extract')
     @patch('services.openai_service.BeautifulSoup')
-    def test_fetch_privacy_policy_trafilatura(self, mock_soup_cls, mock_extract, mock_session_cls):
+    def test_fetch_privacy_policy_trafilatura(self, mock_soup_cls, mock_extract, mock_session_cls, mock_safe_request):
         mock_session = mock_session_cls.return_value
 
         # Homepage has clear link
@@ -94,7 +95,7 @@ class TestOpenAIService(unittest.TestCase):
         policy_response.headers = {"Content-Type": "text/html", "Content-Length": str(len(policy_response.content))}
         policy_response.iter_content.return_value = [policy_response.content]
 
-        mock_session.get.side_effect = [home_response, policy_response]
+        mock_safe_request.side_effect = [home_response, policy_response]
 
         # Mock BeautifulSoup
         mock_link = MagicMock()

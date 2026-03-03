@@ -50,9 +50,10 @@ class TestSSRFProtection(unittest.TestCase):
                 self.assertTrue(is_valid)
                 self.assertTrue(normalized.startswith("http"))
 
+    @patch("services.openai_service.safe_request")
     @patch("services.openai_service.requests.Session")
     @patch("services.openai_service.BeautifulSoup")
-    def test_openai_service_ssrf_prevention(self, mock_soup_cls, mock_session_cls):
+    def test_openai_service_ssrf_prevention(self, mock_soup_cls, mock_session_cls, mock_safe_request):
         # This test ensures that OpenAIService correctly uses validation
         service = OpenAIService()
         mock_session = mock_session_cls.return_value
@@ -72,8 +73,8 @@ class TestSSRFProtection(unittest.TestCase):
         mock_soup = mock_soup_cls.return_value
         mock_soup.find_all.return_value = [mock_link]
 
-        # Setup session.get to return home_response
-        mock_session.get.return_value = home_response
+        # Setup safe_request to return home_response
+        mock_safe_request.return_value = home_response
 
         # Call _fetch_privacy_policy
         policy_text = service._fetch_privacy_policy("https://example.com")
@@ -81,11 +82,11 @@ class TestSSRFProtection(unittest.TestCase):
         # It should return None because the policy_url is unsafe
         self.assertIsNone(policy_text)
 
-        # Session.get should only have been called once (for the homepage)
+        # safe_request should only have been called once (for the homepage)
         # and NOT for the internal IP
-        calls = mock_session.get.call_args_list
+        calls = mock_safe_request.call_args_list
         self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0][0][0], "https://example.com")
+        self.assertEqual(calls[0][0][2], "https://example.com")
 
 if __name__ == "__main__":
     unittest.main()
