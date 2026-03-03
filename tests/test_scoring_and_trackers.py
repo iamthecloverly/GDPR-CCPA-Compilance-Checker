@@ -1,3 +1,30 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock dependencies that are missing in the environment
+if 'cachetools' not in sys.modules:
+    sys.modules['cachetools'] = MagicMock()
+if 'openai' not in sys.modules:
+    sys.modules['openai'] = MagicMock()
+if 'trafilatura' not in sys.modules:
+    sys.modules['trafilatura'] = MagicMock()
+if 'requests' not in sys.modules:
+    sys.modules['requests'] = MagicMock()
+if 'requests.adapters' not in sys.modules:
+    sys.modules['requests.adapters'] = MagicMock()
+if 'urllib3.util.retry' not in sys.modules:
+    sys.modules['urllib3.util.retry'] = MagicMock()
+if 'bs4' not in sys.modules:
+    # We need real bs4 for these tests
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        sys.modules['bs4'] = MagicMock()
+if 'pandas' not in sys.modules:
+    sys.modules['pandas'] = MagicMock()
+if 'streamlit' not in sys.modules:
+    sys.modules['streamlit'] = MagicMock()
+
 import unittest
 from bs4 import BeautifulSoup
 
