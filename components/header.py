@@ -2,6 +2,7 @@
 
 import streamlit as st
 from typing import Dict, Any
+import html
 
 
 def create_metric_card(title: str, value: str, delta: str, color: str):
@@ -14,11 +15,17 @@ def create_metric_card(title: str, value: str, delta: str, color: str):
         delta: Delta text (e.g., "+12 this week")
         color: Color theme - 'blue', 'orange', 'green', or 'red'
     """
+    # Escape values for security
+    safe_title = html.escape(str(title))
+    safe_value = html.escape(str(value))
+    safe_delta = html.escape(str(delta))
+    safe_color = html.escape(str(color))
+
     html_code = f"""
-    <div class="metric-card {color}">
-        <div class="metric-label">{title}</div>
-        <div class="metric-value">{value}</div>
-        <div class="metric-delta {color}">{delta}</div>
+    <div class="metric-card {safe_color}">
+        <div class="metric-label">{safe_title}</div>
+        <div class="metric-value">{safe_value}</div>
+        <div class="metric-delta {safe_color}">{safe_delta}</div>
     </div>
     """
     st.markdown(html_code, unsafe_allow_html=True)

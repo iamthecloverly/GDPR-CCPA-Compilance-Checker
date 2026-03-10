@@ -3,6 +3,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import html
 from components.header import create_metric_card
 from database.operations import get_recent_scans, get_scan_statistics
 from logger_config import get_logger
@@ -198,11 +199,16 @@ def render_dashboard_page():
     """, unsafe_allow_html=True)
 
     def action_card(icon, title, desc):
+        # Escape values for security
+        safe_icon = html.escape(str(icon))
+        safe_title = html.escape(str(title))
+        safe_desc = html.escape(str(desc))
+
         return f"""
         <div class="action-card">
-            <div class="action-icon">{icon}</div>
-            <h4 class="action-title">{title}</h4>
-            <p class="action-desc">{desc}</p>
+            <div class="action-icon">{safe_icon}</div>
+            <h4 class="action-title">{safe_title}</h4>
+            <p class="action-desc">{safe_desc}</p>
         </div>
         """
 
@@ -246,9 +252,14 @@ def render_dashboard_page():
                     with col3:
                         grade = scan.get('grade', 'N/A')
                         grade_color = '#10b981' if grade == 'A' else ('#f59e0b' if grade in ['B', 'C'] else '#ef4444')
+
+                        # Escape values for security
+                        safe_grade = html.escape(str(grade))
+                        safe_color = html.escape(str(grade_color))
+
                         st.markdown(
                             f"<div style='text-align:center;padding:8px;'>"
-                            f"<span style='color:{grade_color};font-weight:bold;font-size:20px;'>{grade}</span>"
+                            f"<span style='color:{safe_color};font-weight:bold;font-size:20px;'>{safe_grade}</span>"
                             f"</div>",
                             unsafe_allow_html=True
                         )

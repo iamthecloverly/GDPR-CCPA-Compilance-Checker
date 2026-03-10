@@ -3,6 +3,7 @@
 import streamlit as st
 from typing import Dict, Any
 import pandas as pd
+import html
 
 
 def render_comparison_view(scan1: Dict[str, Any], scan2: Dict[str, Any]):
@@ -72,20 +73,27 @@ def render_scan_comparison_card(scan: Dict[str, Any]):
     else:
         color = "#ef4444"
 
+    # Escape values for security
+    safe_score = html.escape(str(score))
+    safe_grade = html.escape(str(scan.get("grade", "F")))
+    safe_status = html.escape(str(scan.get("status", "Unknown")))
+    safe_date = html.escape(str(scan.get("scan_date", "N/A")))
+    safe_color = html.escape(str(color))
+
     card_html = f"""
     <div style="background: rgba(30, 33, 46, 0.5); padding: 20px; border-radius: 12px; text-align: center;">
-        <div style="font-size: 48px; font-weight: bold; color: {color};">
-            {score}
+        <div style="font-size: 48px; font-weight: bold; color: {safe_color};">
+            {safe_score}
         </div>
         <div style="font-size: 12px; color: #a0aec0; margin-top: 5px;">/ 100</div>
-        <div style="font-size: 18px; color: {color}; margin-top: 10px; font-weight: bold;">
-            {scan.get("grade", "F")}
+        <div style="font-size: 18px; color: {safe_color}; margin-top: 10px; font-weight: bold;">
+            {safe_grade}
         </div>
         <div style="font-size: 12px; color: #e6edf3; margin-top: 10px;">
-            {scan.get("status", "Unknown")}
+            {safe_status}
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 15px;">
-            {scan.get("scan_date", "N/A")}
+            {safe_date}
         </div>
     </div>
     """
