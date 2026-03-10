@@ -73,9 +73,8 @@ def export_scan_to_csv(scan_data: Dict[str, Any]) -> str:
     # Safely handle findings that could be dict or list
     if isinstance(findings, dict):
         for category, count in findings.items():
-            if isinstance(count, (int, float)):
-                writer.writerow([category, count])
-            elif isinstance(count, list):
+            # Optimize: check for list first, otherwise convert to string
+            if isinstance(count, list):
                 writer.writerow([category, len(count)])
             else:
                 writer.writerow([category, str(count)])
@@ -275,12 +274,13 @@ FINDINGS SUMMARY
     findings = scan_data.get("findings", {})
     if findings:
         for category, count in findings.items():
-            if isinstance(count, int):
-                report += f"{category}: {count} issue(s)\n"
-            elif isinstance(count, list):
+            # Optimize: check for list first, otherwise convert to string
+            if isinstance(count, list):
                 report += f"{category}: {len(count)} issue(s)\n"
                 for item in count:
                     report += f"  • {item}\n"
+            else:
+                report += f"{category}: {count} issue(s)\n"
     else:
         report += "No findings recorded\n"
 
@@ -426,9 +426,8 @@ def export_scan_to_pdf(scan_data: Dict[str, Any]) -> bytes:
             for category, count in findings.items():
                 category_safe = html.escape(str(category))
                 try:
-                    if isinstance(count, (int, float)):
-                        findings_data.append([category_safe, str(count)])
-                    elif isinstance(count, list):
+                    # Optimize: check for list first, otherwise convert to string
+                    if isinstance(count, list):
                         findings_data.append([category_safe, str(len(count))])
                     else:
                         findings_data.append([category_safe, str(count)])
