@@ -4,6 +4,7 @@ import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
 import altair as alt
+import html
 
 # Score thresholds and colors
 SCORE_THRESHOLDS = {
@@ -60,13 +61,20 @@ def render_quick_results(results: Dict[str, Any]):
         
         # Get color and status based on score
         color, status_text = _get_score_status(score)
+
+        # Escape values for security
+        safe_score = html.escape(str(score))
+        safe_grade = html.escape(str(grade))
+        safe_color = html.escape(str(color))
+        safe_status_text = html.escape(str(status_text))
+        safe_results_status = html.escape(str(results.get('status', 'Unknown')))
         
         st.markdown(f"""
         <div class="score-display-container">
-            <div class="score-display-value" style="color: {color};">{score}</div>
+            <div class="score-display-value" style="color: {safe_color};">{safe_score}</div>
             <div class="score-display-max">/ 100</div>
-            <div class="score-display-grade" style="color: {color};">Grade: {grade}</div>
-            <div class="score-display-status">{status_text} - {results.get('status', 'Unknown')}</div>
+            <div class="score-display-grade" style="color: {safe_color};">Grade: {safe_grade}</div>
+            <div class="score-display-status">{safe_status_text} - {safe_results_status}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -108,20 +116,26 @@ def render_quick_results(results: Dict[str, Any]):
     with col3:
         # Key stats
         st.markdown("**Summary**")
+
+        # Escape values for security
+        safe_url = html.escape(str(results.get("url", "N/A")))
+        safe_date = html.escape(str(results.get("scan_date", "N/A")))
+        safe_results_status = html.escape(str(results.get("status", "Unknown")))
+        safe_color = html.escape(str(color))
         
         stats_html = f"""
         <div class="stats-summary-box">
             <div class="stats-summary-item">
                 <span class="stats-summary-label">URL:</span>
-                <span class="stats-summary-value">{results.get("url", "N/A")}</span>
+                <span class="stats-summary-value">{safe_url}</span>
             </div>
             <div class="stats-summary-item">
                 <span class="stats-summary-label">Scanned:</span>
-                <span class="stats-summary-value">{results.get("scan_date", "N/A")}</span>
+                <span class="stats-summary-value">{safe_date}</span>
             </div>
             <div class="stats-summary-item">
                 <span class="stats-summary-label">Status:</span>
-                <span class="stats-summary-value status" style="color: {color};">{results.get("status", "Unknown")}</span>
+                <span class="stats-summary-value status" style="color: {safe_color};">{safe_results_status}</span>
             </div>
         </div>
         """
