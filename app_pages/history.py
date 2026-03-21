@@ -117,7 +117,7 @@ def render_all_scans_view():
 
     st.dataframe(
         df[display_cols].sort_values(sort_col, ascending=False).reset_index(drop=True),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -152,7 +152,7 @@ def render_comparison_view_tab():
         if scan1_idx == scan2_idx:
             st.warning("Select two different scans to compare.")
         else:
-            if st.button("Compare Scans", type="primary", use_container_width=False):
+            if st.button("Compare Scans", type="primary"):
                 render_comparison_view(scans[scan1_idx], scans[scan2_idx])
 
     except Exception as e:
