@@ -180,7 +180,7 @@ def export_batch_results_to_csv(results: List[Dict[str, Any]]) -> str:
         writer.writerow(
             [
                 _safe_csv_value(scan.get("url", "")),
-                f"{scan.get('overall_score', 0):.1f}%",
+                f"{scan.get('overall_score', scan.get('score', 0)):.1f}%",
                 _safe_csv_value(scan.get("grade", "")),
                 _safe_csv_value(scan.get("status", "")),
                 _safe_csv_value(scan.get("scan_date", "")),

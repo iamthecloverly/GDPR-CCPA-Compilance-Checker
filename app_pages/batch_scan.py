@@ -148,7 +148,7 @@ def perform_batch_scan(urls: list):
 
     except Exception as e:
         logger.exception(f"Batch scan failed: {type(e).__name__}")
-        st.error(f"⚠️ Batch scan encountered an error: {str(e)}")
+        st.error("⚠️ Batch scan encountered an error. Please try again or contact support.")
 
 
 def main():
