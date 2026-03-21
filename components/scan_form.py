@@ -64,15 +64,20 @@ def render_batch_upload_form() -> Tuple[str, bool]:
         )
         submitted_tab1 = st.button("Start Batch Scan", key="batch_paste")
     
+    _MAX_CSV_BYTES = 5 * 1024 * 1024  # 5 MB
+
     with tab2:
         uploaded_file = st.file_uploader(
             "Choose CSV file",
             type=['csv'],
             help="CSV file should have a 'url' column"
         )
-        
+
         if uploaded_file:
-            csv_content_tab2 = uploaded_file.getvalue().decode('utf-8')
+            if uploaded_file.size > _MAX_CSV_BYTES:
+                st.error("File too large. Maximum size is 5 MB.")
+            else:
+                csv_content_tab2 = uploaded_file.getvalue().decode('utf-8')
         
         submitted_tab2 = st.button("Start Batch Scan", key="batch_upload")
     

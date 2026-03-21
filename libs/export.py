@@ -23,6 +23,17 @@ from reportlab.lib.enums import TA_CENTER
 
 logger = logging.getLogger(__name__)
 
+# Characters that trigger formula execution in spreadsheet applications (CSV injection)
+_FORMULA_PREFIXES = ('=', '@', '+', '-', '\t', '\r')
+
+
+def _safe_csv_value(value: Any) -> str:
+    """Prefix formula-triggering values with a single quote to prevent CSV injection."""
+    s = str(value)
+    if s.startswith(_FORMULA_PREFIXES):
+        return "'" + s
+    return s
+
 
 def export_scan_to_csv(scan_data: Dict[str, Any]) -> str:
     """
@@ -43,11 +54,11 @@ def export_scan_to_csv(scan_data: Dict[str, Any]) -> str:
 
     # Metadata - support both 'score' and 'overall_score' keys
     score_value = scan_data.get("score") or scan_data.get("overall_score") or 0
-    writer.writerow(["URL", scan_data.get("url", "N/A")])
-    writer.writerow(["Scan Date", scan_data.get("scan_date", "N/A")])
+    writer.writerow(["URL", _safe_csv_value(scan_data.get("url", "N/A"))])
+    writer.writerow(["Scan Date", _safe_csv_value(scan_data.get("scan_date", "N/A"))])
     writer.writerow(["Overall Score", f"{score_value:.1f}%"])
-    writer.writerow(["Grade", scan_data.get("grade", "N/A")])
-    writer.writerow(["Status", scan_data.get("status", "N/A")])
+    writer.writerow(["Grade", _safe_csv_value(scan_data.get("grade", "N/A"))])
+    writer.writerow(["Status", _safe_csv_value(scan_data.get("status", "N/A"))])
     writer.writerow([""])
 
     # Score breakdown if available
@@ -168,11 +179,11 @@ def export_batch_results_to_csv(results: List[Dict[str, Any]]) -> str:
 
         writer.writerow(
             [
-                scan.get("url", ""),
+                _safe_csv_value(scan.get("url", "")),
                 f"{scan.get('overall_score', 0):.1f}%",
-                scan.get("grade", ""),
-                scan.get("status", ""),
-                scan.get("scan_date", ""),
+                _safe_csv_value(scan.get("grade", "")),
+                _safe_csv_value(scan.get("status", "")),
+                _safe_csv_value(scan.get("scan_date", "")),
                 gdpr_count,
                 ccpa_count,
             ]

@@ -1,5 +1,6 @@
 """Results display components."""
 
+import re
 import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
@@ -232,5 +233,6 @@ def render_ai_analysis(analysis_text: str):
     
     # Use expandable container for better UI
     with st.expander("🤖 AI Compliance Analysis", expanded=True):
-        # Render markdown properly to parse headers, bold, lists, etc.
-        st.markdown(analysis_text)
+        # Strip HTML tags before rendering to prevent XSS via prompt injection
+        clean_text = re.sub(r'<[^>]+>', '', analysis_text)
+        st.markdown(clean_text)

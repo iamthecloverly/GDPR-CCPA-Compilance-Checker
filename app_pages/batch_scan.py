@@ -15,8 +15,6 @@ from libs.cache import ScanCache
 from exceptions import ScanError, NetworkError
 from logger_config import get_logger
 from config import Config
-import traceback
-
 logger = get_logger(__name__)
 
 # Initialize cache
@@ -149,7 +147,7 @@ def perform_batch_scan(urls: list):
             render_batch_export_options(completed_scans)
 
     except Exception as e:
-        logger.error(f"Batch scan failed: {e}\n{traceback.format_exc()}")
+        logger.exception(f"Batch scan failed: {type(e).__name__}")
         st.error(f"⚠️ Batch scan encountered an error: {str(e)}")
 
 
