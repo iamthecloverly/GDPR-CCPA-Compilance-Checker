@@ -178,6 +178,10 @@ st.markdown("""
     }
     .category-status.pass { color: #3fb950; }
     .category-status.issues { color: #f85149; }
+    .category-reason {
+        margin-top: 0.45rem; font-size: 0.75rem; color: #8b949e;
+        line-height: 1.4; word-break: break-word;
+    }
 
     /* ── Action cards ──────────────────────────────────────────── */
     .action-card {
