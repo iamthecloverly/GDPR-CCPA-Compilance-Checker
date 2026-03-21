@@ -55,7 +55,7 @@ def _render_single_scan_export(
     
     # Column 1: Copy Full Results
     with col_copy:
-        if st.button("📋 Copy Full Results", key=f"{key_prefix}_copy", use_container_width=True):
+        if st.button("📋 Copy Full Results", key=f"{key_prefix}_copy", width="stretch"):
             try:
                 text_report = format_full_scan_text(scan_result)
                 st.code(text_report, language="text")
@@ -74,7 +74,7 @@ def _render_single_scan_export(
                 file_name=f"compliance_{url_domain}.csv",
                 mime="text/csv",
                 key=f"{key_prefix}_csv",
-                use_container_width=True
+                width="stretch"
             )
         except Exception as e:
             st.error(f"❌ CSV Error: {str(e)}")
@@ -90,7 +90,7 @@ def _render_single_scan_export(
                 file_name=f"compliance_{url_domain}.pdf",
                 mime="application/pdf",
                 key=f"{key_prefix}_pdf",
-                use_container_width=True
+                width="stretch"
             )
         except Exception as e:
             st.error(f"❌ PDF Error: {str(e)}")
@@ -110,7 +110,7 @@ def _render_batch_export(
     
     # Column 1: Copy Summary
     with col_copy:
-        if st.button("📋 Copy Summary", key=f"{key_prefix}_copy", use_container_width=True):
+        if st.button("📋 Copy Summary", key=f"{key_prefix}_copy", width="stretch"):
             try:
                 # Create a summary text for batch results
                 summary_text = f"Batch Compliance Scan Summary\n{'='*60}\n\nTotal Scans: {len(scan_results)}\n\n"
@@ -134,7 +134,7 @@ def _render_batch_export(
                 file_name=f"{file_prefix}.csv",
                 mime="text/csv",
                 key=f"{key_prefix}_csv",
-                use_container_width=True
+                width="stretch"
             )
         except Exception as e:
             st.error(f"❌ CSV Error: {str(e)}")
@@ -154,7 +154,7 @@ def _render_batch_export(
                 file_name=f"{file_prefix}.json",
                 mime="application/json",
                 key=f"{key_prefix}_json",
-                use_container_width=True
+                width="stretch"
             )
         except Exception as e:
             st.error(f"❌ JSON Error: {str(e)}")

@@ -720,7 +720,7 @@ def render_sidebar_navigation():
             if st.button(
                 label,
                 key=f"nav_{page_id}",
-                use_container_width=True,
+                width="stretch",
                 type="primary" if is_active else "secondary",
             ):
                 st.session_state.page = page_id

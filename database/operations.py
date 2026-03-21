@@ -1,6 +1,7 @@
 """Database CRUD operations for compliance scan records."""
 
 from typing import Dict, List, Any, Optional, Tuple
+import ast
 import json
 import logging
 from datetime import datetime
@@ -14,6 +15,23 @@ from exceptions import DatabaseError
 logger = logging.getLogger(__name__)
 
 
+def _parse_trackers(raw: Any) -> list:
+    """Safely parse trackers from DB — handles both JSON and legacy Python-repr strings."""
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return raw
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        # Legacy rows stored as Python repr: "['google-analytics.com', 'facebook.net']"
+        try:
+            val = ast.literal_eval(raw)
+            return val if isinstance(val, list) else []
+        except Exception:
+            return []
+
+
 def _scan_to_dict(scan: ComplianceScan) -> Dict[str, Any]:
     """Convert a ComplianceScan model instance to a dictionary."""
     return {
@@ -25,7 +43,7 @@ def _scan_to_dict(scan: ComplianceScan) -> Dict[str, Any]:
         'cookie_consent': scan.cookie_consent,
         'privacy_policy': scan.privacy_policy,
         'contact_info': scan.contact_info,
-        'trackers': json.loads(scan.trackers) if scan.trackers else [],
+        'trackers': _parse_trackers(scan.trackers),
         'scan_date': scan.scan_date,
         'ai_analysis': scan.ai_analysis
     }

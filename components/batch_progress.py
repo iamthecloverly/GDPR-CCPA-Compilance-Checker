@@ -163,7 +163,7 @@ def render_batch_summary(
             # Style the dataframe
             st.dataframe(
                 df,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
     

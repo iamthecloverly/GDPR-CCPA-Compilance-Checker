@@ -189,7 +189,7 @@ def render_dashboard_page():
             stroke='transparent', fill='transparent'
         ).configure_axis(gridColor='#21262d', domainColor='#21262d')
 
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, width="stretch")
 
     # ── Quick Actions ──────────────────────────────────────────────────
     st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
@@ -215,17 +215,17 @@ def render_dashboard_page():
     ac1, ac2, ac3 = st.columns(3, gap="medium")
     with ac1:
         st.markdown(action_card("🚀", "Quick Scan", "Analyze a single URL instantly for GDPR/CCPA compliance"), unsafe_allow_html=True)
-        if st.button("Start Quick Scan", key="dash_quick", use_container_width=True, type="primary"):
+        if st.button("Start Quick Scan", key="dash_quick", width="stretch", type="primary"):
             st.session_state.page = "quick_scan"
             st.rerun()
     with ac2:
         st.markdown(action_card("📂", "Batch Scan", "Upload CSV for bulk analysis of multiple sites"), unsafe_allow_html=True)
-        if st.button("Start Batch Scan", key="dash_batch", use_container_width=True, type="primary"):
+        if st.button("Start Batch Scan", key="dash_batch", width="stretch", type="primary"):
             st.session_state.page = "batch_scan"
             st.rerun()
     with ac3:
         st.markdown(action_card("📜", "View History", "Review past compliance reports and trends"), unsafe_allow_html=True)
-        if st.button("Open History", key="dash_history", use_container_width=True, type="primary"):
+        if st.button("Open History", key="dash_history", width="stretch", type="primary"):
             st.session_state.page = "history"
             st.rerun()
 
@@ -264,7 +264,7 @@ def render_dashboard_page():
                             unsafe_allow_html=True
                         )
                     with col4:
-                        if st.button("View", key=f"details_{idx}", use_container_width=True, type="secondary"):
+                        if st.button("View", key=f"details_{idx}", width="stretch", type="secondary"):
                             st.session_state.selected_scan_id = scan.get('id')
                             st.session_state.page = "history"
                             st.rerun()
