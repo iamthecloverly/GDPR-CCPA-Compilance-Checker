@@ -125,6 +125,60 @@ st.markdown("""
     .metric-delta.orange { color: #d29922; }
     .metric-delta.red    { color: #f85149; }
 
+    /* ── Scan success banner ───────────────────────────────────── */
+    .scan-success-banner {
+        display: flex; align-items: center; gap: 1rem;
+        background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25);
+        border-radius: 10px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem;
+        animation: fadeInUp 0.35s ease both;
+    }
+    .scan-success-icon { font-size: 1.3rem; color: #22c55e; flex-shrink: 0; }
+    .scan-success-text { flex: 1; color: #f5f7fa; font-size: 0.9rem; }
+    .scan-success-text strong { color: #22c55e; }
+    .scan-success-score { font-size: 1rem; font-weight: 700; white-space: nowrap; }
+
+    /* ── Score hero card ───────────────────────────────────────── */
+    .score-hero-card {
+        background: linear-gradient(145deg, #1a1f3a 0%, #161b33 100%);
+        border: 1px solid #2a3250; border-radius: 16px;
+        padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+        display: flex; align-items: center; gap: 2.5rem; flex-wrap: wrap;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        animation: fadeInUp 0.4s ease both;
+    }
+    .score-hero-left { display: flex; flex-direction: column; align-items: center; min-width: 90px; }
+    .score-hero-number { font-size: 4rem; font-weight: 900; line-height: 1; }
+    .score-hero-max    { font-size: 0.85rem; color: #8b949e; margin-top: 0.1rem; }
+    .score-hero-center { display: flex; flex-direction: column; gap: 0.4rem; }
+    .score-hero-grade  { font-size: 2.4rem; font-weight: 900; line-height: 1; }
+    .score-hero-badge  {
+        display: inline-block; padding: 0.28rem 0.8rem;
+        border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 0.07em; text-transform: uppercase;
+        background: rgba(255,255,255,0.07); color: #b4bcd4;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .score-hero-right { margin-left: auto; }
+    .score-hero-meta   { color: #8b949e; font-size: 0.82rem; line-height: 2; }
+    .score-hero-meta span { color: #f5f7fa; font-weight: 500; }
+
+    /* ── Category progress bars ────────────────────────────────── */
+    .progress-bar-track {
+        background: #1e2647; border-radius: 4px; height: 6px;
+        margin-top: 0.8rem; overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%; border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+    .category-status {
+        display: inline-block; margin-top: 0.5rem;
+        font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em;
+        text-transform: uppercase; color: #8b949e;
+    }
+    .category-status.pass { color: #3fb950; }
+    .category-status.issues { color: #f85149; }
+
     /* ── Action cards ──────────────────────────────────────────── */
     .action-card {
         background: linear-gradient(145deg, #1a1f3a 0%, #161b33 100%);

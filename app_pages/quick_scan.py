@@ -1,5 +1,6 @@
 """Quick Scan page - single URL scanning."""
 
+import html as html_module
 import streamlit as st
 from datetime import datetime
 from components import (
@@ -28,7 +29,9 @@ def render_quick_scan_page():
     st.markdown("# Quick Scan")
     st.markdown("Analyze a single website for GDPR and CCPA compliance")
 
-    # AI analysis toggle
+    url, submitted = render_scan_form()
+
+    # AI analysis toggle — shown below the form as an optional enhancement
     ai_enabled = False
     if Config.OPENAI_API_KEY:
         ai_enabled = st.toggle(
@@ -38,8 +41,6 @@ def render_quick_scan_page():
         )
     else:
         st.caption("AI analysis unavailable — set OPENAI_API_KEY to enable")
-
-    url, submitted = render_scan_form()
 
     if submitted:
         is_valid, prepared_url, error_msg = validate_and_prepare_url(url)
@@ -51,7 +52,7 @@ def render_quick_scan_page():
         cached_result = scan_cache.get(prepared_url)
 
         if cached_result:
-            st.success("Using cached result")
+            _render_success_banner(prepared_url, cached_result, cached=True)
             render_scan_results(cached_result)
         else:
             try:
@@ -98,14 +99,30 @@ def render_quick_scan_page():
             except Exception as db_error:
                 logger.warning(f"Database save failed: {db_error}")
 
-            st.success("Scan completed!")
+            _render_success_banner(prepared_url, result)
             render_scan_results(result)
+
+
+def _render_success_banner(url: str, result: dict, cached: bool = False):
+    """Render a rich scan-complete banner with inline score + grade."""
+    score = result.get("score", 0)
+    grade = result.get("grade", "F")
+    color = "#22c55e" if score >= 80 else "#f59e0b" if score >= 60 else "#ef4444"
+    cached_tag = ' <span style="opacity:0.55;font-size:0.8em;">(cached)</span>' if cached else ""
+    st.markdown(f"""
+<div class="scan-success-banner">
+  <span class="scan-success-icon">&#10003;</span>
+  <div class="scan-success-text">
+    <strong>Scan complete</strong>{cached_tag} &mdash; {html_module.escape(url)}
+  </div>
+  <div class="scan-success-score" style="color:{color};">{score}/100 &nbsp;&nbsp; Grade&nbsp;{html_module.escape(grade)}</div>
+</div>
+""", unsafe_allow_html=True)
 
 
 def render_scan_results(result: dict):
     """Render detailed scan results."""
-    st.markdown("## Results")
-
+    # Score hero card + category breakdown (no plain ## Results heading needed)
     # Score, chart, and summary
     render_quick_results(result)
 
