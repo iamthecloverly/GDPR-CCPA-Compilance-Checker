@@ -3,7 +3,6 @@
 import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
-import altair as alt
 import html
 
 # Score thresholds and colors
@@ -43,103 +42,79 @@ def _get_score_status(score: int) -> tuple:
 
 def render_quick_results(results: Dict[str, Any]):
     """
-    Render quick results with improved layout.
-    
+    Render quick results: score hero card (row 1) + 4 category metric cards (row 2).
+
     Args:
         results: Scan results dictionary containing:
                  - score: int (0-100)
                  - grade: str (A-F)
                  - status: str (Compliant/Needs Work/At Risk)
-                 - findings: dict of findings by category
+                 - score_breakdown: dict of category → points
     """
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col1:
-        # Large score display
-        score = results.get("score", 0)
-        grade = results.get("grade", "F")
-        
-        # Get color and status based on score
-        color, status_text = _get_score_status(score)
+    score = results.get("score", 0)
+    grade = results.get("grade", "F")
+    color, status_text = _get_score_status(score)
 
-        # Escape values for security
-        safe_score = html.escape(str(score))
-        safe_grade = html.escape(str(grade))
-        safe_color = html.escape(str(color))
-        safe_status_text = html.escape(str(status_text))
-        safe_results_status = html.escape(str(results.get('status', 'Unknown')))
-        
-        st.markdown(f"""
-        <div class="score-display-container">
-            <div class="score-display-value" style="color: {safe_color};">{safe_score}</div>
-            <div class="score-display-max">/ 100</div>
-            <div class="score-display-grade" style="color: {safe_color};">Grade: {safe_grade}</div>
-            <div class="score-display-status">{safe_status_text} - {safe_results_status}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        # Score breakdown chart
-        st.markdown("**Score Breakdown**")
-        
-        breakdown = results.get("score_breakdown", {})
-        if breakdown:
-            breakdown_data = []
-            for category, points in breakdown.items():
-                breakdown_data.append({
-                    "Category": category,
-                    "Points": points
-                })
-            
-            df = pd.DataFrame(breakdown_data)
-            chart = alt.Chart(df).mark_bar(
-                cornerRadiusTopLeft=4, cornerRadiusTopRight=4
-            ).encode(
-                x=alt.X('Category:N', sort=None, axis=alt.Axis(
-                    labelColor='#b4bcd4', labelAngle=0, title=None
-                )),
-                y=alt.Y('Points:Q', scale=alt.Scale(domain=[0, 30]), axis=alt.Axis(
-                    labelColor='#b4bcd4', title=None, gridColor='#2a3250'
-                )),
-                color=alt.Color('Category:N', scale=alt.Scale(
-                    domain=['Cookie Consent', 'Privacy Policy', 'Contact Info', 'Trackers (0=best)'],
-                    range=['#f59e0b', '#3b82f6', '#10b981', '#ef4444']
-                ), legend=None),
-                tooltip=['Category', 'Points']
-            ).properties(height=200).configure_view(
-                stroke='transparent', fill='transparent'
-            ).configure_axis(domainColor='#2a3250')
-            st.altair_chart(chart, use_container_width=True)
-        else:
-            st.info("No breakdown data available")
-    
-    with col3:
-        # Key stats
-        st.markdown("**Summary**")
+    # ── Row 1: Score hero card ────────────────────────────────────────────
+    safe_score = html.escape(str(score))
+    safe_grade = html.escape(str(grade))
+    safe_color = html.escape(str(color))
+    safe_status_text = html.escape(str(status_text))
+    safe_results_status = html.escape(str(results.get("status", "Unknown")))
+    safe_url = html.escape(str(results.get("url", "N/A")))
+    safe_date = html.escape(str(results.get("scan_date", "N/A")))
 
-        # Escape values for security
-        safe_url = html.escape(str(results.get("url", "N/A")))
-        safe_date = html.escape(str(results.get("scan_date", "N/A")))
-        safe_results_status = html.escape(str(results.get("status", "Unknown")))
-        safe_color = html.escape(str(color))
-        
-        stats_html = f"""
-        <div class="stats-summary-box">
-            <div class="stats-summary-item">
-                <span class="stats-summary-label">URL:</span>
-                <span class="stats-summary-value">{safe_url}</span>
-            </div>
-            <div class="stats-summary-item">
-                <span class="stats-summary-label">Scanned:</span>
-                <span class="stats-summary-value">{safe_date}</span>
-            </div>
-            <div class="stats-summary-item">
-                <span class="stats-summary-label">Status:</span>
-                <span class="stats-summary-value status" style="color: {safe_color};">{safe_results_status}</span>
-            </div>
-        </div>
-        """
-        st.markdown(stats_html, unsafe_allow_html=True)
+    st.markdown(f"""
+<div class="score-hero-card">
+  <div class="score-hero-left">
+    <div class="score-hero-number" style="color:{safe_color};">{safe_score}</div>
+    <div class="score-hero-max">/ 100</div>
+  </div>
+  <div class="score-hero-center">
+    <div class="score-hero-grade" style="color:{safe_color};">Grade&nbsp;{safe_grade}</div>
+    <div class="score-hero-badge">{safe_status_text} &middot; {safe_results_status}</div>
+  </div>
+  <div class="score-hero-right">
+    <div class="score-hero-meta">
+      <span>URL</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{safe_url}<br>
+      <span>Scanned</span>&nbsp;&nbsp;&nbsp;{safe_date}
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── Row 2: Category metric cards with progress bars ───────────────────
+    breakdown = results.get("score_breakdown", {})
+
+    CATEGORIES = [
+        ("Cookie Consent", "🍪", "#f59e0b", "orange"),
+        ("Privacy Policy", "📄", "#3b82f6", "blue"),
+        ("Contact Info",   "📬", "#10b981", "green"),
+        ("Trackers (0=best)", "🔍", "#ef4444", "red"),
+    ]
+
+    cols = st.columns(4)
+    for col, (name, icon, cat_color, css_cls) in zip(cols, CATEGORIES):
+        pts = breakdown.get(name, 0)
+        max_pts = 30
+        pct = min(int(pts / max_pts * 100), 100)
+        # For trackers lower is better: full bar = 0 trackers (score pts = 30)
+        has_issues = pts < max_pts
+        status_cls = "issues" if has_issues else "pass"
+        status_label = "Issues found" if has_issues else "All clear"
+        safe_cat_color = html.escape(cat_color)
+        safe_name = html.escape(name)
+        safe_icon = icon  # emoji — safe
+        col.markdown(f"""
+<div class="metric-card {css_cls}">
+  <div class="metric-label">{safe_icon}&nbsp; {safe_name}</div>
+  <div class="metric-value" style="color:{safe_cat_color};">{pts}<span style="font-size:1rem;color:#8b949e;font-weight:400;"> / {max_pts}</span></div>
+  <div class="progress-bar-track">
+    <div class="progress-bar-fill" style="width:{pct}%;background:{safe_cat_color};"></div>
+  </div>
+  <div class="category-status {status_cls}">{status_label}</div>
+</div>
+""", unsafe_allow_html=True)
 
 
 def render_findings(findings: Dict[str, List[str]]):
