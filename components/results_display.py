@@ -86,33 +86,59 @@ def render_quick_results(results: Dict[str, Any]):
     # ── Row 2: Category metric cards with progress bars ───────────────────
     breakdown = results.get("score_breakdown", {})
 
+    # Find the dynamic tracker key (controller generates "Trackers (X found)")
+    tracker_key = next((k for k in breakdown if k.startswith("Trackers")), None)
+    tracker_count = len(results.get("trackers", []))
+
+    # (display_name, breakdown_key, icon, color, css_cls, max_pts, finding_field)
     CATEGORIES = [
-        ("Cookie Consent", "🍪", "#f59e0b", "orange"),
-        ("Privacy Policy", "📄", "#3b82f6", "blue"),
-        ("Contact Info",   "📬", "#10b981", "green"),
-        ("Trackers (0=best)", "🔍", "#ef4444", "red"),
+        ("Cookie Consent", "Cookie Consent", "🍪", "#f59e0b", "orange", 30, "cookie_consent"),
+        ("Privacy Policy", "Privacy Policy", "📄", "#3b82f6", "blue",   30, "privacy_policy"),
+        ("Contact Info",   "Contact Info",   "📬", "#10b981", "green",  20, "contact_info"),
+        ("Trackers",       tracker_key,      "🔍", "#ef4444", "red",    20, None),
     ]
 
     cols = st.columns(4)
-    for col, (name, icon, cat_color, css_cls) in zip(cols, CATEGORIES):
-        pts = breakdown.get(name, 0)
-        max_pts = 30
-        pct = min(int(pts / max_pts * 100), 100)
-        # For trackers lower is better: full bar = 0 trackers (score pts = 30)
+    for col, (display_name, lookup_key, icon, cat_color, css_cls, max_pts, finding_field) in zip(cols, CATEGORIES):
+        pts = breakdown.get(lookup_key, 0) if lookup_key else 0
+        pct = min(int(pts / max_pts * 100), 100) if max_pts else 0
         has_issues = pts < max_pts
         status_cls = "issues" if has_issues else "pass"
         status_label = "Issues found" if has_issues else "All clear"
+
+        # Build one-line reason snippet
+        if finding_field:
+            raw_finding = str(results.get(finding_field, ""))
+            # Trim verbose "Found ..." / "Not Found ..." to a short snippet
+            if raw_finding.startswith("Found"):
+                reason = raw_finding[:70] + ("…" if len(raw_finding) > 70 else "")
+            else:
+                # Strip leading "Not Found" prefix if present for clarity
+                trimmed = raw_finding.replace("Not Found", "").strip(" -–—")
+                reason = (trimmed[:70] + "…") if len(trimmed) > 70 else (trimmed or "Not detected")
+        else:
+            # Trackers card — show count + first few domains
+            trackers_list = results.get("trackers", [])
+            if trackers_list:
+                names = ", ".join(trackers_list[:2])
+                extra = f" +{len(trackers_list)-2} more" if len(trackers_list) > 2 else ""
+                reason = f"{tracker_count} tracker(s): {names}{extra}"
+            else:
+                reason = "No trackers detected"
+
         safe_cat_color = html.escape(cat_color)
-        safe_name = html.escape(name)
-        safe_icon = icon  # emoji — safe
+        safe_display = html.escape(display_name)
+        safe_reason = html.escape(reason)
+
         col.markdown(f"""
 <div class="metric-card {css_cls}">
-  <div class="metric-label">{safe_icon}&nbsp; {safe_name}</div>
+  <div class="metric-label">{icon}&nbsp; {safe_display}</div>
   <div class="metric-value" style="color:{safe_cat_color};">{pts}<span style="font-size:1rem;color:#8b949e;font-weight:400;"> / {max_pts}</span></div>
   <div class="progress-bar-track">
     <div class="progress-bar-fill" style="width:{pct}%;background:{safe_cat_color};"></div>
   </div>
   <div class="category-status {status_cls}">{status_label}</div>
+  <div class="category-reason">{safe_reason}</div>
 </div>
 """, unsafe_allow_html=True)
 
