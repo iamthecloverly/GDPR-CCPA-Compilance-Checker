@@ -29,6 +29,8 @@ _FORMULA_PREFIXES = ('=', '@', '+', '-', '\t', '\r')
 
 def _safe_csv_value(value: Any) -> str:
     """Prefix formula-triggering values with a single quote to prevent CSV injection."""
+    if value is None:
+        return ""
     s = str(value)
     if s.startswith(_FORMULA_PREFIXES):
         return "'" + s
