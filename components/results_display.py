@@ -232,5 +232,4 @@ def render_ai_analysis(analysis_text: str):
     
     # Use expandable container for better UI
     with st.expander("🤖 AI Compliance Analysis", expanded=True):
-        # Render markdown properly to parse headers, bold, lists, etc.
         st.markdown(analysis_text)

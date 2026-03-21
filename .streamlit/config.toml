@@ -2,6 +2,7 @@
 port = 8501
 enableCORS = false
 headless = true
+maxUploadSize = 5
 
 [theme]
 primaryColor = "#00d9ff"
