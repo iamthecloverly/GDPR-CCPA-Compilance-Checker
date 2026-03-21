@@ -254,8 +254,12 @@ class ComplianceModel:
         has_email = bool(EMAIL_PATTERN.search(page_text))
         has_phone = bool(PHONE_PATTERN.search(page_text))
         
-        # Check for contact page link
-        contact_link = soup.find("a", href=True, string=re.compile("contact", re.IGNORECASE))
+        # Check for contact page link (use get_text() to handle nested elements)
+        contact_pattern = re.compile("contact", re.IGNORECASE)
+        contact_link = next(
+            (a for a in soup.find_all("a", href=True) if contact_pattern.search(a.get_text())),
+            None
+        )
         
         if has_email or has_phone or contact_link:
             details = []

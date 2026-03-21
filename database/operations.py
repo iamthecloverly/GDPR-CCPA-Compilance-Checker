@@ -1,6 +1,7 @@
 """Database CRUD operations for compliance scan records."""
 
 from typing import Dict, List, Any, Optional, Tuple
+import json
 import logging
 from datetime import datetime
 from sqlalchemy import func, desc
@@ -24,7 +25,7 @@ def _scan_to_dict(scan: ComplianceScan) -> Dict[str, Any]:
         'cookie_consent': scan.cookie_consent,
         'privacy_policy': scan.privacy_policy,
         'contact_info': scan.contact_info,
-        'trackers': scan.trackers,
+        'trackers': json.loads(scan.trackers) if scan.trackers else [],
         'scan_date': scan.scan_date,
         'ai_analysis': scan.ai_analysis
     }
@@ -46,7 +47,7 @@ def save_scan_result(url: str, results: Dict[str, Any], ai_analysis: Optional[st
                 cookie_consent=results.get("cookie_consent", "Not Found"),
                 privacy_policy=results.get("privacy_policy", "Not Found"),
                 contact_info=results.get("contact_info", "Not Found"),
-                trackers=str(results.get("trackers", [])),
+                trackers=json.dumps(results.get("trackers", [])),
                 ai_analysis=ai_analysis,
                 scan_date=datetime.utcnow()
             )
