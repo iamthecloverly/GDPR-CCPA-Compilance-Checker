@@ -177,7 +177,6 @@ class ComplianceController:
         for grade, threshold in GRADE_THRESHOLDS.items():
             if score >= threshold:
                 return grade
-        return "F"
     
     def _determine_status(self, score: int) -> str:
         """
