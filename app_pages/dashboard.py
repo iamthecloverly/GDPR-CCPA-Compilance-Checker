@@ -150,10 +150,13 @@ def render_dashboard_page():
                 .encode(
                     x=alt.X("scan_date:T"),
                     y=alt.Y("score:Q"),
-                    color=alt.condition(
-                        alt.datum.score >= 80,
-                        alt.value("#3fb950"),
-                        alt.condition(alt.datum.score >= 60, alt.value("#d29922"), alt.value("#f85149")),
+                    color=alt.Color(
+                        "score:Q",
+                        scale=alt.Scale(
+                            domain=[0, 60, 80, 100],
+                            range=["#f85149", "#f85149", "#d29922", "#3fb950"],
+                        ),
+                        legend=None,
                     ),
                     tooltip=[
                         alt.Tooltip("url:N", title="URL"),
