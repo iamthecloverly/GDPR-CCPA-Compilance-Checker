@@ -66,6 +66,21 @@ def render_quick_scan_page():
                 st.warning(rate_msg)
                 return
 
+        # If cached but AI was requested and not yet run, top up with AI analysis
+        if cached_result and ai_enabled and not cached_result.get("ai_analysis"):
+            with st.spinner("Running AI analysis on privacy policy..."):
+                try:
+                    svc = OpenAIService()
+                    cached_result["ai_analysis"] = svc.analyze_privacy_policy(prepared_url, cached_result)
+                    scan_cache.set(prepared_url, cached_result)
+                    try:
+                        from database.operations import save_scan_result
+                        save_scan_result(prepared_url, cached_result, cached_result["ai_analysis"])
+                    except Exception as db_error:
+                        logger.warning(f"Database update failed: {db_error}")
+                except Exception as e:
+                    logger.warning(f"AI analysis failed: {e}")
+
         if cached_result:
             _render_success_banner(prepared_url, cached_result, cached=True)
             render_scan_results(cached_result)
