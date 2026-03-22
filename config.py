@@ -36,6 +36,10 @@ class Config:
     BATCH_SCAN_LIMIT = int(os.getenv("BATCH_SCAN_LIMIT", "10"))
     BATCH_MAX_WORKERS = int(os.getenv("BATCH_MAX_WORKERS", "4"))
 
+    # Rate Limiting (per session)
+    SCAN_RATE_LIMIT_PER_MINUTE = int(os.getenv("SCAN_RATE_LIMIT_PER_MINUTE", "10"))
+    BATCH_RATE_LIMIT_PER_HOUR = int(os.getenv("BATCH_RATE_LIMIT_PER_HOUR", "5"))
+
     # Cache
     CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", str(24 * 3600)))
     CACHE_MAXSIZE = int(os.getenv("CACHE_MAXSIZE", "512"))

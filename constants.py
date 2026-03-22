@@ -3,6 +3,16 @@
 import re
 from typing import List, Dict
 
+# Finding severity levels
+SEVERITY_HIGH = "high"
+SEVERITY_MEDIUM = "medium"
+SEVERITY_LOW = "low"
+
+
+def is_detected(result: str) -> bool:
+    """Return True if a compliance model result string indicates the feature was found."""
+    return bool(result) and result.startswith("Found")
+
 # Status indicators
 STATUS_COMPLIANT = "Compliant"
 STATUS_NEEDS_IMPROVEMENT = "Needs Improvement"

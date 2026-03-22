@@ -6,14 +6,12 @@ import json
 import logging
 from datetime import datetime
 from sqlalchemy import func, desc
-from sqlalchemy.orm import joinedload
 
 from database.db import get_db
 from database.models import ComplianceScan
 from exceptions import DatabaseError
 
 logger = logging.getLogger(__name__)
-
 
 def _parse_trackers(raw: Any) -> list:
     """Safely parse trackers from DB — handles both JSON and legacy Python-repr strings."""
@@ -32,9 +30,9 @@ def _parse_trackers(raw: Any) -> list:
             return []
 
 
-def _scan_to_dict(scan: ComplianceScan) -> Dict[str, Any]:
+def _scan_to_dict(scan: ComplianceScan, include_findings: bool = False) -> Dict[str, Any]:
     """Convert a ComplianceScan model instance to a dictionary."""
-    return {
+    d = {
         'id': scan.id,
         'url': scan.url,
         'score': scan.score,
@@ -45,8 +43,26 @@ def _scan_to_dict(scan: ComplianceScan) -> Dict[str, Any]:
         'contact_info': scan.contact_info,
         'trackers': _parse_trackers(scan.trackers),
         'scan_date': scan.scan_date,
-        'ai_analysis': scan.ai_analysis
+        'ai_analysis': scan.ai_analysis,
     }
+    if include_findings:
+        d['findings'] = {
+            'cookie_consent': scan.cookie_consent,
+            'privacy_policy': scan.privacy_policy,
+            'contact_info': scan.contact_info,
+        }
+    return d
+
+
+def _apply_scan_filters(q, url_search, grade_filter, date_cutoff):
+    """Apply common scan filters to a SQLAlchemy query and return it."""
+    if url_search:
+        q = q.filter(ComplianceScan.url.ilike(f"%{url_search}%"))
+    if grade_filter:
+        q = q.filter(ComplianceScan.grade.in_(grade_filter))
+    if date_cutoff:
+        q = q.filter(ComplianceScan.scan_date >= date_cutoff)
+    return q
 
 
 def save_scan_result(url: str, results: Dict[str, Any], ai_analysis: Optional[str] = None) -> Optional[int]:
@@ -234,18 +250,7 @@ def get_all_scans() -> List[Dict[str, Any]]:
                 desc(ComplianceScan.scan_date)
             ).all()
             
-            result = []
-            for scan in scans:
-                s_dict = _scan_to_dict(scan)
-                # Maintain 'findings' for backward compatibility with comparison tool
-                s_dict['findings'] = {
-                    'cookie_consent': scan.cookie_consent,
-                    'privacy_policy': scan.privacy_policy,
-                    'contact_info': scan.contact_info,
-                }
-                result.append(s_dict)
-            
-            return result
+            return [_scan_to_dict(scan, include_findings=True) for scan in scans]
         except Exception as e:
             logger.error(f"Failed to retrieve all scans: {e}")
             return []
@@ -350,6 +355,102 @@ def delete_scan(scan_id: int) -> bool:
         except Exception as e:
             logger.error(f"Failed to delete scan {scan_id}: {e}")
             return False
+
+
+def delete_scans_by_ids(scan_ids: List[int]) -> int:
+    """
+    Delete multiple scans by their IDs in a single transaction.
+
+    Args:
+        scan_ids: List of scan IDs to delete.
+
+    Returns:
+        Number of records actually deleted.
+    """
+    if not scan_ids:
+        return 0
+    with get_db() as db:
+        if db is None:
+            return 0
+        try:
+            deleted = (
+                db.query(ComplianceScan)
+                .filter(ComplianceScan.id.in_(scan_ids))
+                .delete(synchronize_session=False)
+            )
+            db.commit()
+            logger.info(f"Bulk deleted {deleted} scan(s): ids={scan_ids}")
+            return deleted
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Failed to bulk delete scans {scan_ids}: {e}")
+            return 0
+
+
+def get_scan_count(
+    url_search: Optional[str] = None,
+    grade_filter: Optional[List[str]] = None,
+    date_cutoff: Optional[datetime] = None,
+) -> int:
+    """
+    Return the total number of scans matching the given filters.
+
+    Args:
+        url_search: Partial URL substring to filter by (case-insensitive).
+        grade_filter: List of grade letters to include (e.g. ["A", "B"]).
+        date_cutoff: Only count scans on or after this datetime.
+
+    Returns:
+        Integer count of matching scans.
+    """
+    with get_db() as db:
+        if db is None:
+            return 0
+        try:
+            q = _apply_scan_filters(
+                db.query(func.count(ComplianceScan.id)),
+                url_search, grade_filter, date_cutoff,
+            )
+            return q.scalar() or 0
+        except Exception as e:
+            logger.error(f"Failed to count scans: {e}")
+            return 0
+
+
+def get_scans_paginated(
+    offset: int = 0,
+    limit: int = 20,
+    url_search: Optional[str] = None,
+    grade_filter: Optional[List[str]] = None,
+    date_cutoff: Optional[datetime] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Return a page of scans matching the given filters, newest-first.
+
+    Args:
+        offset: Number of records to skip (0-based).
+        limit: Maximum records to return.
+        url_search: Partial URL substring to filter by (case-insensitive).
+        grade_filter: List of grade letters to include (e.g. ["A", "B"]).
+        date_cutoff: Only return scans on or after this datetime.
+
+    Returns:
+        List of scan result dictionaries.
+    """
+    with get_db() as db:
+        if db is None:
+            logger.warning("Database not available - returning empty page")
+            return []
+        try:
+            q = _apply_scan_filters(
+                db.query(ComplianceScan).order_by(desc(ComplianceScan.scan_date)),
+                url_search, grade_filter, date_cutoff,
+            )
+            scans = q.offset(offset).limit(limit).all()
+            return [_scan_to_dict(scan, include_findings=True) for scan in scans]
+        except Exception as e:
+            logger.error(f"Failed to retrieve paginated scans: {e}")
+            return []
 
 
 def get_scans_by_date_range(start_date, end_date) -> List[Dict[str, Any]]:

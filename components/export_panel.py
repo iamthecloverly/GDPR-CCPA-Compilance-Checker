@@ -76,10 +76,11 @@ def _render_single_scan_export(
                 key=f"{key_prefix}_csv",
                 width="stretch"
             )
+            logger.info("AUDIT export format=csv url=%s", scan_result.get("url", ""))
         except Exception as e:
             st.error(f"❌ CSV Error: {str(e)}")
-            logger.error(f"Error exporting CSV: {e}")
-    
+            logger.error("AUDIT export_error format=csv error=%r", str(e))
+
     # Column 3: Download PDF
     with col_pdf:
         try:
@@ -92,9 +93,10 @@ def _render_single_scan_export(
                 key=f"{key_prefix}_pdf",
                 width="stretch"
             )
+            logger.info("AUDIT export format=pdf url=%s", scan_result.get("url", ""))
         except Exception as e:
             st.error(f"❌ PDF Error: {str(e)}")
-            logger.error(f"Error exporting PDF: {e}")
+            logger.error("AUDIT export_error format=pdf error=%r", str(e))
 
 
 def _render_batch_export(

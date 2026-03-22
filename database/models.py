@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Index
 from datetime import datetime
 from database.db import Base
 
 class ComplianceScan(Base):
     """Model for storing compliance scan results"""
     __tablename__ = "compliance_scans"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String(500), index=True, nullable=False)
     score = Column(Float, nullable=False)
@@ -18,5 +18,9 @@ class ComplianceScan(Base):
     scan_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     ai_analysis = Column(Text, nullable=True)
     
+    __table_args__ = (
+        Index("ix_url_scan_date", "url", "scan_date"),
+    )
+
     def __repr__(self):
         return f"<ComplianceScan(url={self.url}, score={self.score}, date={self.scan_date})>"

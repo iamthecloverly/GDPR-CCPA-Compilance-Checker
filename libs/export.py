@@ -273,7 +273,7 @@ GDPR/CCPA COMPLIANCE SCAN REPORT
 
 URL: {scan_data.get('url', 'N/A')}
 Scan Date: {scan_data.get('scan_date', 'N/A')}
-Overall Score: {scan_data.get('overall_score', 0):.1f}%
+Overall Score: {(scan_data.get('score') or scan_data.get('overall_score') or 0):.1f}%
 Grade: {scan_data.get('grade', 'N/A')}
 Status: {scan_data.get('status', 'N/A')}
 
@@ -535,10 +535,12 @@ def validate_export_data(data: Dict[str, Any]) -> tuple[bool, str]:
     if not isinstance(data, dict):
         return False, "Data must be a dictionary"
 
-    required_fields = ["url", "overall_score", "grade"]
+    required_fields = ["url", "grade"]
     for field in required_fields:
         if field not in data:
             return False, f"Missing required field: {field}"
+    if not (data.get("score") or data.get("overall_score")):
+        return False, "Missing required field: score"
 
     return True, ""
 

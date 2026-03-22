@@ -4,6 +4,7 @@ import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
 import html
+from constants import is_detected
 
 # Score thresholds and colors
 SCORE_THRESHOLDS = {
@@ -110,7 +111,7 @@ def render_quick_results(results: Dict[str, Any]):
         if finding_field:
             raw_finding = str(results.get(finding_field, ""))
             # Trim verbose "Found ..." / "Not Found ..." to a short snippet
-            if raw_finding.startswith("Found"):
+            if is_detected(raw_finding):
                 reason = raw_finding[:70] + ("…" if len(raw_finding) > 70 else "")
             else:
                 # Strip leading "Not Found" prefix if present for clarity
@@ -143,27 +144,64 @@ def render_quick_results(results: Dict[str, Any]):
 """, unsafe_allow_html=True)
 
 
-def render_findings(findings: Dict[str, List[str]]):
+def render_findings(findings):
     """
     Render findings in expandable sections.
-    
-    Args:
-        findings: Dictionary of findings by category
-                  - cookie_consent: list of issues
-                  - privacy_policy: list of issues
-                  - contact_info: list of issues
-                  - trackers: list of detected trackers
+
+    Accepts either:
+      - List[Dict] with keys: category, issue, severity, passed  (new format)
+      - Dict[str, List[str]] keyed by category slug             (legacy format)
     """
     st.markdown("### Detailed Findings")
-    
-    for key, (title, color) in FINDING_CATEGORIES.items():
-        items = findings.get(key, [])
-        if items:
-            with st.expander(f"{title} ({len(items)} items)", expanded=False):
-                for i, item in enumerate(items, 1):
-                    st.markdown(f"**{i}.** {item}")
-        else:
-            st.success(f"{title} - No issues found")
+
+    SEVERITY_ICON = {"high": "🔴", "medium": "🟡", "low": "🟢"}
+
+    if isinstance(findings, list):
+        # New structured format from controller — render as styled cards
+        if not findings:
+            st.info("No findings recorded for this scan.")
+            return
+
+        severity_css = {"high": "high", "medium": "medium", "low": "pass"}
+        severity_badge_css = {"high": "badge-high", "medium": "badge-medium", "low": "badge-pass"}
+        severity_icon = {"high": "🔴", "medium": "🟡", "low": "🟢"}
+        severity_label = {"high": "High", "medium": "Medium", "low": "Low"}
+
+        cards_html = ""
+        for item in findings:
+            category = html.escape(item.get("category", "Unknown"))
+            issue = html.escape(item.get("issue", ""))
+            severity = item.get("severity", "low")
+            passed = item.get("passed", True)
+
+            card_cls = "pass" if passed else severity_css.get(severity, "medium")
+            badge_cls = "badge-pass" if passed else severity_badge_css.get(severity, "badge-medium")
+            icon = "✅" if passed else severity_icon.get(severity, "🟡")
+            badge_txt = "Pass" if passed else severity_label.get(severity, "Medium")
+
+            cards_html += f"""
+<div class="finding-card {card_cls}">
+  <div class="finding-card-icon">{icon}</div>
+  <div class="finding-card-body">
+    <div class="finding-card-title">{category}</div>
+    <div class="finding-card-text">{issue}</div>
+  </div>
+  <span class="finding-card-badge {badge_cls}">{badge_txt}</span>
+</div>"""
+
+        st.markdown(cards_html, unsafe_allow_html=True)
+    elif isinstance(findings, dict):
+        # Legacy dict format
+        for key, (title, color) in FINDING_CATEGORIES.items():
+            items = findings.get(key, [])
+            if items:
+                with st.expander(f"{title} ({len(items)} items)", expanded=False):
+                    for i, item in enumerate(items, 1):
+                        st.markdown(f"**{i}.** {item}")
+            else:
+                st.success(f"{title} - No issues found")
+    else:
+        st.info("No findings recorded for this scan.")
 
 
 def render_detailed_findings_table(findings: List[Dict[str, Any]]):
@@ -204,24 +242,27 @@ def render_detailed_findings_table(findings: List[Dict[str, Any]]):
 
 def render_recommendations(recommendations: List[str]):
     """
-    Render improvement recommendations.
-    
+    Render improvement recommendations as styled numbered list.
+
     Args:
         recommendations: List of recommendation strings
     """
     if not recommendations:
-        st.success("No recommendations - site is fully compliant! ✓")
+        st.success("No recommendations — site is fully compliant!")
         return
-    
-    st.markdown("### 💡 Recommendations for Improvement")
-    
+
+    st.markdown("### Recommendations for Improvement")
+
+    items_html = '<div style="background:rgba(15,20,40,0.5);border:1px solid #1e2647;border-radius:12px;padding:0.5rem 1.25rem;">'
     for i, rec in enumerate(recommendations, 1):
-        with st.container():
-            col1, col2 = st.columns([0.5, 9.5])
-            with col1:
-                st.markdown(f"**{i}.**")
-            with col2:
-                st.markdown(rec)
+        safe_rec = html.escape(str(rec))
+        items_html += f"""
+<div class="rec-item">
+  <div class="rec-num">{i}</div>
+  <div class="rec-text">{safe_rec}</div>
+</div>"""
+    items_html += "</div>"
+    st.markdown(items_html, unsafe_allow_html=True)
 
 
 def render_ai_analysis(analysis_text: str):
