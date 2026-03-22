@@ -11,135 +11,205 @@ from components import (
 )
 from controllers.compliance_controller import ComplianceController
 from libs.progress import ProgressTracker
-from libs.cache import ScanCache
+from libs.cache import get_scan_cache
+from libs.rate_limit import check_batch_rate_limit
+from services.openai_service import OpenAIService
 from exceptions import ScanError, NetworkError
 from logger_config import get_logger
 from config import Config
 logger = get_logger(__name__)
 
-# Initialize cache
-scan_cache = ScanCache(ttl_hours=24, max_items=Config.CACHE_MAXSIZE)
+# Use the module-level singleton so cache is shared across pages
+scan_cache = get_scan_cache()
 
 
 def render_batch_scan_page():
     """Render the batch scan page."""
-    st.markdown("# Batch Scan")
-    st.markdown("Upload a CSV and scan multiple websites at once")
-    
+    st.markdown("""
+<div class="page-hero">
+  <div class="page-hero-icon blue">📂</div>
+  <div>
+    <h1 class="page-hero-title">Batch Scan</h1>
+    <p class="page-hero-subtitle">Audit multiple websites at once &mdash; paste a list of URLs or upload a CSV file to get started</p>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
     csv_content, submitted = render_batch_upload_form()
-    
+
+    # AI toggle — shown in a styled card below the upload form
+    ai_enabled = False
+    if Config.OPENAI_API_KEY:
+        st.markdown('<div class="ai-toggle-card"><span class="ai-toggle-badge">✦ Optional</span>', unsafe_allow_html=True)
+        ai_enabled = st.toggle(
+            "Enable AI Analysis",
+            value=False,
+            help="After scanning, runs AI privacy-policy analysis on each site (slower but more detailed)",
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
     if submitted:
         # Validate URLs
         is_valid, urls, error_msg = validate_and_prepare_batch_urls(csv_content)
-        
+
         if not is_valid:
             st.error(error_msg)
             return
-        
-        # Validate and immediately start scanning
+
+        # Rate limit check for batch scans
+        allowed, rate_msg = check_batch_rate_limit(Config.BATCH_RATE_LIMIT_PER_HOUR)
+        if not allowed:
+            st.warning(rate_msg)
+            return
+
         st.info(f"Starting scan of {len(urls)} website(s)...")
-        perform_batch_scan(urls)
+        perform_batch_scan(urls, ai_enabled=ai_enabled)
 
 
-def perform_batch_scan(urls: list):
+def perform_batch_scan(urls: list, ai_enabled: bool = False):
     """
     Perform batch scanning of multiple URLs.
-    
+
+    Phase 1 — parallel compliance scans (fast).
+    Phase 2 — optional sequential AI analysis, only if ai_enabled=True.
+
     Args:
-        urls: List of URLs to scan
+        urls: List of URLs to scan.
+        ai_enabled: Whether to run AI analysis after scanning completes.
     """
-    # Initialize tracking
-    progress_placeholder = st.empty()
-    results_placeholder = st.empty()
-    
     controller = ComplianceController()
     progress_tracker = ProgressTracker(total_items=len(urls))
-    
-    completed_scans = []
-    failed_scans = []
-    
-    # Progress bar container
+
+    completed_scans: list = []
+    failed_scans: list = []
+
     progress_bar = st.progress(0)
     status_text = st.empty()
-    
+
     try:
+        # ── Phase 1: Compliance scans ─────────────────────────────────────
+        # Track per-URL state for status pills
+        url_states: dict = {url: "queued" for url in urls}
+        pills_placeholder = st.empty()
+
+        def _render_pills():
+            icons = {"queued": "○", "scanning": "●", "done": "✓", "error": "✗"}
+            pills = "".join(
+                f'<span class="batch-pill {state}">'
+                f'<span class="batch-pill-dot"></span>{icons[state]}&nbsp;{u.replace("https://","").replace("http://","")[:30]}'
+                f"</span>"
+                for u, state in url_states.items()
+            )
+            pills_placeholder.markdown(
+                f'<div class="batch-status-row">{pills}</div>', unsafe_allow_html=True
+            )
+
+        _render_pills()
+
         pending_urls = []
         for url in urls:
-            cached_result = scan_cache.get(url)
-            if cached_result:
+            cached = scan_cache.get(url)
+            if cached:
                 logger.info(f"Using cached result for {url}")
-                completed_scans.append(cached_result)
+                url_states[url] = "done"
+                completed_scans.append(cached)
             else:
                 pending_urls.append(url)
+
+        _render_pills()
 
         processed = len(completed_scans)
 
         if pending_urls:
             with ThreadPoolExecutor(max_workers=Config.BATCH_MAX_WORKERS) as executor:
-                future_to_url = {executor.submit(controller.scan_website, url): url for url in pending_urls}
+                future_to_url = {
+                    executor.submit(controller.scan_website, url): url
+                    for url in pending_urls
+                }
 
                 for future in as_completed(future_to_url):
                     url = future_to_url[future]
+                    url_states[url] = "scanning"
                     processed += 1
-
-                    progress_tracker.update(
-                        current=processed,
-                        stage=f"Scanning {url[:40]}..."
-                    )
-
+                    progress_tracker.update(current=processed, stage=f"Scanning {url[:40]}...")
                     progress_value = processed / len(urls)
                     progress_bar.progress(progress_value)
-
-                    with status_text.container():
-                        col1, col2, col3 = st.columns([2, 1, 1])
-                        with col1:
-                            st.markdown(f"**Scanning:** {url}")
-                        with col2:
-                            st.markdown(f"`{processed}/{len(urls)}`")
-                        with col3:
-                            st.markdown(f"`{progress_value * 100:.0f}%`")
+                    status_text.markdown(f"`{processed}/{len(urls)}` — scanning `{url[:50]}`")
 
                     try:
                         result = future.result()
                         result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         result["url"] = url
-
-                        # Generate AI analysis for this site
-                        try:
-                            from services.openai_service import OpenAIService
-                            openai_service = OpenAIService()
-                            ai_analysis = openai_service.analyze_privacy_policy(url, result)
-                            result["ai_analysis"] = ai_analysis
-                        except Exception as ai_error:
-                            logger.warning(f"Could not generate AI analysis for {url}: {ai_error}")
-                            result["ai_analysis"] = None
+                        result.setdefault("ai_analysis", None)
 
                         scan_cache.set(url, result)
 
                         try:
                             from database.operations import save_scan_result
-                            save_scan_result(url, result, result.get("ai_analysis"))
-                        except Exception as db_error:
-                            logger.warning(f"Could not save {url} to database: {db_error}")
+                            save_scan_result(url, result, None)
+                        except Exception as db_err:
+                            logger.warning(f"Could not save {url} to database: {db_err}")
 
+                        url_states[url] = "done"
                         completed_scans.append(result)
                     except (ScanError, NetworkError) as e:
                         logger.error(f"Scan error for {url}: {e}")
-                        failed_scans.append({
-                            "url": url,
-                            "error": str(e)
-                        })
+                        url_states[url] = "error"
+                        failed_scans.append({"url": url, "error": str(e)})
                     except Exception as e:
                         logger.error(f"Unexpected error scanning {url}: {e}")
-                        failed_scans.append({
-                            "url": url,
-                            "error": f"Unexpected error: {str(e)}"
-                        })
+                        url_states[url] = "error"
+                        failed_scans.append({"url": url, "error": f"Unexpected error: {str(e)}"})
+
+                    _render_pills()
 
         progress_bar.progress(1.0)
         status_text.empty()
 
-        st.success(f"✓ Batch scan completed! Scanned {len(completed_scans)} websites successfully.")
+        # ── Phase 2: AI analysis (optional, sequential) ───────────────────
+        if ai_enabled and completed_scans:
+            _run_batch_ai_analysis(completed_scans)
+
+        # ── Summary bar ───────────────────────────────────────────────────
+        avg_score = (
+            sum(s.get("score", 0) for s in completed_scans) / len(completed_scans)
+            if completed_scans else 0
+        )
+        compliant = sum(1 for s in completed_scans if s.get("score", 0) >= 80)
+        at_risk   = sum(1 for s in completed_scans if s.get("score", 0) < 60)
+
+        st.markdown(f"""
+<div class="batch-summary-bar">
+  <div class="batch-summary-item info">
+    <span class="batch-summary-val">{len(urls)}</span>
+    <span class="batch-summary-lbl">Total</span>
+  </div>
+  <div class="batch-summary-item success">
+    <span class="batch-summary-val">{len(completed_scans)}</span>
+    <span class="batch-summary-lbl">Scanned</span>
+  </div>
+  <div class="batch-summary-item danger">
+    <span class="batch-summary-val">{len(failed_scans)}</span>
+    <span class="batch-summary-lbl">Failed</span>
+  </div>
+  <div class="batch-summary-item success">
+    <span class="batch-summary-val">{compliant}</span>
+    <span class="batch-summary-lbl">Compliant</span>
+  </div>
+  <div class="batch-summary-item warn">
+    <span class="batch-summary-val">{at_risk}</span>
+    <span class="batch-summary-lbl">At Risk</span>
+  </div>
+  <div class="batch-summary-item info">
+    <span class="batch-summary-val">{avg_score:.0f}</span>
+    <span class="batch-summary-lbl">Avg Score</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+        st.toast(
+            f"Batch scan complete — {len(completed_scans)}/{len(urls)} succeeded, avg score {avg_score:.0f}",
+            icon="✅",
+        )
 
         render_batch_summary(completed_scans, [s["url"] for s in failed_scans])
 
@@ -148,7 +218,44 @@ def perform_batch_scan(urls: list):
 
     except Exception as e:
         logger.exception(f"Batch scan failed: {type(e).__name__}")
-        st.error("⚠️ Batch scan encountered an error. Please try again or contact support.")
+        st.error("Batch scan encountered an error. Please try again or contact support.")
+
+
+def _run_batch_ai_analysis(scans: list) -> None:
+    """
+    Run AI privacy-policy analysis sequentially on each completed scan.
+    Updates each result dict in-place with 'ai_analysis'.
+
+    Args:
+        scans: List of completed scan result dicts (modified in-place).
+    """
+    svc = OpenAIService()
+    total = len(scans)
+
+    st.markdown("**Running AI analysis...**")
+    ai_bar = st.progress(0)
+    ai_status = st.empty()
+
+    for i, result in enumerate(scans, 1):
+        url = result.get("url", "")
+        ai_status.markdown(f"Analyzing `{url}` ({i}/{total})...")
+        ai_bar.progress(i / total)
+        try:
+            analysis = svc.analyze_privacy_policy(url, result)
+            result["ai_analysis"] = analysis
+            # Update DB record with AI analysis
+            scan_cache.set(url, result)
+            try:
+                from database.operations import save_scan_result
+                save_scan_result(url, result, analysis)
+            except Exception as db_err:
+                logger.warning(f"Could not update AI analysis for {url}: {db_err}")
+        except Exception as e:
+            logger.warning(f"AI analysis failed for {url}: {e}")
+            result["ai_analysis"] = None
+
+    ai_status.empty()
+    ai_bar.empty()
 
 
 def main():

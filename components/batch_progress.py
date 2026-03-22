@@ -50,7 +50,7 @@ def render_batch_progress(
         st.metric("Pending", total - current, "items")
     
     with col4:
-        st.metric("Current Stage", stage[:15] or "Ready")
+        st.metric("Current Stage", stage or "Ready")
     
     # Expandable sections for results
     st.markdown("---")

@@ -5,101 +5,72 @@ import pandas as pd
 import altair as alt
 import html
 from components.header import create_metric_card
-from database.operations import get_recent_scans, get_scan_statistics
+from database.operations import get_recent_scans, get_scan_statistics, get_all_scans
 from logger_config import get_logger
 
 logger = get_logger(__name__)
 
 
-def render_hero():
-    """Render the hero section with headline, subtitle, CTA links, stats, and product mockup."""
-    hero_html = """
-    <div class="hero-section">
-        <div class="hero-glow-top"></div>
-        <div class="hero-glow-bottom"></div>
-        <div class="hero-content">
-            <div class="hero-badge">
-                <span class="hero-live-dot"></span>
-                GDPR &amp; CCPA Compliance Platform
-            </div>
-            <h1 class="hero-title">Privacy Compliance,<br>Simplified.</h1>
-            <p class="hero-subtitle">
-                Scan any website in seconds. Get actionable GDPR &amp; CCPA insights
-                powered by AI &mdash; no technical expertise required.
-            </p>
-            <div class="hero-pills">
-                <span class="hero-pill">🔒 GDPR Ready</span>
-                <span class="hero-pill">📋 CCPA Compliant</span>
-                <span class="hero-pill">⚡ Instant Scanning</span>
-                <span class="hero-pill">🤖 AI-Powered</span>
-                <span class="hero-pill">📊 Detailed Reports</span>
-            </div>
-            <div class="hero-cta-row">
-                <a href="?nav=quick_scan" class="hero-btn-primary" target="_self">🚀 Start Quick Scan</a>
-                <a href="?nav=batch_scan" class="hero-btn-secondary" target="_self">📂 Batch Scan</a>
-            </div>
-            <div class="hero-stats">
-                <div class="hero-stat-item">
-                    <span class="hero-stat-num">10K+</span>
-                    <span class="hero-stat-label">Sites Checked</span>
-                </div>
-                <div class="hero-stat-item">
-                    <span class="hero-stat-num">99%</span>
-                    <span class="hero-stat-label">GDPR Coverage</span>
-                </div>
-                <div class="hero-stat-item">
-                    <span class="hero-stat-num">&lt;30s</span>
-                    <span class="hero-stat-label">Scan Time</span>
-                </div>
-            </div>
-        </div>
-        <div class="hero-mockup">
-            <div class="mockup-glow"></div>
-            <div class="mockup-window">
-                <div class="mockup-titlebar">
-                    <div class="mockup-dot red"></div>
-                    <div class="mockup-dot yellow"></div>
-                    <div class="mockup-dot green"></div>
-                    <div class="mockup-url">privacyguard.io/scan</div>
-                </div>
-                <div class="mockup-body">
-                    <div class="mockup-site-row">
-                        <div class="mockup-favicon"></div>
-                        <span class="mockup-site-name">example.com &mdash; Compliance Report</span>
-                    </div>
-                    <div class="mockup-score-row">
-                        <div class="mockup-grade">A</div>
-                        <div>
-                            <div class="mockup-score-num">87<span style="font-size:1rem;color:#8b949e">/100</span></div>
-                            <div class="mockup-status-badge">&#10004; Compliant</div>
-                        </div>
-                    </div>
-                    <div class="mockup-findings">
-                        <div class="mockup-finding pass">
-                            <div class="mockup-finding-dot"></div>Cookie Consent Banner
-                        </div>
-                        <div class="mockup-finding pass">
-                            <div class="mockup-finding-dot"></div>Privacy Policy Detected
-                        </div>
-                        <div class="mockup-finding pass">
-                            <div class="mockup-finding-dot"></div>Contact Info Found
-                        </div>
-                        <div class="mockup-finding warn">
-                            <div class="mockup-finding-dot"></div>3 Third-party Trackers
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    """
-    st.markdown(hero_html, unsafe_allow_html=True)
+def render_hero(stats: dict):
+    """Render the hero section with real stats, honest copy, and feature pills."""
+    from config import Config
+
+    total_scans = stats.get("total_scans", 0)
+
+    # Build pills inline (no blank lines from empty interpolation)
+    pill_labels = ["Cookie Consent", "Privacy Policy", "Tracker Detection", "Compliance Score", "PDF &amp; CSV Export"]
+    if Config.OPENAI_API_KEY:
+        pill_labels.append("AI Analysis")
+    pills_html = "".join(f'<span class="hero-pill">{p}</span>' for p in pill_labels)
+
+    # Stats only shown when data exists
+    if total_scans > 0:
+        avg = stats.get("avg_score", 0)
+        compliant = stats.get("compliant_count", 0)
+        stats_html = (
+            f'<div class="hero-stats">'
+            f'<div class="hero-stat-item"><span class="hero-stat-num">{total_scans}</span><span class="hero-stat-label">Scans Run</span></div>'
+            f'<div class="hero-stat-item"><span class="hero-stat-num">{avg:.0f}/100</span><span class="hero-stat-label">Avg Score</span></div>'
+            f'<div class="hero-stat-item"><span class="hero-stat-num">{compliant}</span><span class="hero-stat-label">Sites Compliant</span></div>'
+            f'</div>'
+        )
+    else:
+        stats_html = ""
+
+    st.markdown(f"""<div class="hero-section">
+<div class="hero-glow-top"></div>
+<div class="hero-glow-bottom"></div>
+<div class="hero-content">
+<div class="hero-badge"><span class="hero-live-dot"></span>GDPR &amp; CCPA Compliance Scanner</div>
+<h1 class="hero-title">Privacy Compliance,<br>Simplified.</h1>
+<p class="hero-subtitle">Scan any website for GDPR and CCPA compliance signals in seconds. Detects cookie consent, privacy policies, third-party trackers, and contact information &mdash; with a clear score and actionable report.</p>
+<div class="hero-pills">{pills_html}</div>
+<div class="hero-cta-row"><a href="?nav=quick_scan" class="hero-btn-primary" target="_self">Start Quick Scan</a><a href="?nav=batch_scan" class="hero-btn-secondary" target="_self">Batch Scan</a></div>
+{stats_html}</div>
+<div class="hero-mockup">
+<div class="mockup-glow"></div>
+<div class="mockup-window">
+<div class="mockup-titlebar"><div class="mockup-dot red"></div><div class="mockup-dot yellow"></div><div class="mockup-dot green"></div><div class="mockup-url">compliance-checker / scan</div></div>
+<div class="mockup-body">
+<div class="mockup-site-row"><div class="mockup-favicon"></div><span class="mockup-site-name">example.com &mdash; Compliance Report</span></div>
+<div class="mockup-score-row"><div class="mockup-grade">A</div><div><div class="mockup-score-num">87<span style="font-size:1rem;color:#a1a1aa">/100</span></div><div class="mockup-status-badge">&#10004; Compliant</div></div></div>
+<div class="mockup-findings">
+<div class="mockup-finding pass"><div class="mockup-finding-dot"></div>Cookie Consent Banner</div>
+<div class="mockup-finding pass"><div class="mockup-finding-dot"></div>Privacy Policy Detected</div>
+<div class="mockup-finding pass"><div class="mockup-finding-dot"></div>Contact Info Found</div>
+<div class="mockup-finding warn"><div class="mockup-finding-dot"></div>3 Third-party Trackers</div>
+</div></div></div></div></div>""", unsafe_allow_html=True)
 
 
 def render_dashboard_page():
     """Render the dashboard landing page."""
+    try:
+        stats = get_scan_statistics() or {}
+    except Exception as e:
+        logger.warning(f"Could not fetch statistics: {e}")
+        stats = {}
 
-    render_hero()
+    render_hero(stats)
 
     # ── Compliance Overview ────────────────────────────────────────────
     st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
@@ -108,12 +79,6 @@ def render_dashboard_page():
     <div class="section-heading">Compliance Overview</div>
     """, unsafe_allow_html=True)
 
-    try:
-        stats = get_scan_statistics() or {}
-    except Exception as e:
-        logger.warning(f"Could not fetch statistics: {e}")
-        stats = {}
-
     c1, c2, c3, c4 = st.columns(4, gap="medium")
 
     with c1:
@@ -121,20 +86,19 @@ def render_dashboard_page():
         create_metric_card(
             "Total Scans",
             str(total),
-            "↗ +12 this week" if total > 0 else "No scans yet",
+            "Sites scanned" if total > 0 else "No scans yet",
             "blue"
         )
     with c2:
         avg_score = stats.get("avg_score", 0)
-        delta_val = avg_score - 70
-        delta_text = f"{delta_val:+.0f}% vs baseline" if avg_score > 0 else "Awaiting data"
+        delta_text = f"Average compliance score" if avg_score > 0 else "Awaiting data"
         create_metric_card("Avg Score", f"{avg_score:.0f}", delta_text, "orange")
     with c3:
         compliant = stats.get("compliant_count", 0)
         create_metric_card(
             "Compliant Sites",
             str(compliant),
-            "↗ +5 new sites" if compliant > 0 else "None yet",
+            "Score ≥ 80" if compliant > 0 else "None yet",
             "green"
         )
     with c4:
@@ -142,7 +106,7 @@ def render_dashboard_page():
         create_metric_card(
             "At Risk",
             str(at_risk),
-            "⚠ High Priority" if at_risk > 0 else "All clear",
+            "Score < 60" if at_risk > 0 else "All clear",
             "red"
         )
 
@@ -153,81 +117,134 @@ def render_dashboard_page():
     <div class="section-heading">Compliance Activity</div>
     """, unsafe_allow_html=True)
 
-    col_chart, col_empty = st.columns([3, 1])
+    col_chart, col_dist = st.columns([3, 2])
     with col_chart:
-        total_scans = stats.get("total_scans", 0)
+        try:
+            scans = get_all_scans()
+        except Exception:
+            scans = []
 
-        if total_scans > 0:
-            categories = ['Week 1', 'Week 2', 'Week 3', 'Week 4',
-                          'Week 5', 'Week 6', 'Week 7', 'Week 8']
-            chart_data = pd.DataFrame({
-                'Category': categories * 2,
-                'Status': ['Compliant'] * 8 + ['At Risk'] * 8,
-                'Count': [10, 15, 8, 12, 20, 18, 5, 10, 5, 2, 8, 3, 1, 4, 12, 6]
-            })
+        if scans:
+            scan_df = pd.DataFrame(scans)
+            scan_df["scan_date"] = pd.to_datetime(scan_df["scan_date"])
+            scan_df = scan_df.sort_values("scan_date").tail(50)
+
+            line_chart = (
+                alt.Chart(scan_df)
+                .mark_line(color="#f59e0b", strokeWidth=2, interpolate="monotone")
+                .encode(
+                    x=alt.X("scan_date:T", title=None, axis=alt.Axis(labelColor="#a1a1aa", format="%b %d")),
+                    y=alt.Y("score:Q", title="Score", scale=alt.Scale(domain=[0, 100]),
+                            axis=alt.Axis(labelColor="#a1a1aa", gridColor="#27272a")),
+                    tooltip=[
+                        alt.Tooltip("scan_date:T", title="Date", format="%b %d %Y"),
+                        alt.Tooltip("url:N", title="URL"),
+                        alt.Tooltip("score:Q", title="Score"),
+                        alt.Tooltip("grade:N", title="Grade"),
+                    ],
+                )
+            )
+            points = (
+                alt.Chart(scan_df)
+                .mark_circle(size=55, color="#f59e0b", opacity=0.75)
+                .encode(
+                    x=alt.X("scan_date:T"),
+                    y=alt.Y("score:Q"),
+                    color=alt.condition(
+                        alt.datum.score >= 80,
+                        alt.value("#3fb950"),
+                        alt.condition(alt.datum.score >= 60, alt.value("#d29922"), alt.value("#f85149")),
+                    ),
+                    tooltip=[
+                        alt.Tooltip("url:N", title="URL"),
+                        alt.Tooltip("score:Q", title="Score"),
+                        alt.Tooltip("grade:N", title="Grade"),
+                    ],
+                )
+            )
+            st.altair_chart(
+                (line_chart + points)
+                .properties(height=260)
+                .configure_view(stroke="transparent", fill="transparent")
+                .configure_axis(gridColor="#27272a", domainColor="#27272a"),
+                use_container_width=True,
+            )
         else:
-            categories = ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-            chart_data = pd.DataFrame({
-                'Category': categories * 2,
-                'Status': ['Compliant'] * 4 + ['At Risk'] * 4,
-                'Count': [0] * 8
-            })
+            st.markdown("""
+            <div class="empty-state" style="height:200px;">
+                <div class="empty-state-icon">📈</div>
+                <p class="empty-state-title">No scan data yet</p>
+                <p class="empty-state-body">Run your first scan to see the score trend chart.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        chart = alt.Chart(chart_data).mark_bar(
-            cornerRadiusTopLeft=3,
-            cornerRadiusTopRight=3
-        ).encode(
-            x=alt.X('Category:N', axis=alt.Axis(labelColor='#8b949e', labelAngle=0, title=None)),
-            y=alt.Y('Count:Q', axis=alt.Axis(labelColor='#8b949e', gridColor='#21262d', title=None)),
-            color=alt.Color('Status:N',
-                scale=alt.Scale(domain=['Compliant', 'At Risk'], range=['#58a6ff', '#f85149']),
-                legend=alt.Legend(orient='top', title=None, labelColor='#f0f6fc', direction='horizontal')
-            ),
-            xOffset='Status:N',
-            tooltip=['Category', 'Status', 'Count']
-        ).properties(height=280).configure_view(
-            stroke='transparent', fill='transparent'
-        ).configure_axis(gridColor='#21262d', domainColor='#21262d')
+    with col_dist:
+        st.caption("GRADE DISTRIBUTION")
+        if scans:
+            dist_df = pd.DataFrame(scans)
+            grade_counts = dist_df["grade"].value_counts().reset_index()
+            grade_counts.columns = ["Grade", "Count"]
+            grade_order = ["A", "B", "C", "D", "F"]
+            color_map = {"A": "#3fb950", "B": "#58a6ff", "C": "#d29922", "D": "#f0883e", "F": "#f85149"}
 
-        st.altair_chart(chart, width="stretch")
+            donut = (
+                alt.Chart(grade_counts)
+                .mark_arc(innerRadius=55, outerRadius=95, cornerRadius=4)
+                .encode(
+                    theta=alt.Theta("Count:Q"),
+                    color=alt.Color(
+                        "Grade:N",
+                        scale=alt.Scale(domain=grade_order, range=[color_map[g] for g in grade_order]),
+                        legend=alt.Legend(orient="bottom", title=None, labelColor="#a1a1aa",
+                                          columns=5, direction="horizontal"),
+                    ),
+                    tooltip=["Grade:N", "Count:Q"],
+                )
+                .properties(height=220)
+                .configure_view(stroke="transparent", fill="transparent")
+            )
+            st.altair_chart(donut, use_container_width=True)
+        else:
+            st.markdown("""
+            <div class="empty-state" style="height:200px;">
+                <div class="empty-state-icon">🏅</div>
+                <p class="empty-state-title">No grade data</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     # ── Quick Actions ──────────────────────────────────────────────────
     st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">Actions</div>
     <div class="section-heading">Quick Actions</div>
-    """, unsafe_allow_html=True)
 
-    def action_card(icon, title, desc):
-        # Escape values for security
-        safe_icon = html.escape(str(icon))
-        safe_title = html.escape(str(title))
-        safe_desc = html.escape(str(desc))
-
-        return f"""
-        <div class="action-card">
-            <div class="action-icon">{safe_icon}</div>
-            <h4 class="action-title">{safe_title}</h4>
-            <p class="action-desc">{safe_desc}</p>
+    <div class="actions-grid">
+      <a href="?nav=quick_scan" class="action-card-v2" target="_self">
+        <div class="action-card-icon-wrap amber">⚡</div>
+        <div class="action-card-body">
+          <h4 class="action-card-title">Quick Scan</h4>
+          <p class="action-card-desc">Analyze a single website for GDPR &amp; CCPA compliance signals in seconds. Get an instant score and actionable report.</p>
         </div>
-        """
-
-    ac1, ac2, ac3 = st.columns(3, gap="medium")
-    with ac1:
-        st.markdown(action_card("🚀", "Quick Scan", "Analyze a single URL instantly for GDPR/CCPA compliance"), unsafe_allow_html=True)
-        if st.button("Start Quick Scan", key="dash_quick", width="stretch", type="primary"):
-            st.session_state.page = "quick_scan"
-            st.rerun()
-    with ac2:
-        st.markdown(action_card("📂", "Batch Scan", "Upload CSV for bulk analysis of multiple sites"), unsafe_allow_html=True)
-        if st.button("Start Batch Scan", key="dash_batch", width="stretch", type="primary"):
-            st.session_state.page = "batch_scan"
-            st.rerun()
-    with ac3:
-        st.markdown(action_card("📜", "View History", "Review past compliance reports and trends"), unsafe_allow_html=True)
-        if st.button("Open History", key="dash_history", width="stretch", type="primary"):
-            st.session_state.page = "history"
-            st.rerun()
+        <span class="action-cta-btn primary">Start Quick Scan &rarr;</span>
+      </a>
+      <a href="?nav=batch_scan" class="action-card-v2" target="_self">
+        <div class="action-card-icon-wrap blue">📂</div>
+        <div class="action-card-body">
+          <h4 class="action-card-title">Batch Scan</h4>
+          <p class="action-card-desc">Upload a CSV to scan multiple websites at once. Perfect for auditing large portfolios of sites efficiently.</p>
+        </div>
+        <span class="action-cta-btn blue-btn">Start Batch Scan &rarr;</span>
+      </a>
+      <a href="?nav=history" class="action-card-v2" target="_self">
+        <div class="action-card-icon-wrap green">📜</div>
+        <div class="action-card-body">
+          <h4 class="action-card-title">Scan History</h4>
+          <p class="action-card-desc">Browse past compliance reports, compare sites side-by-side, and export data as CSV, JSON, or PDF.</p>
+        </div>
+        <span class="action-cta-btn green-btn">View History &rarr;</span>
+      </a>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ── Recent Scans ───────────────────────────────────────────────────
     st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
@@ -240,36 +257,53 @@ def render_dashboard_page():
         recent_scans = get_recent_scans(limit=5)
 
         if recent_scans:
-            for idx, scan in enumerate(recent_scans):
-                with st.container(border=True):
-                    col1, col2, col3, col4 = st.columns([3, 1.5, 1, 1.5])
-                    with col1:
-                        st.markdown(f"**{scan.get('url', 'Unknown URL')}**")
-                        st.caption(f"🕒 {scan.get('scan_date', 'N/A')}")
-                    with col2:
-                        score = scan.get('score', 0)
-                        st.metric("Score", f"{score}/100", label_visibility="collapsed")
-                    with col3:
-                        grade = scan.get('grade', 'N/A')
-                        grade_color = '#10b981' if grade == 'A' else ('#f59e0b' if grade in ['B', 'C'] else '#ef4444')
+            rows_html = '<div class="recent-scans-list">'
+            for scan in recent_scans:
+                score = scan.get("score", 0)
+                grade = scan.get("grade", "N/A")
+                url = html.escape(str(scan.get("url", "Unknown URL")))
+                date = html.escape(str(scan.get("scan_date", "N/A")))
 
-                        # Escape values for security
-                        safe_grade = html.escape(str(grade))
-                        safe_color = html.escape(str(grade_color))
+                if grade == "A":
+                    grade_color = "#3fb950"
+                    grade_bg = "rgba(63,185,80,0.10)"
+                    grade_border = "rgba(63,185,80,0.28)"
+                elif grade in ("B", "C"):
+                    grade_color = "#f59e0b"
+                    grade_bg = "rgba(245,158,11,0.10)"
+                    grade_border = "rgba(245,158,11,0.28)"
+                else:
+                    grade_color = "#f85149"
+                    grade_bg = "rgba(248,81,73,0.10)"
+                    grade_border = "rgba(248,81,73,0.28)"
 
-                        st.markdown(
-                            f"<div style='text-align:center;padding:8px;'>"
-                            f"<span style='color:{safe_color};font-weight:bold;font-size:20px;'>{safe_grade}</span>"
-                            f"</div>",
-                            unsafe_allow_html=True
-                        )
-                    with col4:
-                        if st.button("View", key=f"details_{idx}", width="stretch", type="secondary"):
-                            st.session_state.selected_scan_id = scan.get('id')
-                            st.session_state.page = "history"
-                            st.rerun()
+                score_pct = min(int(score), 100)
+                bar_color = grade_color
+
+                rows_html += f"""
+<div class="recent-scan-row">
+  <div class="recent-scan-url">
+    <div class="recent-scan-domain">{url}</div>
+    <div class="recent-scan-date">&#128337; {date}</div>
+  </div>
+  <div class="recent-scan-score-wrap">
+    <div class="recent-scan-score-num">{score}<span class="recent-scan-score-max">/100</span></div>
+    <div class="recent-scan-bar-track">
+      <div class="recent-scan-bar-fill" style="width:{score_pct}%;background:{bar_color};"></div>
+    </div>
+  </div>
+  <div class="recent-scan-grade" style="color:{grade_color};background:{grade_bg};border:1px solid {grade_border};">{html.escape(str(grade))}</div>
+  <a href="?nav=history" class="recent-scan-view-btn" target="_self">View &rarr;</a>
+</div>"""
+            rows_html += "</div>"
+            st.markdown(rows_html, unsafe_allow_html=True)
         else:
-            st.info("📭 No scans yet. Use Quick Actions above to get started!")
+            st.markdown("""
+<div class="empty-state" style="min-height:140px;">
+  <div class="empty-state-icon">&#128205;</div>
+  <p class="empty-state-title">No scans yet</p>
+  <p class="empty-state-body">Use the Quick Actions above to run your first compliance scan.</p>
+</div>""", unsafe_allow_html=True)
     except Exception as e:
         logger.warning(f"Error fetching recent scans: {e}")
         st.info("Recent scans will appear after your first scan")

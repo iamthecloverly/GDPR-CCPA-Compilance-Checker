@@ -13,35 +13,43 @@ from components import (
     render_ai_analysis,
 )
 from controllers.compliance_controller import ComplianceController
-from libs.cache import ScanCache
+from libs.cache import get_scan_cache
+from libs.rate_limit import check_scan_rate_limit
+from services.openai_service import OpenAIService
 from exceptions import ScanError, NetworkError
 from logger_config import get_logger
 from config import Config
 
 logger = get_logger(__name__)
 
-# Initialize cache
-scan_cache = ScanCache(ttl_hours=24, max_items=Config.CACHE_MAXSIZE)
+# Use the module-level singleton so cache is shared across pages
+scan_cache = get_scan_cache()
 
 
 def render_quick_scan_page():
     """Render the quick scan page."""
-    st.markdown("# Quick Scan")
-    st.markdown("Analyze a single website for GDPR and CCPA compliance")
+    st.markdown("""
+<div class="page-hero">
+  <div class="page-hero-icon amber">⚡</div>
+  <div>
+    <h1 class="page-hero-title">Quick Scan</h1>
+    <p class="page-hero-subtitle">Instantly analyze any website for GDPR &amp; CCPA compliance &mdash; cookie consent, privacy policy, trackers &amp; more</p>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     url, submitted = render_scan_form()
 
-    # AI analysis toggle — shown below the form as an optional enhancement
+    # AI analysis toggle — shown in a styled card below the form
     ai_enabled = False
     if Config.OPENAI_API_KEY:
+        st.markdown('<div class="ai-toggle-card"><span class="ai-toggle-badge">✦ Optional</span>', unsafe_allow_html=True)
         ai_enabled = st.toggle(
             "Enable AI Analysis",
             value=False,
             help="After scanning, fetches the site's privacy policy and analyzes it with GPT",
         )
-    else:
-        st.caption("AI analysis unavailable — set OPENAI_API_KEY to enable")
-
+        st.markdown('</div>', unsafe_allow_html=True)
     if submitted:
         is_valid, prepared_url, error_msg = validate_and_prepare_url(url)
 
@@ -49,19 +57,41 @@ def render_quick_scan_page():
             st.error(error_msg)
             return
 
+        # Rate limit check (cached results bypass the limit — no new network request)
         cached_result = scan_cache.get(prepared_url)
+
+        if not cached_result:
+            allowed, rate_msg = check_scan_rate_limit(Config.SCAN_RATE_LIMIT_PER_MINUTE)
+            if not allowed:
+                st.warning(rate_msg)
+                return
 
         if cached_result:
             _render_success_banner(prepared_url, cached_result, cached=True)
             render_scan_results(cached_result)
         else:
             try:
-                with st.spinner("Scanning website..."):
+                with st.status("Scanning website...", expanded=True) as status:
+                    st.write("Fetching page content...")
                     controller = ComplianceController()
+
+                    st.write("Analyzing cookies, privacy policy & contact info...")
                     result = controller.scan_website(prepared_url)
 
+                    st.write("Calculating compliance score...")
                     result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     result["url"] = prepared_url
+
+                    if ai_enabled:
+                        st.write("Running AI analysis on privacy policy...")
+                        try:
+                            svc = OpenAIService()
+                            result["ai_analysis"] = svc.analyze_privacy_policy(prepared_url, result)
+                        except Exception as e:
+                            logger.warning(f"AI analysis failed: {e}")
+                            result["ai_analysis"] = None
+
+                    status.update(label="Scan complete", state="complete", expanded=False)
 
             except NetworkError as e:
                 st.error(f"**Could not reach the website:** {e}")
@@ -81,16 +111,6 @@ def render_quick_scan_page():
                 st.error("**An unexpected error occurred.** Please try again.")
                 return
 
-            if ai_enabled:
-                with st.spinner("Running AI analysis on privacy policy..."):
-                    try:
-                        from services.openai_service import OpenAIService
-                        svc = OpenAIService()
-                        result["ai_analysis"] = svc.analyze_privacy_policy(prepared_url, result)
-                    except Exception as e:
-                        logger.warning(f"AI analysis failed: {e}")
-                        result["ai_analysis"] = None
-
             scan_cache.set(prepared_url, result)
 
             try:
@@ -98,6 +118,10 @@ def render_quick_scan_page():
                 save_scan_result(prepared_url, result, result.get("ai_analysis"))
             except Exception as db_error:
                 logger.warning(f"Database save failed: {db_error}")
+
+            score = result.get("score", 0)
+            grade = result.get("grade", "F")
+            st.toast(f"Scan complete — Score {score}/100, Grade {grade}", icon="✅")
 
             _render_success_banner(prepared_url, result)
             render_scan_results(result)
@@ -140,12 +164,51 @@ def render_scan_results(result: dict):
 
     # AI analysis (shown if available)
     if result.get("ai_analysis"):
-        st.markdown("---")  # Visual separator for clean layout
+        st.markdown("---")
         render_ai_analysis(result["ai_analysis"])
 
-    # Export options (at the end after AI analysis)
-    st.markdown("---")  # Visual separator before export section
+    # ── Remediation advice (AI-powered, on demand) ─────────────────────────
+    if Config.OPENAI_API_KEY and result.get("score", 100) < 100:
+        st.markdown("---")
+        _render_remediation_advice(result)
+
+    # Export options (at the end)
+    st.markdown("---")
     render_export_options(result)
+
+
+def _render_remediation_advice(result: dict):
+    """
+    Render an on-demand AI remediation advice panel.
+
+    Fetches advice once per URL and caches it in st.session_state so it
+    survives reruns without triggering extra API calls.
+    """
+    url = result.get("url", "")
+    cache_key = f"_remediation_{url}"
+
+    st.markdown("#### AI Remediation Advice")
+
+    existing = st.session_state.get(cache_key)
+
+    if existing:
+        with st.expander("View Remediation Advice", expanded=True):
+            st.markdown(existing)
+    else:
+        if st.button(
+            "Get AI Remediation Advice",
+            key=f"remediation_btn_{url}",
+            help="Uses GPT to generate prioritised fix steps for each failing compliance check",
+        ):
+            with st.spinner("Generating remediation advice..."):
+                try:
+                    svc = OpenAIService()
+                    advice = svc.get_remediation_advice(result)
+                    st.session_state[cache_key] = advice or "No advice available."
+                    st.rerun()
+                except Exception as e:
+                    logger.warning(f"Remediation advice failed: {e}")
+                    st.error("Could not generate remediation advice. Please try again.")
 
 
 def main():
