@@ -70,7 +70,7 @@ def render_all_scans_view():
     with f3:
         search_url = st.text_input(
             "Search URL",
-            placeholder="Filter by domain — e.g. example.com",
+            placeholder="Filter by domain — e.g. example.com…",
             key="search_url",
         )
 

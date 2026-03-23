@@ -50,6 +50,7 @@ st.markdown("""
 <style>
     /* ── Design tokens ──────────────────────────────────────────── */
     :root {
+        color-scheme: dark;
         --bg:            #05060b;
         --surface-1:     #0d0f1a;
         --surface-2:     #121520;
@@ -429,6 +430,7 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         background-clip: text;
         letter-spacing: -0.02em;
+        text-wrap: balance;
     }
     .hero-subtitle {
         font-size: 1.08rem;
@@ -471,6 +473,11 @@ st.markdown("""
         box-shadow: 0 8px 30px rgba(245,158,11,0.5);
         color: #0a0a0a !important; text-decoration: none !important;
     }
+    .hero-btn-primary:focus-visible {
+        outline: 2px solid #f59e0b;
+        outline-offset: 3px;
+        box-shadow: 0 0 0 4px rgba(245,158,11,0.25);
+    }
     .hero-btn-secondary {
         display: inline-flex; align-items: center; gap: 0.45rem;
         background: rgba(255,255,255,0.06);
@@ -485,6 +492,11 @@ st.markdown("""
         background: rgba(245,158,11,0.08);
         border-color: rgba(245,158,11,0.3);
         color: #f8fafc !important; text-decoration: none !important;
+    }
+    .hero-btn-secondary:focus-visible {
+        outline: 2px solid #f59e0b;
+        outline-offset: 3px;
+        box-shadow: 0 0 0 4px rgba(245,158,11,0.2);
     }
 
     /* ── Hero stats row ─────────────────────────────────────────── */
@@ -590,7 +602,7 @@ st.markdown("""
     }
     .section-heading {
         font-size: 1.35rem; font-weight: 700; color: #fafafa; margin: 0 0 1.1rem;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.01em; text-wrap: balance;
     }
 
     /* ── Mobile ─────────────────────────────────────────────────── */
@@ -1099,6 +1111,11 @@ st.markdown("""
     .recent-scan-view-btn:hover {
         color: #f59e0b !important; border-color: rgba(245,158,11,0.35);
         background: rgba(245,158,11,0.07); text-decoration: none !important;
+    }
+    .recent-scan-view-btn:focus-visible {
+        outline: 2px solid #f59e0b;
+        outline-offset: 2px;
+        color: #f59e0b !important;
     }
 
     /* ════════════════════════════════════════════════════════════

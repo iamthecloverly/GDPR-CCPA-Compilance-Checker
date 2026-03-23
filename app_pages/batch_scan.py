@@ -72,7 +72,7 @@ def render_batch_scan_page():
             st.warning(rate_msg)
             return
 
-        st.info(f"Starting scan of {len(urls)} website(s)...")
+        st.info(f"Starting scan of {len(urls)} website(s)…")
         perform_batch_scan(urls, ai_enabled=ai_enabled)
 
 
@@ -141,7 +141,7 @@ def perform_batch_scan(urls: list, ai_enabled: bool = False):
                     url = future_to_url[future]
                     url_states[url] = "scanning"
                     processed += 1
-                    progress_tracker.update(current=processed, stage=f"Scanning {url[:40]}...")
+                    progress_tracker.update(current=processed, stage=f"Scanning {url[:40]}…")
                     progress_value = processed / len(urls)
                     progress_bar.progress(progress_value)
                     status_text.markdown(f"`{processed}/{len(urls)}` — scanning `{url[:50]}`")
@@ -249,7 +249,7 @@ def _run_batch_ai_analysis(scans: list) -> None:
 
     for i, result in enumerate(scans, 1):
         url = result.get("url", "")
-        ai_status.markdown(f"Analyzing `{url}` ({i}/{total})...")
+        ai_status.markdown(f"Analyzing `{url}` ({i}/{total})…")
         ai_bar.progress(i / total)
         try:
             analysis = svc.analyze_privacy_policy(url, result)

@@ -76,8 +76,8 @@ def render_dashboard_page():
     st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">Overview</div>
-    <div class="section-heading">Compliance Overview</div>
-    """, unsafe_allow_html=True)
+    <h2 class="section-heading">Compliance Overview</h2>
+""", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns(4, gap="medium")
 
@@ -114,8 +114,8 @@ def render_dashboard_page():
     st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">Analytics</div>
-    <div class="section-heading">Compliance Activity</div>
-    """, unsafe_allow_html=True)
+    <h2 class="section-heading">Compliance Activity</h2>
+""", unsafe_allow_html=True)
 
     col_chart, col_dist = st.columns([3, 2])
     with col_chart:
@@ -219,7 +219,7 @@ def render_dashboard_page():
     st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">Actions</div>
-    <div class="section-heading">Quick Actions</div>
+    <h2 class="section-heading">Quick Actions</h2>
 
     <div class="actions-grid">
       <a href="?nav=quick_scan" class="action-card-v2" target="_self">
@@ -253,8 +253,8 @@ def render_dashboard_page():
     st.markdown("<div class='hero-divider'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div class="section-eyebrow">History</div>
-    <div class="section-heading">Recent Scans</div>
-    """, unsafe_allow_html=True)
+    <h2 class="section-heading">Recent Scans</h2>
+""", unsafe_allow_html=True)
 
     try:
         recent_scans = get_recent_scans(limit=5)

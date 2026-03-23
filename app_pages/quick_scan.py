@@ -79,7 +79,7 @@ def render_quick_scan_page():
 
         # If cached but AI was requested and not yet run, top up with AI analysis
         if cached_result and ai_enabled and not cached_result.get("ai_analysis"):
-            with st.spinner("Running AI analysis on privacy policy..."):
+            with st.spinner("Running AI analysis on privacy policy…"):
                 try:
                     svc = OpenAIService()
                     cached_result["ai_analysis"] = svc.analyze_privacy_policy(prepared_url, cached_result)
@@ -99,19 +99,19 @@ def render_quick_scan_page():
             render_scan_results(cached_result)
         else:
             try:
-                with st.status("Scanning website...", expanded=True) as status:
-                    st.write("Fetching page content...")
+                with st.status("Scanning website…", expanded=True) as status:
+                    st.write("Fetching page content…")
                     controller = ComplianceController()
 
-                    st.write("Analyzing cookies, privacy policy & contact info...")
+                    st.write("Analyzing cookies, privacy policy & contact info…")
                     result = controller.scan_website(prepared_url)
 
-                    st.write("Calculating compliance score...")
+                    st.write("Calculating compliance score…")
                     result["scan_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     result["url"] = prepared_url
 
                     if ai_enabled:
-                        st.write("Running AI analysis on privacy policy...")
+                        st.write("Running AI analysis on privacy policy…")
                         try:
                             svc = OpenAIService()
                             result["ai_analysis"] = svc.analyze_privacy_policy(prepared_url, result)
@@ -237,7 +237,7 @@ def _render_remediation_advice(result: dict):
             key=f"remediation_btn_{url}",
             help="Uses GPT to generate prioritised fix steps for each failing compliance check",
         ):
-            with st.spinner("Generating remediation advice..."):
+            with st.spinner("Generating remediation advice…"):
                 try:
                     svc = OpenAIService()
                     advice = svc.get_remediation_advice(result)
