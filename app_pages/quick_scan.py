@@ -40,16 +40,27 @@ def render_quick_scan_page():
 
     url, submitted = render_scan_form()
 
-    # AI analysis toggle — shown in a styled card below the form
+    # AI analysis toggle — two-column card: info left, toggle right
     ai_enabled = False
     if Config.OPENAI_API_KEY:
-        st.markdown('<div class="ai-toggle-card"><span class="ai-toggle-badge">✦ Optional</span>', unsafe_allow_html=True)
-        ai_enabled = st.toggle(
-            "Enable AI Analysis",
-            value=False,
-            help="After scanning, fetches the site's privacy policy and analyzes it with GPT",
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+        col_ai_info, col_ai_toggle = st.columns([5, 1])
+        with col_ai_info:
+            st.markdown("""
+<div class="ai-feature-info">
+  <span class="ai-feature-icon">🤖</span>
+  <div>
+    <p class="ai-feature-title">AI Compliance Analysis <span class="ai-feature-badge">Optional</span></p>
+    <p class="ai-feature-desc">GPT-powered privacy policy audit for deeper GDPR &amp; CCPA insights</p>
+  </div>
+</div>""", unsafe_allow_html=True)
+        with col_ai_toggle:
+            st.markdown('<div class="ai-toggle-col">', unsafe_allow_html=True)
+            ai_enabled = st.toggle(
+                "Enable",
+                value=False,
+                help="After scanning, fetches the site's privacy policy and analyzes it with GPT",
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
     if submitted:
         is_valid, prepared_url, error_msg = validate_and_prepare_url(url)
 

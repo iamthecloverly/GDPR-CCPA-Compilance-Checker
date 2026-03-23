@@ -37,16 +37,27 @@ def render_batch_scan_page():
 
     csv_content, submitted = render_batch_upload_form()
 
-    # AI toggle — shown in a styled card below the upload form
+    # AI toggle — two-column card: info left, toggle right
     ai_enabled = False
     if Config.OPENAI_API_KEY:
-        st.markdown('<div class="ai-toggle-card"><span class="ai-toggle-badge">✦ Optional</span>', unsafe_allow_html=True)
-        ai_enabled = st.toggle(
-            "Enable AI Analysis",
-            value=False,
-            help="After scanning, runs AI privacy-policy analysis on each site (slower but more detailed)",
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+        col_ai_info, col_ai_toggle = st.columns([5, 1])
+        with col_ai_info:
+            st.markdown("""
+<div class="ai-feature-info">
+  <span class="ai-feature-icon">🤖</span>
+  <div>
+    <p class="ai-feature-title">AI Compliance Analysis <span class="ai-feature-badge">Optional</span></p>
+    <p class="ai-feature-desc">Runs GPT-powered privacy policy analysis on each site — slower but far more detailed</p>
+  </div>
+</div>""", unsafe_allow_html=True)
+        with col_ai_toggle:
+            st.markdown('<div class="ai-toggle-col">', unsafe_allow_html=True)
+            ai_enabled = st.toggle(
+                "Enable",
+                value=False,
+                help="After scanning, runs AI privacy-policy analysis on each site (slower but more detailed)",
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
     if submitted:
         # Validate URLs
         is_valid, urls, error_msg = validate_and_prepare_batch_urls(csv_content)

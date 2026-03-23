@@ -1000,18 +1000,28 @@ st.markdown("""
         padding: 0.22rem 0.7rem; border-radius: 20px;
     }
 
-    /* ── AI toggle card ──────────────────────────────────────── */
-    .ai-toggle-card {
-        background: linear-gradient(145deg, #141416, #111113);
-        border: 1px solid #3f3f46; border-radius: 12px;
-        padding: 0.75rem 1.25rem; margin: 0 0 1.25rem;
+    /* ── AI feature card ─────────────────────────────────────── */
+    .ai-feature-info {
         display: flex; align-items: center; gap: 0.85rem;
+        background: linear-gradient(135deg, rgba(245,158,11,0.07) 0%, rgba(17,17,19,0.6) 100%);
+        border: 1px solid rgba(245,158,11,0.18); border-radius: 12px;
+        padding: 0.9rem 1.15rem; height: 100%; box-sizing: border-box;
     }
-    .ai-toggle-badge {
-        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em;
+    .ai-feature-icon { font-size: 1.55rem; flex-shrink: 0; line-height: 1; }
+    .ai-feature-title {
+        font-size: 0.9rem; font-weight: 700; color: #e2e8f0;
+        margin: 0 0 0.22rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
+    }
+    .ai-feature-badge {
+        font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em;
         text-transform: uppercase; color: #f59e0b;
-        background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.22);
-        padding: 0.18rem 0.55rem; border-radius: 20px; flex-shrink: 0;
+        background: rgba(245,158,11,0.13); border: 1px solid rgba(245,158,11,0.3);
+        padding: 0.1rem 0.45rem; border-radius: 20px; vertical-align: middle;
+    }
+    .ai-feature-desc { font-size: 0.78rem; color: #9ca3af; margin: 0; line-height: 1.45; }
+    .ai-toggle-col {
+        display: flex; align-items: center; justify-content: center;
+        height: 100%; min-height: 64px;
     }
 
     /* ── Batch upload card ───────────────────────────────────── */
@@ -1221,8 +1231,8 @@ st.markdown("""
         border-color: #1c1f35 !important;
     }
 
-    /* AI toggle card */
-    .ai-toggle-card { background: linear-gradient(145deg, #0e1020, #0a0c17) !important; border-color: #1c1f35 !important; }
+    /* AI feature card */
+    .ai-feature-info { background: linear-gradient(135deg, rgba(245,158,11,0.05) 0%, rgba(10,12,23,0.7) 100%) !important; border-color: rgba(245,158,11,0.15) !important; }
 
     /* Empty state */
     .empty-state { background: linear-gradient(145deg, #0e1020 0%, #0a0c17 100%) !important; border-color: #1c1f35 !important; }
