@@ -341,9 +341,19 @@ def render_site_detailed_result(result: Dict[str, Any], index: int):
                     st.markdown(f"**{i}.** {rec}")
         
         # Additional details in dropdown
-        findings = result.get("findings", {})
+        findings = result.get("findings", [])
         if findings:
             with st.expander("📝 Additional Details", expanded=False):
-                for key, value in findings.items():
-                    if value:
-                        st.markdown(f"**{key.replace('_', ' ').title()}:** {value}")
+                if isinstance(findings, dict):
+                    for key, value in findings.items():
+                        if value:
+                            st.markdown(f"**{key.replace('_', ' ').title()}:** {value}")
+                else:
+                    for finding in findings:
+                        if isinstance(finding, dict):
+                            category = finding.get("category", "")
+                            issue = finding.get("issue", "")
+                            if category:
+                                st.markdown(f"**{category}:** {issue}")
+                        else:
+                            st.markdown(str(finding))
