@@ -93,6 +93,8 @@ def render_quick_scan_page():
                     logger.warning(f"AI analysis failed: {e}")
 
         if cached_result:
+            st.session_state["_last_scan_result"] = cached_result
+            st.session_state["_last_scan_url"] = prepared_url
             _render_success_banner(prepared_url, cached_result, cached=True)
             render_scan_results(cached_result)
         else:
@@ -149,8 +151,17 @@ def render_quick_scan_page():
             grade = result.get("grade", "F")
             st.toast(f"Scan complete — Score {score}/100, Grade {grade}", icon="✅")
 
+            st.session_state["_last_scan_result"] = result
+            st.session_state["_last_scan_url"] = prepared_url
             _render_success_banner(prepared_url, result)
             render_scan_results(result)
+
+    elif st.session_state.get("_last_scan_result"):
+        # Rerun triggered (e.g. by AI remediation button) — re-display the last result
+        last_result = st.session_state["_last_scan_result"]
+        last_url = st.session_state.get("_last_scan_url", last_result.get("url", ""))
+        _render_success_banner(last_url, last_result, cached=True)
+        render_scan_results(last_result)
 
 
 def _render_success_banner(url: str, result: dict, cached: bool = False):
