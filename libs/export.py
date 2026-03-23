@@ -19,7 +19,7 @@ from reportlab.platypus import (
     Spacer,
     PageBreak,
 )
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -426,6 +426,65 @@ def export_scan_to_pdf(scan_data: Dict[str, Any]) -> bytes:
 
     story.append(metadata_table)
     story.append(Spacer(1, 0.2 * inch))
+
+    # Score Breakdown
+    score_breakdown = scan_data.get("score_breakdown", {})
+    if score_breakdown and isinstance(score_breakdown, dict):
+        story.append(Paragraph("Score Breakdown", heading_style))
+
+        # Define max points per category (matches scoring algorithm)
+        _MAX_POINTS: Dict[str, int] = {
+            "Cookie Consent": 30,
+            "Privacy Policy": 30,
+            "Contact Information": 20,
+            "Third-Party Trackers": 20,
+        }
+
+        breakdown_data = [["Category", "Points Earned", "Max Points", "Status"]]
+        for category, points in score_breakdown.items():
+            pts = int(points) if points is not None else 0
+            max_pts = _MAX_POINTS.get(category, 30)
+            status = "✓ Pass" if pts >= max_pts * 0.5 else "✗ Fail"
+            breakdown_data.append([
+                html.escape(str(category)),
+                str(pts),
+                str(max_pts),
+                status,
+            ])
+
+        breakdown_table = Table(
+            breakdown_data,
+            colWidths=[2.5 * inch, 1.2 * inch, 1.2 * inch, 1.1 * inch],
+        )
+
+        # Build row-level background colors based on pass/fail
+        row_styles = [
+            ("BACKGROUND", (0, 0), (-1, 0), HEADING_COLOR),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ("ALIGN", (0, 0), (0, -1), "LEFT"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("GRID", (0, 0), (-1, -1), 1, BORDER_COLOR),
+        ]
+        for row_idx, (_, pts_val, max_val, _status) in enumerate(breakdown_data[1:], start=1):
+            pts_i = int(pts_val) if pts_val.lstrip("-").isdigit() else 0
+            max_i = int(max_val) if max_val.isdigit() else 30
+            if pts_i >= max_i * 0.5:
+                bg = colors.HexColor("#e6f4ea")  # light green
+                fg = colors.HexColor("#1a7f37")
+            else:
+                bg = colors.HexColor("#fce8e6")  # light red
+                fg = colors.HexColor("#c0392b")
+            row_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
+            row_styles.append(("TEXTCOLOR", (3, row_idx), (3, row_idx), fg))
+            row_styles.append(("FONTNAME", (3, row_idx), (3, row_idx), "Helvetica-Bold"))
+
+        breakdown_table.setStyle(TableStyle(row_styles))
+        story.append(breakdown_table)
+        story.append(Spacer(1, 0.2 * inch))
 
     # Findings Summary
     story.append(Paragraph("Findings Summary", heading_style))

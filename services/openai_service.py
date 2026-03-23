@@ -17,6 +17,12 @@ from utils import create_session, safe_request
 
 logger = logging.getLogger(__name__)
 
+# trafilatura emits noisy parser warnings (empty tree, wrong data type, etc.)
+# that are harmless — suppress them to avoid polluting the application log.
+logging.getLogger("trafilatura").setLevel(logging.CRITICAL)
+logging.getLogger("trafilatura.utils").setLevel(logging.CRITICAL)
+logging.getLogger("trafilatura.core").setLevel(logging.CRITICAL)
+
 
 class OpenAIService:
     """Service for OpenAI-powered privacy policy analysis."""
