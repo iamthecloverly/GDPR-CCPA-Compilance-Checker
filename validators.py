@@ -1,6 +1,7 @@
 """Input validation and sanitization module."""
 
 import re
+import socket
 import ipaddress
 from typing import Tuple
 from urllib.parse import urlparse
@@ -66,6 +67,19 @@ def validate_url(url: str) -> Tuple[bool, str]:
             if hostname in ('localhost', 'localhost.localdomain'):
                 # Block localhost for security - SSRF protection
                 raise InvalidURLError(f"Invalid URL: host '{hostname}' is not allowed")
+
+        # SSRF protection: Resolve the domain to ensure it doesn't point to a private IP
+        if not is_ip:
+            try:
+                addrinfo = socket.getaddrinfo(hostname, None)
+                for info in addrinfo:
+                    resolved_ip = info[4][0]
+                    ip = ipaddress.ip_address(resolved_ip)
+                    if ip.is_private or ip.is_loopback or ip.is_link_local or \
+                       ip.is_multicast or ip.is_reserved or ip.is_unspecified:
+                        raise InvalidURLError(f"Invalid URL: host '{hostname}' resolves to a private IP which is not allowed")
+            except socket.gaierror:
+                raise InvalidURLError(f"Invalid URL: host '{hostname}' could not be resolved")
 
         # Check allowlist/blocklist if configured
         _validate_domain_policies(hostname)
