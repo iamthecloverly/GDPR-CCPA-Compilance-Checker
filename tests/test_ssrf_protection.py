@@ -35,6 +35,38 @@ class TestSSRFProtection(unittest.TestCase):
                     validate_url(url)
                 self.assertIn("not allowed", str(cm.exception))
 
+    @patch("validators.socket.getaddrinfo")
+    def test_validate_url_dns_rebinding_ssrf_protection(self, mock_getaddrinfo):
+        # Mock getaddrinfo to return a private IP for a seemingly valid domain
+        mock_getaddrinfo.return_value = [
+            (2, 1, 6, '', ('127.0.0.1', 80))
+        ]
+
+        # Use a domain that isn't a direct IP
+        url = "http://malicious-domain.com"
+        with self.assertRaises(InvalidURLError) as cm:
+            validate_url(url)
+        self.assertIn("resolves to a private IP which is not allowed", str(cm.exception))
+
+        # Test another internal IP class
+        mock_getaddrinfo.return_value = [
+            (2, 1, 6, '', ('10.0.0.5', 80))
+        ]
+        with self.assertRaises(InvalidURLError) as cm:
+            validate_url(url)
+        self.assertIn("resolves to a private IP which is not allowed", str(cm.exception))
+
+    @patch("validators.socket.getaddrinfo")
+    def test_validate_url_dns_resolution_failure(self, mock_getaddrinfo):
+        import socket
+        # If the domain can't be resolved, it should also be rejected
+        mock_getaddrinfo.side_effect = socket.gaierror("Name or service not known")
+
+        url = "http://non-existent-domain-xyz123.com"
+        with self.assertRaises(InvalidURLError) as cm:
+            validate_url(url)
+        self.assertIn("could not be resolved", str(cm.exception))
+
     def test_validate_url_legitimate_urls(self):
         # Legitimate hosts
         legitimate_urls = [
