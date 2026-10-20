@@ -3,6 +3,7 @@
 import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
+from constants import is_detected
 
 
 def render_batch_progress(
@@ -152,8 +153,8 @@ def render_batch_summary(
                     "Score": item.get("score", 0),
                     "Grade": item.get("grade", "F"),
                     "Status": item.get("status", "Unknown"),
-                    "Cookie Consent": "✅" if "Found" in str(item.get("cookie_consent", "")) else "❌",
-                    "Privacy Policy": "✅" if "Found" in str(item.get("privacy_policy", "")) else "❌",
+                    "Cookie Consent": "✅" if is_detected(item.get("cookie_consent", "")) else "❌",
+                    "Privacy Policy": "✅" if is_detected(item.get("privacy_policy", "")) else "❌",
                     "Trackers": len(item.get("trackers", []))
                 })
             
@@ -289,14 +290,14 @@ def render_site_detailed_result(result: Dict[str, Any], index: int):
             with col1:
                 st.markdown("#### 🍪 Cookie Consent")
                 cookie_status = result.get("cookie_consent", "Not Found")
-                if "Found" in str(cookie_status):
+                if is_detected(cookie_status):
                     st.success(f"✅ {cookie_status}")
                 else:
                     st.error(f"❌ {cookie_status}")
                 
                 st.markdown("#### 📄 Privacy Policy")
                 policy_status = result.get("privacy_policy", "Not Found")
-                if "Found" in str(policy_status):
+                if is_detected(policy_status):
                     st.success(f"✅ {policy_status}")
                 else:
                     st.error(f"❌ {policy_status}")
@@ -304,7 +305,7 @@ def render_site_detailed_result(result: Dict[str, Any], index: int):
             with col2:
                 st.markdown("#### 📧 Contact Information")
                 contact_status = result.get("contact_info", "Not Found")
-                if "Found" in str(contact_status):
+                if is_detected(contact_status):
                     st.success(f"✅ {contact_status}")
                 else:
                     st.warning(f"⚠️ {contact_status}")

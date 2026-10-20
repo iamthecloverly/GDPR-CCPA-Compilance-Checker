@@ -273,7 +273,7 @@ GDPR/CCPA COMPLIANCE SCAN REPORT
 
 URL: {scan_data.get('url', 'N/A')}
 Scan Date: {scan_data.get('scan_date', 'N/A')}
-Overall Score: {(scan_data.get('score') or scan_data.get('overall_score') or 0):.1f}%
+Overall Score: {scan_data.get('score', scan_data.get('overall_score', 0)):.1f}%
 Grade: {scan_data.get('grade', 'N/A')}
 Status: {scan_data.get('status', 'N/A')}
 
@@ -285,7 +285,14 @@ FINDINGS SUMMARY
 
     # Add findings count by category
     findings = scan_data.get("findings", {})
-    if findings:
+    if isinstance(findings, list) and findings:
+        for finding in findings:
+            status = "PASS" if finding.get("passed") else "FAIL"
+            report += (
+                f"[{status}] {finding.get('category', 'N/A')} "
+                f"({finding.get('severity', 'medium')}): {finding.get('issue', 'N/A')}\n"
+            )
+    elif findings:
         for category, count in findings.items():
             # Optimize: check for list first, otherwise convert to string
             if isinstance(count, list):

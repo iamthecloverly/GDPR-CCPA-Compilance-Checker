@@ -14,7 +14,7 @@ def render_scan_form() -> Tuple[str, bool]:
         Tuple of (url: str, submitted: bool)
     """
     with st.form("scan_form", clear_on_submit=False):
-        col1, col2 = st.columns([5, 1])
+        col1, col2 = st.columns([4, 1], vertical_alignment="bottom")
 
         with col1:
             url = st.text_input(
@@ -25,7 +25,7 @@ def render_scan_form() -> Tuple[str, bool]:
 
         with col2:
             submitted = st.form_submit_button(
-                "Scan →",
+                "Scan Website",
                 use_container_width=True,
                 type="primary",
             )

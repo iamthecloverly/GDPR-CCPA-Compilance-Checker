@@ -41,19 +41,19 @@ def render_hero(stats: dict):
 <div class="hero-glow-top"></div>
 <div class="hero-glow-bottom"></div>
 <div class="hero-content">
-<div class="hero-badge"><span class="hero-live-dot"></span>GDPR &amp; CCPA Compliance Scanner</div>
-<h1 class="hero-title">Privacy Compliance,<br>Simplified.</h1>
-<p class="hero-subtitle">Scan any website for GDPR and CCPA compliance signals in seconds. Detects cookie consent, privacy policies, third-party trackers, and contact information &mdash; with a clear score and actionable report.</p>
+<div class="hero-badge">Your privacy workspace</div>
+<h1 class="hero-title">Know where your<br>website stands.</h1>
+<p class="hero-subtitle">Check cookie consent, privacy policies, contact details, and third-party trackers. Review the findings and export a report.</p>
 <div class="hero-pills">{pills_html}</div>
 <div class="hero-cta-row"><a href="?nav=quick_scan" class="hero-btn-primary" target="_self">Start Quick Scan</a><a href="?nav=batch_scan" class="hero-btn-secondary" target="_self">Batch Scan</a></div>
 {stats_html}</div>
 <div class="hero-mockup">
 <div class="mockup-glow"></div>
 <div class="mockup-window">
-<div class="mockup-titlebar"><div class="mockup-dot red"></div><div class="mockup-dot yellow"></div><div class="mockup-dot green"></div><div class="mockup-url">compliance-checker / scan</div></div>
+<div class="mockup-titlebar"><div class="mockup-dot red"></div><div class="mockup-dot yellow"></div><div class="mockup-dot green"></div><div class="mockup-url">Example report</div></div>
 <div class="mockup-body">
-<div class="mockup-site-row"><div class="mockup-favicon"></div><span class="mockup-site-name">example.com &mdash; Compliance Report</span></div>
-<div class="mockup-score-row"><div class="mockup-grade">A</div><div><div class="mockup-score-num">87<span style="font-size:1rem;color:#a1a1aa">/100</span></div><div class="mockup-status-badge">&#10004; Compliant</div></div></div>
+<div class="mockup-site-row"><div class="mockup-favicon"></div><span class="mockup-site-name">example.com</span></div>
+<div class="mockup-score-row"><div class="mockup-grade">A</div><div><div class="mockup-score-num">90<span style="font-size:1rem;color:#a1a1aa">/100</span></div><div class="mockup-status-badge">&#10004; Strong signals</div></div></div>
 <div class="mockup-findings">
 <div class="mockup-finding pass"><div class="mockup-finding-dot"></div>Cookie Consent Banner</div>
 <div class="mockup-finding pass"><div class="mockup-finding-dot"></div>Privacy Policy Detected</div>
@@ -106,7 +106,7 @@ def render_dashboard_page():
         create_metric_card(
             "At Risk",
             str(at_risk),
-            "Score < 60" if at_risk > 0 else "All clear",
+            "Score < 60" if at_risk > 0 else ("All clear" if total > 0 else "Awaiting scans"),
             "red"
         )
 

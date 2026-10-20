@@ -30,7 +30,7 @@ st.set_page_config(
     page_title="Privacy Compliance Scanner",
     page_icon="🔒",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
     menu_items={
         'Get Help': None,
         'Report a bug': None,
@@ -38,11 +38,11 @@ st.set_page_config(
     }
 )
 
-# Distinctive fonts: Syne (display) · DM Sans (body) · JetBrains Mono (data)
+# DM Sans for the interface and JetBrains Mono for data.
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
 # Custom CSS for sidebar nav and custom HTML elements
@@ -51,11 +51,11 @@ st.markdown("""
     /* ── Design tokens ──────────────────────────────────────────── */
     :root {
         color-scheme: dark;
-        --bg:            #05060b;
-        --surface-1:     #0d0f1a;
-        --surface-2:     #121520;
-        --border:        #1c1f35;
-        --border-bright: #282b44;
+        --bg:            #0b0e14;
+        --surface-1:     #141923;
+        --surface-2:     #1b2230;
+        --border:        #2b3444;
+        --border-bright: #3b485c;
         --primary:       #f59e0b;
         --primary-dim:   rgba(245,158,11,0.10);
         --primary-glow:  rgba(245,158,11,0.28);
@@ -64,9 +64,9 @@ st.markdown("""
         --success:       #10b981;
         --danger:        #f43f5e;
         --text-1:        #f0f4ff;
-        --text-2:        #8892aa;
-        --text-3:        #475570;
-        --font-display:  'Syne', sans-serif;
+        --text-2:        #b2bccd;
+        --text-3:        #a0acc0;
+        --font-display:  'DM Sans', sans-serif;
         --font-body:     'DM Sans', sans-serif;
         --font-mono:     'JetBrains Mono', monospace;
         --r-sm:          8px;
@@ -131,6 +131,7 @@ st.markdown("""
         padding: 0.55rem 0.75rem !important;
         font-weight: 500 !important;
         text-align: left !important;
+        justify-content: flex-start !important;
         font-size: 0.95rem !important;
         box-shadow: none !important;
         transform: none !important;
@@ -361,13 +362,13 @@ st.markdown("""
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        padding: 5rem 3.5rem;
-        background: linear-gradient(135deg, #090911 0%, #0d0f1c 60%, #070810 100%);
+        padding: 2.5rem;
+        background: linear-gradient(135deg, var(--surface-1), var(--bg));
         border-radius: 20px;
-        border: 1px solid #1c1f35;
-        box-shadow: 0 0 80px rgba(245,158,11,0.07), 0 24px 70px rgba(0,0,0,0.6);
-        margin-bottom: 3rem;
-        gap: 3rem;
+        border: 1px solid var(--border);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+        margin-bottom: 1rem;
+        gap: 2rem;
         position: relative;
         overflow: hidden;
         animation: fadeInUp 0.65s ease both;
@@ -396,7 +397,7 @@ st.markdown("""
         background: radial-gradient(circle, rgba(217,119,6,0.07) 0%, transparent 65%);
         pointer-events: none;
     }
-    .hero-content { flex: 1; min-width: 320px; max-width: 560px; position: relative; z-index: 1; }
+    .hero-content { flex: 1 1 320px; min-width: 0; max-width: 600px; position: relative; z-index: 1; }
     .hero-badge {
         display: inline-flex;
         align-items: center;
@@ -417,7 +418,6 @@ st.markdown("""
         width: 6px; height: 6px;
         background: #f59e0b;
         border-radius: 50%;
-        animation: pulseDot 2s ease-in-out infinite;
         flex-shrink: 0;
     }
     .hero-title {
@@ -425,19 +425,16 @@ st.markdown("""
         font-weight: 900;
         line-height: 1.1;
         margin: 0 0 1.1rem;
-        background: linear-gradient(135deg, #ffffff 20%, #fde68a 60%, #f59e0b 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: var(--text-1);
         letter-spacing: -0.02em;
         text-wrap: balance;
     }
     .hero-subtitle {
-        font-size: 1.08rem;
+        font-size: 1rem;
         color: var(--text-2, #8892aa);
-        line-height: 1.75;
-        margin: 0 0 1.75rem;
-        max-width: 480px;
+        line-height: 1.65;
+        margin: 0 0 1.25rem;
+        max-width: 540px;
         font-family: var(--font-body, 'DM Sans', sans-serif);
     }
     .hero-pills {
@@ -456,7 +453,7 @@ st.markdown("""
 
     /* ── Hero CTA buttons ──────────────────────────────────────── */
     .hero-cta-row {
-        display: flex; gap: 0.85rem; flex-wrap: wrap; margin: 2rem 0 2.5rem;
+        display: flex; gap: 0.85rem; flex-wrap: wrap; margin: 1.5rem 0 0;
     }
     .hero-btn-primary {
         display: inline-flex; align-items: center; gap: 0.45rem;
@@ -464,7 +461,7 @@ st.markdown("""
         color: #0a0a0a !important; font-weight: 700; font-size: 0.92rem;
         padding: 0.75rem 1.6rem; border-radius: 10px;
         text-decoration: none !important;
-        box-shadow: 0 4px 20px rgba(245,158,11,0.35);
+        box-shadow: 0 2px 8px rgba(245,158,11,0.12);
         transition: transform 0.15s, box-shadow 0.15s;
         font-family: var(--font-body, 'DM Sans', sans-serif) !important;
     }
@@ -514,14 +511,14 @@ st.markdown("""
 
     /* ── Product mockup card ────────────────────────────────────── */
     .hero-mockup {
-        flex-shrink: 0; width: 380px; position: relative; z-index: 1;
+        flex: 0 1 320px; max-width: 100%; position: relative; z-index: 1;
     }
     .mockup-window {
         background: #111113;
         border: 1px solid #3f3f46;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px #27272a;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
     .mockup-titlebar {
         background: #18181b;
@@ -592,7 +589,7 @@ st.markdown("""
     .hero-divider {
         height: 1px;
         background: linear-gradient(90deg, transparent 0%, #1c1f35 25%, #1c1f35 75%, transparent 100%);
-        margin: 3rem 0;
+        margin: 2rem 0;
     }
 
     /* ── Section eyebrow labels ────────────────────────────────── */
@@ -610,7 +607,7 @@ st.markdown("""
         .hero-section { flex-direction: column; padding: 2.25rem 1.5rem; gap: 1.5rem; }
         .hero-title   { font-size: 2rem; }
         .hero-subtitle{ font-size: 0.95rem; max-width: 100%; }
-        .hero-content { max-width: 100%; min-width: unset; }
+        .hero-content { flex-basis: auto; max-width: 100%; min-width: 0; }
         .hero-mockup  { display: none; }
         .hero-btn-primary, .hero-btn-secondary { font-size: 0.85rem; padding: 0.7rem 1.2rem; }
         .metric-card  { padding: 1rem; }
@@ -643,7 +640,7 @@ st.markdown("""
         letter-spacing: -0.01em;
     }
     .sb-tag {
-        font-size: 0.62rem; color: #52525b; text-transform: uppercase;
+        font-size: 0.7rem; color: var(--text-2); text-transform: uppercase;
         letter-spacing: 0.07em; margin-top: 1px;
     }
     .sb-hr {
@@ -651,8 +648,8 @@ st.markdown("""
         margin: 0.4rem 0 0.75rem;
     }
     .sb-section-label {
-        font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em;
-        text-transform: uppercase; color: #52525b;
+        font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--text-2);
         padding: 0 0.25rem 0.4rem;
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
     }
@@ -667,11 +664,11 @@ st.markdown("""
         font-size: 1.2rem; font-weight: 800; color: #fafafa; line-height: 1;
     }
     .sb-stat-label {
-        font-size: 0.6rem; color: #52525b; text-transform: uppercase;
+        font-size: 0.7rem; color: var(--text-2); text-transform: uppercase;
         letter-spacing: 0.07em; margin-top: 3px;
     }
     .sb-footer {
-        text-align: center; font-size: 0.62rem; color: #3f3f46;
+        text-align: left; font-size: 0.75rem; color: var(--text-2);
         padding: 0.5rem 0 0.25rem;
     }
 
@@ -689,7 +686,7 @@ st.markdown("""
         font-size: 1.05rem; font-weight: 700; color: #d4d4d8; margin: 0;
     }
     .empty-state-body {
-        font-size: 0.85rem; color: #52525b; max-width: 340px; line-height: 1.6; margin: 0;
+        font-size: 0.9rem; color: var(--text-2); max-width: 340px; line-height: 1.6; margin: 0;
     }
 
     /* ── Batch status pills ─────────────────────────────────────── */
@@ -934,7 +931,7 @@ st.markdown("""
     a.action-card-v2:hover,
     a.action-card-v2:visited { color: inherit !important; text-decoration: none !important; }
     .action-card-v2 .action-card-title { color: #fafafa !important; }
-    .action-card-v2 .action-card-desc  { color: #71717a !important; }
+    .action-card-v2 .action-card-desc  { color: var(--text-2) !important; }
 
     /* ── Form submit button: amber override ──────────────────── */
     [data-testid="stFormSubmitButton"] > button,
@@ -979,7 +976,7 @@ st.markdown("""
         letter-spacing: -0.025em; line-height: 1.15;
     }
     .page-hero-subtitle {
-        font-size: 0.87rem; color: #71717a; margin: 0.3rem 0 0; line-height: 1.5;
+        font-size: 0.95rem; color: var(--text-2); margin: 0.3rem 0 0; line-height: 1.5;
     }
 
     /* ── Scan form card (targets Streamlit form element) ─────── */
@@ -1008,7 +1005,7 @@ st.markdown("""
         display: inline-flex; align-items: center; gap: 0.3rem;
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.08);
-        color: #71717a; font-size: 0.74rem; font-weight: 500;
+        color: var(--text-2); font-size: 0.8rem; font-weight: 500;
         padding: 0.22rem 0.7rem; border-radius: 20px;
     }
 
@@ -1061,7 +1058,7 @@ st.markdown("""
     }
     .batch-help-item {
         display: flex; align-items: flex-start; gap: 0.5rem;
-        font-size: 0.78rem; color: #71717a; line-height: 1.5;
+        font-size: 0.85rem; color: var(--text-2); line-height: 1.5;
     }
     .batch-help-icon { font-size: 0.85rem; flex-shrink: 0; margin-top: 1px; }
 
@@ -1119,21 +1116,21 @@ st.markdown("""
     }
 
     /* ════════════════════════════════════════════════════════════
-       TYPOGRAPHY OVERRIDES — Syne (display) · Mono (data)
+       TYPOGRAPHY OVERRIDES
        ════════════════════════════════════════════════════════════ */
 
-    /* Display headings → Syne */
+    /* Display headings */
     .page-hero-title, .hero-title, .section-heading,
     .action-card-title, .sb-name, .score-hero-grade {
         font-family: var(--font-display) !important;
     }
     .page-hero-title {
-        font-size: 2.1rem !important; font-weight: 800 !important;
+        font-size: clamp(1.65rem, 3vw, 2.1rem) !important; font-weight: 700 !important;
         letter-spacing: -0.03em !important; line-height: 1.15 !important;
     }
     .hero-title {
-        font-size: 3.5rem !important; font-weight: 800 !important;
-        letter-spacing: -0.04em !important;
+        font-size: clamp(1.85rem, 3vw, 3rem) !important; font-weight: 700 !important;
+        letter-spacing: -0.035em !important;
     }
     .section-heading {
         font-size: 1.5rem !important; font-weight: 700 !important;
@@ -1160,13 +1157,14 @@ st.markdown("""
         font-family: var(--font-mono) !important;
     }
     .metric-value {
-        font-size: 2.7rem !important;
+        font-size: 2.25rem !important;
         font-weight: 400 !important;
         letter-spacing: -0.035em !important;
+        font-variant-numeric: tabular-nums;
     }
     .metric-label {
-        font-size: 0.65rem !important;
-        letter-spacing: 0.13em !important;
+        font-size: 0.75rem !important;
+        letter-spacing: 0.06em !important;
         color: var(--text-3) !important;
     }
     .score-hero-number {
@@ -1175,7 +1173,7 @@ st.markdown("""
         letter-spacing: -0.045em !important;
     }
     [data-testid="stMetricLabel"] > div {
-        font-size: 0.65rem !important;
+        font-size: 0.75rem !important;
         text-transform: uppercase !important;
         letter-spacing: 0.1em !important;
     }
@@ -1184,44 +1182,43 @@ st.markdown("""
        LAYOUT & SURFACE OVERRIDES
        ════════════════════════════════════════════════════════════ */
 
-    /* App background — stronger gradient mesh */
+    /* Shared page surfaces */
     [data-testid="stApp"] {
-        background:
-            radial-gradient(ellipse 1300px 900px at -10% -15%, rgba(245,158,11,0.09) 0%, transparent 52%),
-            radial-gradient(ellipse 900px 700px at 115% 115%, rgba(139,92,246,0.07) 0%, transparent 52%),
-            radial-gradient(ellipse 600px 400px at 60% 40%, rgba(245,158,11,0.02) 0%, transparent 40%),
-            var(--bg) !important;
+        background: var(--bg) !important;
+    }
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+        max-width: 1440px;
     }
 
     /* Sidebar — deeper, more refined */
     [data-testid="stSidebar"] > div:first-child {
-        background: #07080e !important;
-        border-right: 1px solid #181a2c !important;
+        background: #10141c !important;
+        border-right: 1px solid var(--border) !important;
     }
 
     /* Metric cards — darker surface, sharper border, crisper shadow */
     .metric-card {
-        background: linear-gradient(145deg, #0e1020 0%, #0a0c17 100%) !important;
-        border: 1px solid #1c1f35 !important;
-        border-top: 3px solid !important;
-        box-shadow: 0 4px 28px rgba(0,0,0,0.5),
-                    inset 0 1px 0 rgba(255,255,255,0.025) !important;
+        background: var(--surface-1) !important;
+        border: 1px solid var(--border) !important;
+        box-shadow: none !important;
     }
     .metric-card:hover {
-        box-shadow: 0 16px 40px rgba(0,0,0,0.55),
-                    inset 0 1px 0 rgba(255,255,255,0.04) !important;
+        transform: none;
+        box-shadow: none !important;
     }
 
     /* Score hero card — darker */
     .score-hero-card {
-        background: linear-gradient(145deg, #0e1020 0%, #0a0c17 100%) !important;
-        border-color: #1c1f35 !important;
+        background: var(--surface-1) !important;
+        border-color: var(--border) !important;
     }
 
     /* Action cards v2 — deeper background */
     .action-card-v2 {
-        background: linear-gradient(145deg, #0e1020 0%, #0a0c17 100%) !important;
-        border-color: #1c1f35 !important;
+        background: var(--surface-1) !important;
+        border-color: var(--border) !important;
     }
     .action-card-v2:hover {
         border-color: rgba(245,158,11,0.42) !important;
@@ -1231,33 +1228,33 @@ st.markdown("""
 
     /* Form card — deeper */
     [data-testid="stForm"] {
-        background: linear-gradient(145deg, #0e1020 0%, #0b0d18 100%) !important;
-        border-color: #1c1f35 !important;
+        background: var(--surface-1) !important;
+        border-color: var(--border) !important;
     }
 
     /* Recent scan rows */
     .recent-scan-row {
-        background: linear-gradient(145deg, #0e1020, #0a0c17) !important;
-        border-color: #1c1f35 !important;
+        background: var(--surface-1) !important;
+        border-color: var(--border) !important;
     }
     .recent-scan-row:hover { border-color: rgba(245,158,11,0.32) !important; }
 
     /* Batch upload wrap */
     .batch-upload-wrap {
-        background: linear-gradient(145deg, #0e1020 0%, #0b0d18 100%) !important;
-        border-color: #1c1f35 !important;
+        background: var(--surface-1) !important;
+        border-color: var(--border) !important;
     }
 
     /* AI feature card */
     .ai-feature-info { background: linear-gradient(135deg, rgba(245,158,11,0.05) 0%, rgba(10,12,23,0.7) 100%) !important; border-color: rgba(245,158,11,0.15) !important; }
 
     /* Empty state */
-    .empty-state { background: linear-gradient(145deg, #0e1020 0%, #0a0c17 100%) !important; border-color: #1c1f35 !important; }
+    .empty-state { background: var(--surface-1) !important; border-color: var(--border) !important; }
 
     /* Finding cards */
     .finding-card {
-        background: rgba(10,12,23,0.7) !important;
-        border-color: #1c1f35 !important;
+        background: var(--surface-1) !important;
+        border-color: var(--border) !important;
     }
     .finding-card-title { font-weight: 600 !important; letter-spacing: -0.01em !important; }
 
@@ -1312,7 +1309,8 @@ def render_sidebar_navigation():
         # ── Brand header ──────────────────────────────────────────
         st.markdown("""
         <div class="sb-brand">
-            <div class="sb-logo">🔒</div>
+            <div class="sb-logo" aria-hidden="true">🔒</div>
+            <div><div class="sb-name">Privacy Scanner</div><div class="sb-tag">GDPR + CCPA</div></div>
         </div>
         <div class="sb-hr"></div>
         <div class="sb-section-label">Navigation</div>

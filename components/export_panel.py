@@ -118,7 +118,7 @@ def _render_batch_export(
                 summary_text = f"Batch Compliance Scan Summary\n{'='*60}\n\nTotal Scans: {len(scan_results)}\n\n"
                 for i, scan in enumerate(scan_results, 1):
                     summary_text += f"{i}. URL: {scan.get('url', 'N/A')}\n"
-                    summary_text += f"   Score: {scan.get('overall_score', 0):.1f}% | Grade: {scan.get('grade', 'N/A')}\n\n"
+                    summary_text += f"   Score: {scan.get('score', scan.get('overall_score', 0)):.1f}% | Grade: {scan.get('grade', 'N/A')}\n\n"
                 
                 st.code(summary_text, language="text")
                 st.success("✅ Copy the summary above")
