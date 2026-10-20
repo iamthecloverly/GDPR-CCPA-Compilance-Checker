@@ -9,6 +9,9 @@ Base = declarative_base()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def _create_engine(db_url: str):
+    if db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
     if db_url.startswith("sqlite"):
         return create_engine(
             db_url,
